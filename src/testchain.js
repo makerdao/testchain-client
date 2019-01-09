@@ -26,32 +26,29 @@ window.api
   .receive('ok', data => console.log('Connected to API channel', data))
   .receive('error', console.log('ERROR JOINING API CHANNEL'));
 
-export async function start(chain = 'ganache') {
-  const options = {
-    // type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
-    // id: null, // Might be string but normally better to omit
-    http_port: 8545, // port for chain. should be changed on any new chain
-    // ws_port: 8546, // ws port (only for geth) for ganache will be ignored
-    accounts: 3, // Number of account to be created on chain start
-    block_mine_time: 0, // how often new block should be mined (0 - instamine)
-    clean_on_stop: true, // Will delete chain db folder after chain stop
-    logger: (kind, msg, data) => {
-      console.log(`In Start Function: ${kind}: ${msg}`, data);
-    },
-    transport: WebSocket
-  };
-
+export async function createNewChain(options) {
   window.api
     .push('start', options)
     .receive('ok', ({ id: id }) => {
       console.log('Created new chain', id);
-      start_channel(id).on('started', async data =>
-        console.log('Chain started', data)
-      );
+      start_channel(id).on('started', async data => {
+        console.log('Chain started', data);
+        take_snapshot(data.id);
+      });
     })
     .receive('error in window.api.push(start)', console.error)
     .receive('timeout', () => console.log('Network issues'));
 }
+
+export async function getChain(id) {
+  chain(id).on('ok', () => console.log('getChain OK'));
+}
+
+export async function stopChain(id) {
+  return stop(id);
+}
+
+/**PRIVATE METHODS */
 
 export function start_channel(id) {
   window[id] = window.socket.channel(`chain:${id}`);
