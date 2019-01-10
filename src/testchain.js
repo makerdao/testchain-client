@@ -1,18 +1,4 @@
 import { Socket } from 'phoenix';
-import { setupTestMakerInstance } from '../test/helpers';
-
-// kind is type/action (ex "push").
-// msg is channel name and event (ex. "api1 start (1, 2)").
-// data is what was passed in to the kind.
-
-/**
- * this project should make a connection to the elixer backend and start up testchains.
- *
- * However, testchains should be designed & tarballed with snapshot for any given scenario
- * this service should basically tell the elixer backend to use
- * a given snapshot and spin it up.
- *
- */
 
 export default class TestChainService {
   constructor() {
@@ -68,17 +54,71 @@ export default class TestChainService {
     });
   }
 
-  startChain(options) {
-    channel
-      .push('start', options)
-      .receive('ok', ({ id: id }) => {
-        console.log('Created new chain', id);
-        start_channel(id).on('started', async data => {
-          console.log('Chain started', data);
-        });
-      })
-      .receive('error in channel.push(start)', console.error)
-      .receive('timeout', () => console.log('Network issues'));
+  createChain(options) {
+    return new Promise((resolve, reject) => {
+      if (!this.isConnectedChannel()) reject('Not connected to a channel');
+
+      this._channel
+        .push('start', options)
+        .receive('ok', ({ id: id }) => {
+          this._chainList[id] = this._socket.channel(`chain:${id}`);
+          resolve({ id: id });
+        })
+        .receive('error in channel.push(start)', console.error)
+        .receive('timeout', () => console.log('Network issues'));
+    });
+  }
+
+  startChainById(id) {
+    const chain = this._chainList[id];
+    return new Promise((resolve, reject) => {
+      chain
+        .join()
+        .receive('ok', () => {
+          console.log('Joined channel chain', id);
+          resolve();
+        })
+        .receive('error', console.error);
+    });
+  }
+
+  stopChainById(id) {
+    const chain = this._chainList[id];
+    return new Promise((resolve, reject) => {
+      chain
+        .push('stop')
+        .receive('ok', () => {
+          console.log('Chain stopped!', id);
+          resolve();
+        })
+        .receive('error', console.error);
+    });
+  }
+
+  takeSnapshot(id) {
+    const chain = this._chainList[id];
+    return new Promise((resolve, reject) => {
+      chain
+        .push('take_snapshot')
+        .receive('ok', ({ snapshot }) => {
+          console.log('Snapshot made for chain %s with id %s', id, snapshot);
+          resolve({ snapshot });
+        })
+        .receive('error', console.error);
+    });
+  }
+
+  revertSnapshot(id, snapshot) {
+    const chain = this._chainList[id];
+    return new Promise((resolve, reject) => {
+      chain
+        .push('revert_snapshot', { snapshot })
+        .receive('ok', () => {
+          console.log('Snapshot %s reverted to chain %s', snapshot, id);
+          resolve({ snapshot, id });
+        })
+        .receive('error', console.error);
+    });
   }
 
   // status methods
@@ -92,6 +132,14 @@ export default class TestChainService {
     } else {
       return false;
     }
+  }
+
+  getChainList() {
+    return this._chainList;
+  }
+
+  getChainById(id) {
+    return this._chainList[id];
   }
 }
 
