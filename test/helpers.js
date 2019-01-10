@@ -10,7 +10,7 @@ export async function setupTestMakerInstance() {
 
   const makerConfig = {
     plugins: [
-      governancePlugin,
+      //governancePlugin,
       [configPlugin, { testchainId: testchainId }],
       TestChainService
     ],

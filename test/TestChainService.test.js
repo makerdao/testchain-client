@@ -1,10 +1,8 @@
 import { setupTestMakerInstance } from './helpers';
-import { createNewChain, getChain, stopChain } from '../src/testchain';
+import TestChainService from '../src/testchain';
 import 'whatwg-fetch';
 
-let maker, chainData;
-
-// chain();
+let service;
 
 beforeAll(async () => {
   const options = {
@@ -14,15 +12,14 @@ beforeAll(async () => {
     //ws_port: 8546, // ws port (only for geth) for ganache will be ignored
     accounts: 3, // Number of account to be created on chain start
     block_mine_time: 0, // how often new block should be mined (0 - instamine)
-    clean_on_stop: true, // Will delete chain db folder after chain stop
-    logger: (kind, msg, data) => {
-      console.log(`In Start Function: ${kind}: ${msg}`, data);
-    },
-    transport: WebSocket
+    clean_on_stop: true // Will delete chain db folder after chain stop
   };
-  chainData = await createNewChain(options);
 
-  // maker = await setupTestMakerInstance();
+  //connectApp();
+  //connectChannel();
+  //createNewChain(options);
+
+  //maker = await setupTestMakerInstance();
   // smartContract = maker.service('smartContract');
   // chief = maker.service('chief');
   // web3 = maker.service('web3');
@@ -41,17 +38,23 @@ beforeAll(async () => {
 //   // console.log('chainstuff', chainstuff);
 // });
 
-test('create maker', async done => {
-  const testchainId = 2;
-  maker = await setupTestMakerInstance(testchainId);
-
-  const accounts = maker.service('accounts');
-  const accts = accounts.listAccounts();
-  console.log('accts', accts);
-
-  const web3 = maker.service('web3');
-  const p = web3.web3Provider();
-  console.log('providers', p._providers[1].rpcUrl);
-
-  done();
+test('will connect to app', async () => {
+  const service = new TestChainService();
+  const isConnected = await service.connectApp();
+  expect(isConnected).toBe(true);
 });
+
+//test('create maker', async () => {
+
+//const testchainId = 2;
+//maker = await setupTestMakerInstance(testchainId);
+
+// const accounts = maker.service('accounts');
+// const accts = accounts.listAccounts();
+// console.log('accts', accts);
+
+// const web3 = maker.service('web3');
+// const p = web3.web3Provider();
+// console.log('providers', p._providers[1].rpcUrl);
+
+//}, 10000);
