@@ -22,7 +22,7 @@ export default class TestChainService {
   }
 
   connectApp(url = 'ws://127.1:4000/socket') {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       this._socket = new Socket(url, {
         logger: (kind, msg, data) => {
           console.log(`${kind}: ${msg} Data:`, data);
@@ -30,28 +30,15 @@ export default class TestChainService {
         transport: WebSocket
       });
 
-      this._socket.onOpen(() => {
-        resolve(this._socket.isConnected());
-      });
+      this._socket.onOpen(() => resolve(this._socket.isConnected()));
+      this._socket.onError(err => reject('Socket Connection Failed'));
 
       this._socket.connect();
     });
   }
 
-  disconnectApp() {
-    return new Promise(resolve => {
-      this._socket.onClose(() => {
-        resolve('JBJBJ');
-      });
-
-      this._socket.disconnect(
-        () => {
-          console.log('app disconnected');
-        },
-        1000,
-        'sss'
-      );
-    });
+  disconnectApp(cb) {
+    this._socket.disconnect(cb);
   }
 
   joinChannel() {

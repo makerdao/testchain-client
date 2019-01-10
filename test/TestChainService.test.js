@@ -4,6 +4,10 @@ import 'whatwg-fetch';
 
 let service;
 
+beforeEach(() => {
+  service = new TestChainService();
+});
+
 beforeAll(async () => {
   const options = {
     // type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
@@ -14,10 +18,6 @@ beforeAll(async () => {
     block_mine_time: 0, // how often new block should be mined (0 - instamine)
     clean_on_stop: true // Will delete chain db folder after chain stop
   };
-
-  //connectApp();
-  //connectChannel();
-  //createNewChain(options);
 
   //maker = await setupTestMakerInstance();
   // smartContract = maker.service('smartContract');
@@ -38,10 +38,25 @@ beforeAll(async () => {
 //   // console.log('chainstuff', chainstuff);
 // });
 
-test('will connect to app', async () => {
-  const service = new TestChainService();
+test('will connect app', async () => {
   const isConnected = await service.connectApp();
   expect(isConnected).toBe(true);
+});
+
+test('will disconnect app', async () => {
+  await service.connectApp();
+  service.disconnectApp();
+  expect(service.isConnected()).toBe(false);
+});
+
+test('will error for incorrect connection', async () => {
+  expect.assertions(1);
+
+  try {
+    await service.connectApp('ws://0.0.0.0/socket'); //incorrect port
+  } catch (e) {
+    expect(e).toEqual('Socket Connection Failed');
+  }
 });
 
 //test('create maker', async () => {
