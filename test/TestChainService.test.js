@@ -53,8 +53,10 @@ test('will join & leave channel', async () => {
 //   console.log(service._channel);
 // });
 
-test('can create, join, and stop a chain', async () => {
+test('snapshot workflow: create, edit, revert snapshot', async () => {
   jest.setTimeout(20000);
+  let maker;
+  let contract;
   const options = {
     // type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
     // id: null, // Might be string but normally better to omit
@@ -68,11 +70,42 @@ test('can create, join, and stop a chain', async () => {
   await service.connectApp();
   await service.joinChannel();
   const { id } = await service.createChain(options);
-  // const chainList = service.getChainList();
+
   const chain = service.getChainById(id);
   // console.log(chain);
 
   await service.startChainById(id);
+
+  const { snapshot } = await service.takeSnapshot(id);
+  console.log(snapshot);
+
+  const configWithoutContracts = 3; // corresponds to a dai-plugin-config setting
+  maker = await setupTestMakerInstance(configWithoutContracts);
+
+  try {
+    contract = maker.service('smartContract').getContractByName('CHIEF');
+  } catch (error) {
+    // contract doesn't exist
+    console.log(error);
+  }
+
+  // now deploy contracts
+  const configWithContracts = 2; // corresponds to a dai-plugin-config setting
+  maker = await setupTestMakerInstance(configWithContracts);
+
+  contract = maker.service('smartContract').getContractByName('CHIEF');
+  console.log('name2 is', contract);
+
+  await service.revertSnapshot(id, snapshot);
+
+  maker = await setupTestMakerInstance(configWithoutContracts);
+
+  try {
+    contract = maker.service('smartContract').getContractByName('CHIEF');
+  } catch (error) {
+    // contract doesn't exist after revert snapshot
+    console.log('new error', error);
+  }
 
   await service.stopChainById(id);
 

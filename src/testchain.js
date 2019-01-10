@@ -115,7 +115,7 @@ export default class TestChainService {
         .push('revert_snapshot', { snapshot })
         .receive('ok', () => {
           console.log('Snapshot %s reverted to chain %s', snapshot, id);
-          resolve({ snapshot, id });
+          resolve();
         })
         .receive('error', console.error);
     });
