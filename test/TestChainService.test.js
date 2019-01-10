@@ -38,15 +38,11 @@ beforeAll(async () => {
 //   // console.log('chainstuff', chainstuff);
 // });
 
-test('will connect app', async () => {
-  const isConnected = await service.connectApp();
-  expect(isConnected).toBe(true);
-});
-
-test('will disconnect app', async () => {
+test('will connect & disconnect app', async () => {
   await service.connectApp();
+  expect(service.isConnectedSocket()).toBe(true);
   service.disconnectApp();
-  expect(service.isConnected()).toBe(false);
+  expect(service.isConnectedSocket()).toBe(false);
 });
 
 test('will error for incorrect connection', async () => {
@@ -55,9 +51,25 @@ test('will error for incorrect connection', async () => {
   try {
     await service.connectApp('ws://0.0.0.0/socket'); //incorrect port
   } catch (e) {
-    expect(e).toEqual('Socket Connection Failed');
+    expect(e).toEqual(service.errLogs.FAILED_SOCKET_CONNECTION);
   }
 });
+
+test('will join & leave channel', async () => {
+  await service.connectApp();
+  await service.joinChannel();
+  expect(service.isConnectedChannel()).toBe(true);
+
+  await service.leaveChannel();
+  expect(service.isConnectedChannel()).toBe(false);
+});
+
+// TODO
+// test('will fail to join non-existing channel', async () => {
+//   await service.connectApp();
+//   await service.joinChannel('fakeChannel');
+//   console.log(service._channel);
+// });
 
 //test('create maker', async () => {
 

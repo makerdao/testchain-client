@@ -19,19 +19,25 @@ export default class TestChainService {
     this._socket = null;
     this._channel = null;
     this._chainList = {};
+
+    this.errLogs = {
+      //TODO: Move to own file
+      FAILED_SOCKET_CONNECTION: new Error('FAILED_SOCKET_CONNECTION'),
+      FAILED_CHANNEL_CONNECTION: new Error('FAILED CHANNEL_CONNECTION')
+    };
   }
 
   connectApp(url = 'ws://127.1:4000/socket') {
     return new Promise((resolve, reject) => {
       this._socket = new Socket(url, {
-        logger: (kind, msg, data) => {
-          console.log(`${kind}: ${msg} Data:`, data);
-        },
+        // logger: (kind, msg, data) => {
+        //   console.log(`${kind}: ${msg} Data:`, data);
+        // },
         transport: WebSocket
       });
 
       this._socket.onOpen(() => resolve(this._socket.isConnected()));
-      this._socket.onError(err => reject('Socket Connection Failed'));
+      this._socket.onError(() => reject(this.errLogs.FAILED_SOCKET_CONNECTION));
 
       this._socket.connect();
     });
@@ -41,14 +47,25 @@ export default class TestChainService {
     this._socket.disconnect(cb);
   }
 
-  joinChannel() {
-    this._channel = this._socket.channel('api');
-    this._channel
-      .join()
-      .receive('ok', data => {
-        console.log('Connected to API channel', data);
-      })
-      .receive('error', error => console.err(error));
+  joinChannel(topic = 'api') {
+    return new Promise((resolve, reject) => {
+      if (!this._socket.isConnected())
+        reject('Socket Connection Does Not Exist');
+
+      this._channel = this._socket.channel(topic);
+      this._channel
+        .join()
+        .receive('ok', data => resolve(data))
+        .receive('error', err =>
+          reject(this.errLogs.FAILED_CHANNEL_CONNECTION, err)
+        );
+    });
+  }
+
+  leaveChannel() {
+    return new Promise(resolve => {
+      this._channel.leave().receive('ok', () => resolve('left channel'));
+    });
   }
 
   startChain(options) {
@@ -65,8 +82,16 @@ export default class TestChainService {
   }
 
   // status methods
-  isConnected() {
+  isConnectedSocket() {
     return this._socket.isConnected();
+  }
+
+  isConnectedChannel() {
+    if (this._channel.state === 'joined') {
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 
