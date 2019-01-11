@@ -1,8 +1,17 @@
-import TestChainService from './TestChainService';
+import TestChainService from './testchain';
+// const TestchainService = require('./testchain.js');
 
-export default {
-  addConfig: () => ({
-    additionalServices: ['testchain'],
-    testchain: TestChainService
-  })
+const helloW = () => {
+  console.log(TestChainService);
+  return 'Hey Wordl2';
 };
+
+// exports.TestchainService = TestchainService;
+export default TestChainService;
+
+// export default {
+//   addConfig: () => ({
+//     additionalServices: ['testchain'],
+//     testchain: TestChainService
+//   })
+// };

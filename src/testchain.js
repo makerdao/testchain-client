@@ -15,6 +15,10 @@ export default class TestChainService {
     };
   }
 
+  helloWorld() {
+    return 'Hello Wordld';
+  }
+
   connectApp(url = 'ws://127.1:4000/socket') {
     return new Promise((resolve, reject) => {
       this._socket = new Socket(url, {
@@ -74,6 +78,7 @@ export default class TestChainService {
       this._apiChannel
         .push('start', options)
         .receive('ok', ({ id: id }) => {
+          console.log('OK WORKS');
           this._chainList[id] = this._socket.channel(`chain:${id}`);
           resolve(id);
         })

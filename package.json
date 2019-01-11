@@ -31,7 +31,9 @@
   },
   "scripts": {
     "test": "jest --runInBand",
-    "precommit": "lint-staged"
+    "precommit": "lint-staged",
+    "build": "./scripts/build.sh",
+    "build:watch": "sane ./scripts/build.sh src --wait=10"
   },
   "jest": {
     "globals": {
