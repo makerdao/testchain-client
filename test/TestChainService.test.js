@@ -53,6 +53,64 @@ test('will join & leave channel', async () => {
 //   console.log(service._channel);
 // });
 
+// test.only('will create, join, and stop a chain with a set of options', async () => {
+//   const options = {
+//     http_port: 8545,
+//     accounts: 3,
+//     block_mine_time: 0,
+//     clean_on_stop: true
+//   };
+
+//   await service.connectApp();
+//   await service.joinApiChannel();
+
+//   const id = await service.createChain(options);
+//   console.log('my id', id, typeof id);
+
+//   const chain = await service.joinChain(id);
+//   console.log('my chain', chain);
+
+//   await service.stopChainById(id);
+// });
+
+test.only('will create, join, and stop multiple chains', async () => {
+  const options1 = {
+    http_port: 8545,
+    accounts: 3,
+    block_mine_time: 0,
+    clean_on_stop: true
+  };
+
+  const options2 = {
+    http_port: 8546,
+    accounts: 3,
+    block_mine_time: 0,
+    clean_on_stop: true
+  };
+
+  await service.connectApp();
+
+  await service.joinApiChannel();
+
+  // Create chain with Options 1
+  const id1 = await service.createChain(options1);
+  console.log('my id1', id1, typeof id1);
+
+  const chain1 = await service.joinChain(id1);
+  console.log('my chain1', chain1);
+
+  // await service.joinApiChannel();
+  // Create chain with options 2
+  const id2 = await service.createChain(options2);
+  console.log('my id2', id2, typeof id2);
+
+  const chain2 = await service.joinChain(id2);
+  console.log('my chain2', chain2);
+
+  await service.stopChainById(id1);
+  await service.stopChainById(id2);
+});
+
 test('snapshot workflow: create, edit, revert snapshot', async () => {
   jest.setTimeout(20000);
   let maker;
@@ -102,9 +160,9 @@ test('snapshot workflow: create, edit, revert snapshot', async () => {
 
   try {
     contract = maker.service('smartContract').getContractByName('CHIEF');
-  } catch (error) {
+  } catch ({ message }) {
     // contract doesn't exist after revert snapshot
-    console.log('new error', error);
+    console.log('new error:', message);
   }
 
   await service.stopChainById(id);

@@ -1,8 +1,10 @@
 import { Socket } from 'phoenix';
+const API_CHANNEL = 'api';
 
 export default class TestChainService {
   constructor() {
     this._socket = null;
+    this._apiChannel = null;
     this._channel = null;
     this._chainList = {};
 
@@ -33,12 +35,23 @@ export default class TestChainService {
     this._socket.disconnect(cb);
   }
 
-  joinChannel(topic = 'api') {
+  // Should create chain handle joining the API channel?
+  async joinApiChannel() {
+    if (!this._apiChannel) this._apiChannel = this._socket.channel(API_CHANNEL);
+    console.log('api channel', this._apiChannel);
+    this._channel = this._apiChannel;
+    return await this._joinChannel();
+  }
+
+  async joinChain(id) {
+    this._channel = this._chainList[id];
+    return await this._joinChannel();
+  }
+
+  _joinChannel() {
     return new Promise((resolve, reject) => {
       if (!this._socket.isConnected())
         reject('Socket Connection Does Not Exist');
-
-      this._channel = this._socket.channel(topic);
       this._channel
         .join()
         .receive('ok', data => resolve(data))
@@ -58,27 +71,14 @@ export default class TestChainService {
     return new Promise((resolve, reject) => {
       if (!this.isConnectedChannel()) reject('Not connected to a channel');
 
-      this._channel
+      this._apiChannel
         .push('start', options)
         .receive('ok', ({ id: id }) => {
           this._chainList[id] = this._socket.channel(`chain:${id}`);
-          resolve({ id: id });
+          resolve(id);
         })
         .receive('error in channel.push(start)', console.error)
         .receive('timeout', () => console.log('Network issues'));
-    });
-  }
-
-  startChainById(id) {
-    const chain = this._chainList[id];
-    return new Promise((resolve, reject) => {
-      chain
-        .join()
-        .receive('ok', () => {
-          console.log('Joined channel chain', id);
-          resolve();
-        })
-        .receive('error', console.error);
     });
   }
 
