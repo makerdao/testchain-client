@@ -18,13 +18,11 @@ afterEach(async () => {
    */
 });
 
-const options = () => {
-  return {
-    http_port: 8545,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: true
-  };
+const options = {
+  http_port: 8545,
+  accounts: 3,
+  block_mine_time: 0,
+  clean_on_stop: true
 };
 
 test('will connect & disconnect app', async () => {
@@ -50,7 +48,7 @@ test('will join & leave api channel', async () => {
 });
 
 test('chain instance can be created', async () => {
-  const id = await service.createChainInstance(options());
+  const id = await service.createChainInstance({ ...options });
   const chain = service.getChain(id);
   const chainList = service.getChainList();
 
@@ -65,9 +63,7 @@ test('chain instance can be created', async () => {
 test('chain instance can be stopped', async () => {
   // this test will create a chaindata folder
   const id = await service.createChainInstance({
-    http_port: 8545,
-    accounts: 3,
-    block_mine_time: 0,
+    ...options,
     clean_on_stop: false
   });
 
@@ -85,18 +81,11 @@ test.skip('chain instance can be restarted', async () => {
 });
 
 test('will create multiple chains', async () => {
-  const chainId1 = await service.createChainInstance({
-    http_port: 8545,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: true
-  });
+  const chainId1 = await service.createChainInstance({ ...options });
 
   const chainId2 = await service.createChainInstance({
-    http_port: 8546,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: true
+    ...options,
+    http_port: 8546
   });
 
   const chainList = service.getChainList();
