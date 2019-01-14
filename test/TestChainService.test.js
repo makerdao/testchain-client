@@ -68,7 +68,6 @@ test('chain instance can be stopped', async () => {
   });
 
   await service.stopChain(id);
-
   expect(service.getChain(id).running).toEqual(false);
 });
 

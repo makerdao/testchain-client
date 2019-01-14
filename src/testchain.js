@@ -28,7 +28,7 @@ export default class TestChainService {
       });
 
       this._socket.onError(() => reject('SOCKET_ERROR'));
-      this._socket.onMessage(console.log);
+      //this._socket.onMessage(console.log);
 
       this._socket.connect();
     });
@@ -77,8 +77,10 @@ export default class TestChainService {
             hash: hash,
             config: options,
             connected: false,
-            running: true
+            running: true,
+            eventRefs: {}
           };
+          await this._registerDefaultEventListeners(id);
 
           await this._joinChain(id);
           resolve(id);
@@ -101,6 +103,33 @@ export default class TestChainService {
         resolve(true);
       });
     });
+  }
+
+  _registerDefaultEventListeners(id) {
+    return new Promise(resolve => {
+      const eventNames = {
+        started: 'started',
+        error: 'error',
+        stopped: 'stopped',
+        snapshot_taken: 'snapshot_taken',
+        snapshot_reverted: 'snapshot_reverted'
+      };
+
+      for (let event of Object.values(eventNames)) {
+        if (event === eventNames.error) {
+          this._registerEvent(id, 'log', event, err => console.error(err));
+        }
+        this._registerEvent(id, 'log', event, data =>
+          console.log(id, event, data)
+        );
+      }
+      resolve();
+    });
+  }
+
+  _registerEvent(id, label, event, cb) {
+    const ref = this._chainList[id].channel.on(event, cb);
+    this._chainList[id].eventRefs[label + ':' + event] = ref;
   }
 
   _leaveChain(id) {
