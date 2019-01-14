@@ -1,8 +1,3 @@
-import TestChainService from './TestChainService';
+import TestChainService from './testchain';
 
-export default {
-  addConfig: () => ({
-    additionalServices: ['testchain'],
-    testchain: TestChainService
-  })
-};
+export default TestChainService;
