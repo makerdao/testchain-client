@@ -56,9 +56,9 @@ test('chain instance can be created', async () => {
 
   expect(chain.channel.topic).toEqual('chain:' + id);
   expect(chain.channel.state).toEqual('joined');
-  expect(chain.metadata.hash).toEqual('c25fef28b86a9272b39ada54601e8bbd');
-  expect(chain.metadata.connected).toEqual(true);
-  expect(chain.metadata.running).toEqual(true);
+  expect(chain.hash).toEqual('c25fef28b86a9272b39ada54601e8bbd');
+  expect(chain.connected).toEqual(true);
+  expect(chain.running).toEqual(true);
   expect(Object.keys(chainList)[0]).toEqual(id);
 });
 
@@ -73,7 +73,7 @@ test('chain instance can be stopped', async () => {
 
   await service.stopChain(id);
 
-  expect(service.getChain(id).metadata.running).toEqual(false);
+  expect(service.getChain(id).running).toEqual(false);
 });
 
 test.skip('chain instance can be restarted', async () => {
@@ -106,10 +106,10 @@ test('will create multiple chains', async () => {
   const chain1 = service.getChain(chainId1);
   const chain2 = service.getChain(chainId2);
 
-  expect(chain1.metadata.connected).toBe(true);
-  expect(chain1.metadata.running).toBe(true);
-  expect(chain2.metadata.connected).toBe(true);
-  expect(chain2.metadata.running).toBe(true);
+  expect(chain1.connected).toBe(true);
+  expect(chain1.running).toBe(true);
+  expect(chain2.connected).toBe(true);
+  expect(chain2.running).toBe(true);
 });
 
 test.skip('chain created with same config as existing chain will use existing chain', async () => {

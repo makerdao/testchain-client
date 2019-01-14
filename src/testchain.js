@@ -73,13 +73,11 @@ export default class TestChainService {
         .receive('ok', async ({ id: id }) => {
           this._chainList[id] = {
             channel: this._socket.channel(`chain:${id}`),
-            metadata: {
-              id: id,
-              hash: hash,
-              config: options,
-              connected: false,
-              running: true
-            }
+            id: id,
+            hash: hash,
+            config: options,
+            connected: false,
+            running: true
           };
 
           await this._joinChain(id);
@@ -89,7 +87,7 @@ export default class TestChainService {
   }
 
   async _joinChain(id) {
-    const { connected } = this._chainList[id].metadata;
+    const { connected } = this._chainList[id];
     if (connected) {
       return 'Chain:' + id + ' already joined';
     }
@@ -99,7 +97,7 @@ export default class TestChainService {
         reject('Socket Connection Does Not Exist');
 
       this._chainList[id].channel.join().receive('ok', () => {
-        this._chainList[id].metadata.connected = true;
+        this._chainList[id].connected = true;
         resolve(true);
       });
     });
@@ -107,7 +105,7 @@ export default class TestChainService {
 
   _leaveChain(id) {
     return new Promise(resolve => {
-      this._chainList[id].metadata.connected = false;
+      this._chainList[id].connected = false;
       this._chainList[id].channel.leave().receive('ok', () => resolve(true));
     });
   }
@@ -117,23 +115,23 @@ export default class TestChainService {
      * May not be possible. Unsure how to restart stopped chain
      */
 
-    if (this._chainList[id].metadata.running) return true;
+    if (this._chainList[id].running) return true;
 
     return new Promise((resolve, reject) => {
       this._chainList[id].channel.push('start').receive('ok', () => {
-        this._chainList[id].metadata.running = true;
+        this._chainList[id].running = true;
         resolve(true);
       });
     });
   }
 
   stopChain(id) {
-    if (!((this._chainList[id] || {}).metadata || {}).running) return true;
+    if (!(this._chainList[id] || {}).running) return true;
 
     return new Promise((resolve, reject) => {
       this._chainList[id].channel.push('stop').receive('ok', () => {
-        this._chainList[id].metadata.running = false;
-        if (this._chainList[id].metadata.config.clean_on_stop) {
+        this._chainList[id].running = false;
+        if (this._chainList[id].config.clean_on_stop) {
           delete this._chainList[id];
         }
         resolve(true);
