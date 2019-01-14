@@ -183,12 +183,10 @@ export default class TestChainService {
   async clearChains() {
     // convenience method to remove all chain instances
     // until delete route is added
-
     const ids = Object.keys(this._chainList);
 
     for (let i = 0; i < ids.length; i++) {
-      await this.joinChain(ids[i]);
-      await this.stopChain();
+      await this.stopChain(ids[i]);
     }
   }
 }
