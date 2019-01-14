@@ -1,181 +1,265 @@
 import { setupTestMakerInstance } from './helpers';
 import TestChainService from '../src/testchain';
 import 'whatwg-fetch';
+import md5 from 'md5';
 
 jest.setTimeout(20000);
 
 let service;
-
-beforeEach(async () => {
-  service = new TestChainService();
-  await service.connectApp();
-});
-
-afterEach(async () => {
-  await service.clearChains();
-  /*
-   * There appears to be an issue in clearing of chains if they are to be rejoined.
-   */
-});
 
 const options = () => {
   return {
     http_port: 8545,
     accounts: 3,
     block_mine_time: 0,
-    clean_on_stop: true
+    clean_on_stop: false
   };
 };
 
-test('will connect & disconnect app', async () => {
-  expect(service.isConnectedSocket()).toBe(true);
-  service._disconnectApp();
-  expect(service.isConnectedSocket()).toBe(false);
-});
+const hash = md5(JSON.stringify(options())); //will have to normalise ordering of values
 
-test('will throw error for incorrect connection', async () => {
-  expect.assertions(1);
-  service = new TestChainService();
-  try {
-    await service.connectApp('ws://1.1.1.1/socket');
-  } catch (e) {
-    expect(e).toEqual('SOCKET_ERROR');
-  }
-});
+// TODO: we're cheating here until the testchain events get handled:
+const wait = async ms => {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+};
 
-test('will join & leave api channel', async () => {
-  expect(service.isConnectedApi()).toBe(true);
-  await service._leaveApi();
-  expect(service.isConnectedApi()).toBe(false);
-});
+// test.only('will remove all chains', async () => {
+//   service = new TestChainService();
+//   await service.initialize();
+//   await service.removeAllChains();
+// });
 
-test('chain instance can be created', async () => {
-  const id = await service.createChainInstance(options());
-  const chain = service.getChain(id);
-  const chainList = service.getChainList();
-
-  expect(chain.channel.topic).toEqual('chain:' + id);
-  expect(chain.channel.state).toEqual('joined');
-  expect(chain.hash).toEqual('c25fef28b86a9272b39ada54601e8bbd');
-  expect(chain.connected).toEqual(true);
-  expect(chain.running).toEqual(true);
-  expect(Object.keys(chainList)[0]).toEqual(id);
-});
-
-test('chain instance can be stopped', async () => {
-  // this test will create a chaindata folder
-  const id = await service.createChainInstance({
-    http_port: 8545,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: false
+describe('app connectivity', async () => {
+  beforeAll(async () => {
+    service = new TestChainService();
+    // await service.connectApp();
+    await service.initialize();
   });
 
-  await service.stopChain(id);
-
-  expect(service.getChain(id).running).toEqual(false);
-});
-
-test.skip('chain instance can be restarted', async () => {
-  /*
-   * Service should enable the restarting of chains which already exist
-   * https://github.com/makerdao/ex_testchain/blob/master/apps/web_api/lib/web_api_web/channels/chain_channel.ex
-   * Does not seem to indicate that restart is possible as only stop is listed
-   */
-});
-
-test('will create multiple chains', async () => {
-  const chainId1 = await service.createChainInstance({
-    http_port: 8545,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: true
+  test('will connect & disconnect app', async () => {
+    expect(service.isConnectedSocket()).toBe(true);
+    service._disconnectApp();
+    expect(service.isConnectedSocket()).toBe(false);
   });
 
-  const chainId2 = await service.createChainInstance({
-    http_port: 8546,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: true
+  test('will throw error for incorrect connection', async () => {
+    expect.assertions(1);
+    try {
+      await service.connectApp('ws://1.1.1.1/socket');
+    } catch (e) {
+      expect(e).toEqual('SOCKET_ERROR');
+    }
   });
 
-  const chainList = service.getChainList();
-  expect(Object.keys(chainList)[0]).toEqual(chainId1);
-  expect(Object.keys(chainList)[1]).toEqual(chainId2);
-
-  const chain1 = service.getChain(chainId1);
-  const chain2 = service.getChain(chainId2);
-
-  expect(chain1.connected).toBe(true);
-  expect(chain1.running).toBe(true);
-  expect(chain2.connected).toBe(true);
-  expect(chain2.running).toBe(true);
+  test('will join & leave api channel', async () => {
+    expect(service.isConnectedApi()).toBe(true);
+    await service._leaveApi();
+    expect(service.isConnectedApi()).toBe(false);
+  });
 });
 
-test.skip('chain created with same config as existing chain will use existing chain', async () => {
-  /*
-   * TODO: Use config hashes to find if pre-existing chain instances already exist
-   */
+describe('chain starting and stopping', async () => {
+  let id;
+
+  beforeAll(async () => {
+    service = new TestChainService();
+    // await service.connectApp();
+    await service.initialize();
+  });
+
+  afterAll(async () => {
+    await service.removeAllChains();
+  });
+
+  test('chain instance can be created', async () => {
+    id = await service.createChainInstance(options());
+    const chain = service.getChain(id);
+    const chainList = service.getChainList();
+
+    expect(chain.channel.topic).toEqual('chain:' + id);
+    expect(chain.channel.state).toEqual('joined');
+    expect(chain.hash).toEqual(hash);
+    expect(chain.connected).toEqual(true);
+    expect(chain.running).toEqual(true);
+    expect(Object.keys(chainList)[0]).toEqual(id);
+  });
+
+  test('chain instance can be stopped', async () => {
+    await service.stopChain(id);
+
+    expect(service.getChain(id).running).toEqual(false);
+    await wait(7000);
+  });
 });
 
-test.skip('snapshot workflow: create, edit, revert snapshot', async () => {
-  let maker;
-  let contract;
-  const options = {
-    // type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
-    // id: null, // Might be string but normally better to omit
-    http_port: 8545, // port for chain. should be changed on any new chain
-    //ws_port: 8546, // ws port (only for geth) for ganache will be ignored
-    accounts: 3, // Number of account to be created on chain start
-    block_mine_time: 0, // how often new block should be mined (0 - instamine)
-    clean_on_stop: true // Will delete chain db folder after chain stop
-  };
+// beforeEach(async () => {
+//   service = new TestChainService();
+//   // await service.connectApp();
+//   await service.initialize();
+// });
 
-  await service.connectApp();
-  await service.joinChannel();
+// afterEach(async () => {
+//   // await service.clearChains();
+//   await service.removeAllChains();
+//   // await service.removeAllChains();
+//   /*
+//    * There appears to be an issue in clearing of chains if they are to be rejoined.
+//    */
+// });
 
-  const { id } = await service.createChain(options);
+// describe('list chains', async () => {
+//   let service;
+//   beforeAll(async () => {
+//     service = new TestChainService();
+//     await service.connectApp();
 
-  const chain = service.getChainById(id);
-  // console.log(chain);
+//     // start first chain
+//     const op1 = options();
+//     const chainId1 = await service.createChainInstance(op1);
+//     const started = await service.startChain(chainId1);
+//   });
 
-  await service.startChainById(id);
+//   afterAll(async () => {
+//     await service.removeAllChains();
+//   });
 
-  const { snapshot } = await service.takeSnapshot(id);
-  console.log(snapshot);
+//   // first, no chains
+//   // const chainsInitial = await service.listChains();
+//   // // expect(chainsInitial.length).toBe(0);
+//   // console.log('chainsInitial', chainsInitial);
 
-  const configWithoutContracts = 3; // corresponds to a dai-plugin-config setting
-  maker = await setupTestMakerInstance(configWithoutContracts);
+//   test('will list chains', async done => {
+//     // const listChainsCallback = async data => {
+//     //   let chains2 = await service.listChains();
+//     //   done();
+//     // };
+//     // const event = service.createListener('started', listChainsCallback);
 
-  try {
-    contract = maker.service('smartContract').getContractByName('CHIEF');
-  } catch (error) {
-    // contract doesn't exist
-    console.log(error);
-  }
+//     const chains = await service.listChains();
+//     console.log('chains', chains);
 
-  // now deploy contracts
-  const configWithContracts = 2; // corresponds to a dai-plugin-config setting
-  maker = await setupTestMakerInstance(configWithContracts);
+//     // console.log('started?', started);
 
-  contract = maker.service('smartContract').getContractByName('CHIEF');
-  console.log('name2 is', contract);
+//     // start second chain
+//     // const op2 = options();
+//     // const chainId2 = await service.createChainInstance(op2);
+//     // const started2 = await service.startChain(chainId2);
 
-  await service.revertSnapshot(id, snapshot);
+//     // const chains2 = await service.listChains();
 
-  maker = await setupTestMakerInstance(configWithoutContracts);
+//     // // await event; // this works, happily
+//     // console.log('chains0', chains0);
+//     // console.log('chains2', chains2);
+//     done();
+//   });
+// });
 
-  try {
-    contract = maker.service('smartContract').getContractByName('CHIEF');
-  } catch ({ message }) {
-    // contract doesn't exist after revert snapshot
-    console.log('new error:', message);
-  }
+// //START HERE
 
-  await service.stopChainById(id);
+// test.skip('chain instance can be restarted', async () => {
+//   /*
+//    * Service should enable the restarting of chains which already exist
+//    * https://github.com/makerdao/ex_testchain/blob/master/apps/web_api/lib/web_api_web/channels/chain_channel.ex
+//    * Does not seem to indicate that restart is possible as only stop is listed
+//    */
+// });
 
-  console.log('finished', id);
-});
+// test('will create multiple chains', async () => {
+//   const chainId1 = await service.createChainInstance({
+//     http_port: 8545,
+//     accounts: 3,
+//     block_mine_time: 0,
+//     clean_on_stop: true
+//   });
+
+//   const chainId2 = await service.createChainInstance({
+//     http_port: 8546,
+//     accounts: 3,
+//     block_mine_time: 0,
+//     clean_on_stop: true
+//   });
+
+//   const chainList = service.getChainList();
+//   expect(Object.keys(chainList)[0]).toEqual(chainId1);
+//   expect(Object.keys(chainList)[1]).toEqual(chainId2);
+
+//   const chain1 = service.getChain(chainId1);
+//   const chain2 = service.getChain(chainId2);
+
+//   expect(chain1.connected).toBe(true);
+//   expect(chain1.running).toBe(true);
+//   expect(chain2.connected).toBe(true);
+//   expect(chain2.running).toBe(true);
+// });
+
+// test.skip('chain created with same config as existing chain will use existing chain', async () => {
+//   /*
+//    * TODO: Use config hashes to find if pre-existing chain instances already exist
+//    */
+// });
+
+// test.skip('snapshot workflow: create, edit, revert snapshot', async () => {
+//   let maker;
+//   let contract;
+//   const options = {
+//     // type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
+//     // id: null, // Might be string but normally better to omit
+//     http_port: 8545, // port for chain. should be changed on any new chain
+//     //ws_port: 8546, // ws port (only for geth) for ganache will be ignored
+//     accounts: 3, // Number of account to be created on chain start
+//     block_mine_time: 0, // how often new block should be mined (0 - instamine)
+//     clean_on_stop: true // Will delete chain db folder after chain stop
+//   };
+
+//   await service.connectApp();
+//   await service.joinChannel();
+
+//   const { id } = await service.createChain(options);
+
+//   const chain = service.getChainById(id);
+//   // console.log(chain);
+
+//   await service.startChainById(id);
+
+//   const { snapshot } = await service.takeSnapshot(id);
+//   console.log(snapshot);
+
+//   const configWithoutContracts = 3; // corresponds to a dai-plugin-config setting
+//   maker = await setupTestMakerInstance(configWithoutContracts);
+
+//   try {
+//     contract = maker.service('smartContract').getContractByName('CHIEF');
+//   } catch (error) {
+//     // contract doesn't exist
+//     console.log(error);
+//   }
+
+//   // now deploy contracts
+//   const configWithContracts = 2; // corresponds to a dai-plugin-config setting
+//   maker = await setupTestMakerInstance(configWithContracts);
+
+//   contract = maker.service('smartContract').getContractByName('CHIEF');
+//   console.log('name2 is', contract);
+
+//   await service.revertSnapshot(id, snapshot);
+
+//   maker = await setupTestMakerInstance(configWithoutContracts);
+
+//   try {
+//     contract = maker.service('smartContract').getContractByName('CHIEF');
+//   } catch ({ message }) {
+//     // contract doesn't exist after revert snapshot
+//     console.log('new error:', message);
+//   }
+
+//   await service.stopChainById(id);
+
+//   console.log('finished', id);
+// });
+
+// END HERE
 
 //test('create maker', async () => {
 
