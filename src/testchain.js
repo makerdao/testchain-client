@@ -9,6 +9,7 @@ export default class TestChainService {
     this._apiChannel = null;
     this._apiConnected = false;
     this._chainList = {};
+    this._snapShots = {};
   }
 
   /*
@@ -68,23 +69,21 @@ export default class TestChainService {
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
 
-      this._apiChannel
-        .push('start', options)
-        .receive('ok', async ({ id: id }) => {
-          this._chainList[id] = {
-            channel: this._socket.channel(`chain:${id}`),
-            id: id,
-            hash: hash,
-            config: options,
-            connected: false,
-            running: true,
-            eventRefs: {}
-          };
-          await this._registerDefaultEventListeners(id);
+      this._apiChannel.push('start', options).receive('ok', async ({ id }) => {
+        this._chainList[id] = {
+          channel: this._socket.channel(`chain:${id}`),
+          id: id,
+          hash: hash,
+          config: options,
+          connected: false,
+          running: true,
+          eventRefs: {}
+        };
+        await this._registerDefaultEventListeners(id);
 
-          await this._joinChain(id);
-          resolve(id);
-        });
+        await this._joinChain(id);
+        resolve(id);
+      });
     });
   }
 
@@ -168,24 +167,32 @@ export default class TestChainService {
     });
   }
 
-  takeSnapshot(id) {
+  takeSnapshot(id, label = 'snap:' + id) {
     return new Promise((resolve, reject) => {
       this._chainList[id].channel
         .push('take_snapshot')
         .receive('ok', ({ snapshot }) => {
-          console.log('Snapshot made for chain %s with id %s', id, snapshot);
-          resolve({ snapshot });
+          const snapId = snapshot.split('/')[4];
+
+          this._snapShots[snapId] = {
+            created: new Date(),
+            chain: id,
+            label: label,
+            route: snapshot
+          };
+
+          resolve(snapId);
         });
     });
   }
 
-  revertSnapshot(id, snapshot) {
+  revertSnapshot(snapId) {
+    const id = this.getSnap(snapId).chain;
     return new Promise((resolve, reject) => {
       this._chainList[id].channel
         .push('revert_snapshot', { snapshot })
         .receive('ok', () => {
-          console.log('Snapshot %s reverted to chain %s', snapshot, id);
-          resolve();
+          resolve(snapshot);
         });
     });
   }
@@ -207,6 +214,14 @@ export default class TestChainService {
     return this._chainList[id];
   }
 
+  getSnapShots() {
+    return this._snapShots;
+  }
+
+  getSnap(id) {
+    return this._snapShots[id];
+  }
+
   async clearChains() {
     // convenience method to remove all chain instances
     // until delete route is added
@@ -217,36 +232,6 @@ export default class TestChainService {
     }
   }
 }
-
-// export async function getChain(id) {
-//   chain(id).on('ok', () => console.log('getChain OK'));
-// }
-
-// export async function stopChain(id) {
-//   return stop(id);
-// }
-
-// /**PRIVATE METHODS */
-
-// export function start_channel(id) {
-//   chainList[id] = socket.channel(`chain:${id}`);
-//   chainList[id]
-//     .join()
-//     .receive('ok', () => console.log('Joined channel chain', id))
-//     .receive('error', console.error);
-//   return window[id];
-// }
-
-// export function chain(id) {
-//   return chainList[id];
-// }
-
-// export function stop(id) {
-//   chain(id)
-//     .push('stop')
-//     .receive('ok', () => console.log('Chain stopped !'))
-//     .receive('error', console.error);
-// }
 
 // export function take_snapshot(id) {
 //   chain(id)

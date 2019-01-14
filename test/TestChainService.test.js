@@ -89,7 +89,6 @@ test.skip('chain instance can be restarted', async () => {
 
 test('will create multiple chains', async () => {
   const chainId1 = await service.createChainInstance({ ...options });
-
   const chainId2 = await service.createChainInstance({
     ...options,
     http_port: 8546
@@ -114,6 +113,25 @@ test.skip('chain created with same config as existing chain will use existing ch
    */
 });
 
+test('will create snapshot', async () => {
+  const chainId = await service.createChainInstance({ ...options });
+  const snapId = await service.takeSnapshot(chainId, 'NEW_SNAPSHOT');
+
+  const snapShots = service.getSnapShots();
+  expect(Object.keys(snapShots)[0]).toEqual(snapId);
+
+  const snap = service.getSnap(snapId);
+  expect(snap.created instanceof Date).toBe(true);
+  expect(snap.chain).toEqual(chainId);
+  expect(snap.label).toEqual('NEW_SNAPSHOT');
+  expect(snap.route).toEqual('/opt/snapshots/' + chainId + '/' + snapId);
+});
+
+test('will revert snapshot', async () => {
+  const chainId = await service.createChainInstance({ ...options });
+  const snapId = await service.takeSnapshot(chainId, 'NEW_SNAPSHOT');
+});
+
 test.skip('can add custom callbacks to chain events', async () => {});
 
 test.skip('can remove callbacks to chain events', async () => {});
@@ -121,28 +139,11 @@ test.skip('can remove callbacks to chain events', async () => {});
 test.skip('snapshot workflow: create, edit, revert snapshot', async () => {
   let maker;
   let contract;
-  const options = {
-    // type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
-    // id: null, // Might be string but normally better to omit
-    http_port: 8545, // port for chain. should be changed on any new chain
-    //ws_port: 8546, // ws port (only for geth) for ganache will be ignored
-    accounts: 3, // Number of account to be created on chain start
-    block_mine_time: 0, // how often new block should be mined (0 - instamine)
-    clean_on_stop: true // Will delete chain db folder after chain stop
-  };
 
-  await service.connectApp();
-  await service.joinChannel();
+  const id = await service.createChainInstance({ ...options });
 
-  const { id } = await service.createChain(options);
-
-  const chain = service.getChainById(id);
-  // console.log(chain);
-
-  await service.startChainById(id);
-
-  const { snapshot } = await service.takeSnapshot(id);
-  console.log(snapshot);
+  const snapId = await service.takeSnapshot(id, 'my new snapshot');
+  console.log(service.getSnapShot(snapId));
 
   const configWithoutContracts = 3; // corresponds to a dai-plugin-config setting
   maker = await setupTestMakerInstance(configWithoutContracts);
