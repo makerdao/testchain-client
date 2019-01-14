@@ -30,7 +30,7 @@ const options = () => {
 
 test('will connect & disconnect app', async () => {
   expect(service.isConnectedSocket()).toBe(true);
-  service.disconnectApp();
+  service._disconnectApp();
   expect(service.isConnectedSocket()).toBe(false);
 });
 
@@ -46,7 +46,7 @@ test('will throw error for incorrect connection', async () => {
 
 test('will join & leave api channel', async () => {
   expect(service.isConnectedApi()).toBe(true);
-  await service.leaveApi();
+  await service._leaveApi();
   expect(service.isConnectedApi()).toBe(false);
 });
 

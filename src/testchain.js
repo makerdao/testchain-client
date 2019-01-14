@@ -26,11 +26,11 @@ export default class TestChainService {
     });
   }
 
-  disconnectApp(cb) {
+  _disconnectApp(cb) {
     this._socket.disconnect(cb);
   }
 
-  joinApi() {
+  _joinApi() {
     if (!this._apiChannel) this._apiChannel = this._socket.channel(API_CHANNEL);
     return new Promise((resolve, reject) => {
       if (!this._socket.isConnected())
@@ -43,7 +43,7 @@ export default class TestChainService {
     });
   }
 
-  leaveApi() {
+  _leaveApi() {
     return new Promise(resolve => {
       this._apiChannel.leave().receive('ok', () => {
         this._apiConnected = false;
@@ -60,83 +60,70 @@ export default class TestChainService {
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
 
-      this._apiChannel.push('start', options).receive('ok', ({ id: id }) => {
-        this._chainList[id] = {
-          channel: this._socket.channel(`chain:${id}`),
-          metadata: {
-            id: id,
-            hash: hash,
-            config: options,
-            connected: false,
-            running: true
-          }
-        };
-        resolve(id);
-      });
+      this._apiChannel
+        .push('start', options)
+        .receive('ok', async ({ id: id }) => {
+          this._chainList[id] = {
+            channel: this._socket.channel(`chain:${id}`),
+            metadata: {
+              id: id,
+              hash: hash,
+              config: options,
+              connected: false,
+              running: true
+            }
+          };
+
+          await this._joinChain(id);
+          resolve(id);
+        });
     });
   }
 
-  async joinChain(id) {
-    if (this._chain) {
-      const { id: chainId, connected } = this._chain.metadata;
-      if (connected && chainId === id) {
-        // unneccessary to rejoin chain channel if already joined
-        return 'Chain:' + id + ' already joined';
-      } else {
-        await this.leaveChain(this._chain.metadata.id);
-      }
+  async _joinChain(id) {
+    const { connected } = this._chainList[id].metadata;
+    if (connected) {
+      return 'Chain:' + id + ' already joined';
     }
 
     return new Promise((resolve, reject) => {
-      this._chain = this._chainList[id];
       if (!this._socket.isConnected())
         reject('Socket Connection Does Not Exist');
 
-      this._chain.channel.join().receive('ok', () => {
-        this._chain.metadata.connected = true;
+      this._chainList[id].channel.join().receive('ok', () => {
+        this._chainList[id].metadata.connected = true;
         resolve(true);
       });
     });
   }
 
-  currentChain() {
-    return this._chain;
-  }
-
-  currentChainId() {
-    return this._chain.metadata.id;
-  }
-
-  leaveChain() {
+  _leaveChain(id) {
     return new Promise(resolve => {
-      this._chain.metadata.connected = false;
-      this._chain.channel.leave().receive('ok', () => resolve(true));
+      this._chainList[id].metadata.connected = false;
+      this._chainList[id].channel.leave().receive('ok', () => resolve(true));
     });
   }
 
-  startChain() {
+  startChain(id) {
     /*
      * May not be possible. Unsure how to restart stopped chain
      */
 
-    if (this._chain.metadata.running) return true;
-
-    const id = this.currentChainId();
+    if (this._chainList[id].metadata.running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chain.channel.push('start').receive('ok', () => {
+      this._chainList[id].channel.push('start').receive('ok', () => {
         this._chainList[id].metadata.running = true;
         resolve(true);
       });
     });
   }
 
-  stopChain() {
-    if (!this._chain.metadata.running) return true;
+  stopChain(id) {
+    if (!((this._chainList[id] || {}).metadata || {}).running) return true;
 
-    const id = this.currentChainId();
     return new Promise((resolve, reject) => {
-      this._chain.channel.push('stop').receive('ok', () => {
+      this._chainList[id].channel.push('stop').receive('ok', () => {
         this._chainList[id].metadata.running = false;
         if (this._chainList[id].metadata.config.clean_on_stop) {
           delete this._chainList[id];
@@ -148,7 +135,7 @@ export default class TestChainService {
 
   takeSnapshot(id) {
     return new Promise((resolve, reject) => {
-      this._chain.channel
+      this._chainList[id].channel
         .push('take_snapshot')
         .receive('ok', ({ snapshot }) => {
           console.log('Snapshot made for chain %s with id %s', id, snapshot);
