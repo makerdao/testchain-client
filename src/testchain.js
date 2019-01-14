@@ -8,17 +8,25 @@ export default class TestChainService {
     this._socket = null;
     this._apiChannel = null;
     this._apiConnected = false;
-    this._chain = null;
     this._chainList = {};
   }
 
+  /*
+   * connectApp() will by default attempt to connect to a
+   * socket url and if successful will then attempt to join
+   * it's api channel.
+   */
   connectApp(url = 'ws://127.1:4000/socket') {
     return new Promise((resolve, reject) => {
       this._socket = new Socket(url, {
         transport: WebSocket
       });
 
-      this._socket.onOpen(() => resolve(this._socket.isConnected()));
+      this._socket.onOpen(async () => {
+        await this._joinApi();
+        resolve(this._socket.isConnected());
+      });
+
       this._socket.onError(() => reject('SOCKET_ERROR'));
       this._socket.onMessage(console.log);
 
@@ -146,7 +154,7 @@ export default class TestChainService {
 
   revertSnapshot(id, snapshot) {
     return new Promise((resolve, reject) => {
-      this._chain.channel
+      this._chainList[id].channel
         .push('revert_snapshot', { snapshot })
         .receive('ok', () => {
           console.log('Snapshot %s reverted to chain %s', snapshot, id);
