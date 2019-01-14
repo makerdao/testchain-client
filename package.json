@@ -6,6 +6,7 @@
   "repository": {},
   "dependencies": {
     "babel-runtime": "^6.26.0",
+    "md5": "^2.2.1",
     "phoenix": "^1.4.0",
     "phoenix_html": "^2.12.0",
     "ramda": "^0.26.1",
