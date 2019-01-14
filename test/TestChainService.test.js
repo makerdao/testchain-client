@@ -57,6 +57,14 @@ test('chain instance can be created', async () => {
   expect(chain.hash).toEqual('c25fef28b86a9272b39ada54601e8bbd');
   expect(chain.connected).toEqual(true);
   expect(chain.running).toEqual(true);
+
+  const eventRefs = chain.eventRefs;
+  expect(Object.keys(chain.eventRefs)[0]).toEqual('default:started');
+  expect(Object.keys(chain.eventRefs)[1]).toEqual('default:error');
+  expect(Object.keys(chain.eventRefs)[2]).toEqual('default:stopped');
+  expect(Object.keys(chain.eventRefs)[3]).toEqual('default:snapshot_taken');
+  expect(Object.keys(chain.eventRefs)[4]).toEqual('default:snapshot_reverted');
+
   expect(Object.keys(chainList)[0]).toEqual(id);
 });
 
@@ -105,6 +113,10 @@ test.skip('chain created with same config as existing chain will use existing ch
    * TODO: Use config hashes to find if pre-existing chain instances already exist
    */
 });
+
+test.skip('can add custom callbacks to chain events', async () => {});
+
+test.skip('can remove callbacks to chain events', async () => {});
 
 test.skip('snapshot workflow: create, edit, revert snapshot', async () => {
   let maker;

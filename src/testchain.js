@@ -117,9 +117,9 @@ export default class TestChainService {
 
       for (let event of Object.values(eventNames)) {
         if (event === eventNames.error) {
-          this._registerEvent(id, 'log', event, err => console.error(err));
+          this._registerEvent(id, 'default', event, err => console.error(err));
         }
-        this._registerEvent(id, 'log', event, data =>
+        this._registerEvent(id, 'default', event, data =>
           console.log(id, event, data)
         );
       }
