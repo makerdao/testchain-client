@@ -9,7 +9,6 @@ let service;
 beforeEach(async () => {
   service = new TestChainService();
   await service.connectApp();
-  await service.joinApi();
 });
 
 afterEach(async () => {
@@ -30,7 +29,7 @@ const options = () => {
 
 test('will connect & disconnect app', async () => {
   expect(service.isConnectedSocket()).toBe(true);
-  service.disconnectApp();
+  service._disconnectApp();
   expect(service.isConnectedSocket()).toBe(false);
 });
 
@@ -38,7 +37,7 @@ test('will throw error for incorrect connection', async () => {
   expect.assertions(1);
   service = new TestChainService();
   try {
-    await service.connectApp('ws://0.0.0.0/socket'); //incorrect port
+    await service.connectApp('ws://1.1.1.1/socket');
   } catch (e) {
     expect(e).toEqual('SOCKET_ERROR');
   }
@@ -46,7 +45,7 @@ test('will throw error for incorrect connection', async () => {
 
 test('will join & leave api channel', async () => {
   expect(service.isConnectedApi()).toBe(true);
-  await service.leaveApi();
+  await service._leaveApi();
   expect(service.isConnectedApi()).toBe(false);
 });
 
@@ -56,21 +55,11 @@ test('chain instance can be created', async () => {
   const chainList = service.getChainList();
 
   expect(chain.channel.topic).toEqual('chain:' + id);
-  expect(chain.channel.state).toEqual('closed');
-  expect(chain.metadata.hash).toEqual('c25fef28b86a9272b39ada54601e8bbd');
-  expect(chain.metadata.connected).toEqual(false);
-  expect(chain.metadata.running).toEqual(true);
-  expect(Object.keys(chainList)[0]).toEqual(id);
-});
-
-test('chain instance can be joined', async () => {
-  const id = await service.createChainInstance(options());
-  await service.joinChain(id);
-  const chain = service.currentChain();
-
-  expect(chain.channel.topic).toEqual('chain:' + id);
   expect(chain.channel.state).toEqual('joined');
-  expect(chain.metadata.connected).toEqual(true);
+  expect(chain.hash).toEqual('c25fef28b86a9272b39ada54601e8bbd');
+  expect(chain.connected).toEqual(true);
+  expect(chain.running).toEqual(true);
+  expect(Object.keys(chainList)[0]).toEqual(id);
 });
 
 test('chain instance can be stopped', async () => {
@@ -82,10 +71,9 @@ test('chain instance can be stopped', async () => {
     clean_on_stop: false
   });
 
-  await service.joinChain(id);
-  await service.stopChain();
+  await service.stopChain(id);
 
-  expect(service.currentChain().metadata.running).toEqual(false);
+  expect(service.getChain(id).running).toEqual(false);
 });
 
 test.skip('chain instance can be restarted', async () => {
@@ -114,32 +102,14 @@ test('will create multiple chains', async () => {
   const chainList = service.getChainList();
   expect(Object.keys(chainList)[0]).toEqual(chainId1);
   expect(Object.keys(chainList)[1]).toEqual(chainId2);
-});
 
-test.only('will join only one chain at a time', async () => {
-  const chainId1 = await service.createChainInstance({
-    http_port: 8545,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: true
-  });
+  const chain1 = service.getChain(chainId1);
+  const chain2 = service.getChain(chainId2);
 
-  const chainId2 = await service.createChainInstance({
-    http_port: 8546,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: true
-  });
-
-  await service.joinChain(chainId1);
-  expect(service.currentChain().metadata.id).toEqual(chainId1);
-  expect(service.getChain(chainId1).metadata.connected).toBe(true);
-  expect(service.getChain(chainId2).metadata.connected).toBe(false);
-
-  await service.joinChain(chainId2);
-  expect(service.currentChain().metadata.id).toEqual(chainId2);
-  expect(service.getChain(chainId1).metadata.connected).toBe(false);
-  expect(service.getChain(chainId2).metadata.connected).toBe(true);
+  expect(chain1.connected).toBe(true);
+  expect(chain1.running).toBe(true);
+  expect(chain2.connected).toBe(true);
+  expect(chain2.running).toBe(true);
 });
 
 test.skip('chain created with same config as existing chain will use existing chain', async () => {
