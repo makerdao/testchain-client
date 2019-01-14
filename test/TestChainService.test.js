@@ -2,117 +2,153 @@ import { setupTestMakerInstance } from './helpers';
 import TestChainService from '../src/testchain';
 import 'whatwg-fetch';
 
+jest.setTimeout(20000);
+
 let service;
 
-beforeEach(() => {
+beforeEach(async () => {
   service = new TestChainService();
-});
-
-// beforeAll(async () => {
-//   const options = {
-//     // type: chain, // For now "geth" or "ganache". (If omited - "ganache" will be used)
-//     // id: null, // Might be string but normally better to omit
-//     http_port: 8545, // port for chain. should be changed on any new chain
-//     //ws_port: 8546, // ws port (only for geth) for ganache will be ignored
-//     accounts: 3, // Number of account to be created on chain start
-//     block_mine_time: 0, // how often new block should be mined (0 - instamine)
-//     clean_on_stop: true // Will delete chain db folder after chain stop
-//   };
-// });
-
-test('will connect & disconnect app', async () => {
   await service.connectApp();
-  expect(service.isConnectedSocket()).toBe(true);
-  service.disconnectApp();
-  expect(service.isConnectedSocket()).toBe(false);
+  await service.joinApi();
 });
 
-test('will error for incorrect connection', async () => {
-  expect.assertions(1);
-
-  try {
-    await service.connectApp('ws://0.0.0.0/socket'); //incorrect port
-  } catch (e) {
-    expect(e).toEqual(service.errLogs.FAILED_SOCKET_CONNECTION);
-  }
+afterEach(async () => {
+  await service.clearChains();
+  /*
+   * There appears to be an issue in clearing of chains if they are to be rejoined.
+   */
 });
 
-test('will join & leave channel', async () => {
-  await service.connectApp();
-  await service.joinChannel();
-  expect(service.isConnectedChannel()).toBe(true);
-
-  await service.leaveChannel();
-  expect(service.isConnectedChannel()).toBe(false);
-});
-
-// TODO
-// test('will fail to join non-existing channel', async () => {
-//   await service.connectApp();
-//   await service.joinChannel('fakeChannel');
-//   console.log(service._channel);
-// });
-
-// test.only('will create, join, and stop a chain with a set of options', async () => {
-//   const options = {
-//     http_port: 8545,
-//     accounts: 3,
-//     block_mine_time: 0,
-//     clean_on_stop: true
-//   };
-
-//   await service.connectApp();
-//   await service.joinApiChannel();
-
-//   const id = await service.createChain(options);
-//   console.log('my id', id, typeof id);
-
-//   const chain = await service.joinChain(id);
-//   console.log('my chain', chain);
-
-//   await service.stopChainById(id);
-// });
-
-test.only('will create, join, and stop multiple chains', async () => {
-  const options1 = {
+const options = () => {
+  return {
     http_port: 8545,
     accounts: 3,
     block_mine_time: 0,
     clean_on_stop: true
   };
+};
 
-  const options2 = {
+test('will connect & disconnect app', async () => {
+  expect(service.isConnectedSocket()).toBe(true);
+  service.disconnectApp();
+  expect(service.isConnectedSocket()).toBe(false);
+});
+
+test('will throw error for incorrect connection', async () => {
+  expect.assertions(1);
+  service = new TestChainService();
+  try {
+    await service.connectApp('ws://0.0.0.0/socket'); //incorrect port
+  } catch (e) {
+    expect(e).toEqual('SOCKET_ERROR');
+  }
+});
+
+test('will join & leave api channel', async () => {
+  expect(service.isConnectedApi()).toBe(true);
+  await service.leaveApi();
+  expect(service.isConnectedApi()).toBe(false);
+});
+
+test('chain instance can be created', async () => {
+  const id = await service.createChainInstance(options());
+  const chain = service.getChain(id);
+  const chainList = service.getChainList();
+
+  expect(chain.channel.topic).toEqual('chain:' + id);
+  expect(chain.channel.state).toEqual('closed');
+  expect(chain.metadata.hash).toEqual('c25fef28b86a9272b39ada54601e8bbd');
+  expect(chain.metadata.connected).toEqual(false);
+  expect(chain.metadata.running).toEqual(true);
+  expect(Object.keys(chainList)[0]).toEqual(id);
+});
+
+test('chain instance can be joined', async () => {
+  const id = await service.createChainInstance(options());
+  await service.joinChain(id);
+  const chain = service.currentChain();
+
+  expect(chain.channel.topic).toEqual('chain:' + id);
+  expect(chain.channel.state).toEqual('joined');
+  expect(chain.metadata.connected).toEqual(true);
+});
+
+test('chain instance can be stopped', async () => {
+  // this test will create a chaindata folder
+  const id = await service.createChainInstance({
+    http_port: 8545,
+    accounts: 3,
+    block_mine_time: 0,
+    clean_on_stop: false
+  });
+
+  await service.joinChain(id);
+  await service.stopChain();
+
+  expect(service.currentChain().metadata.running).toEqual(false);
+});
+
+test.skip('chain instance can be restarted', async () => {
+  /*
+   * Service should enable the restarting of chains which already exist
+   * https://github.com/makerdao/ex_testchain/blob/master/apps/web_api/lib/web_api_web/channels/chain_channel.ex
+   * Does not seem to indicate that restart is possible as only stop is listed
+   */
+});
+
+test('will create multiple chains', async () => {
+  const chainId1 = await service.createChainInstance({
+    http_port: 8545,
+    accounts: 3,
+    block_mine_time: 0,
+    clean_on_stop: true
+  });
+
+  const chainId2 = await service.createChainInstance({
     http_port: 8546,
     accounts: 3,
     block_mine_time: 0,
     clean_on_stop: true
-  };
+  });
 
-  await service.connectApp();
-
-  await service.joinApiChannel();
-
-  // Create chain with Options 1
-  const id1 = await service.createChain(options1);
-  console.log('my id1', id1, typeof id1);
-
-  const chain1 = await service.joinChain(id1);
-  console.log('my chain1', chain1);
-
-  // await service.joinApiChannel();
-  // Create chain with options 2
-  const id2 = await service.createChain(options2);
-  console.log('my id2', id2, typeof id2);
-
-  const chain2 = await service.joinChain(id2);
-  console.log('my chain2', chain2);
-
-  await service.stopChainById(id1);
-  await service.stopChainById(id2);
+  const chainList = service.getChainList();
+  expect(Object.keys(chainList)[0]).toEqual(chainId1);
+  expect(Object.keys(chainList)[1]).toEqual(chainId2);
 });
 
-test('snapshot workflow: create, edit, revert snapshot', async () => {
-  jest.setTimeout(20000);
+test.only('will join only one chain at a time', async () => {
+  const chainId1 = await service.createChainInstance({
+    http_port: 8545,
+    accounts: 3,
+    block_mine_time: 0,
+    clean_on_stop: true
+  });
+
+  const chainId2 = await service.createChainInstance({
+    http_port: 8546,
+    accounts: 3,
+    block_mine_time: 0,
+    clean_on_stop: true
+  });
+
+  await service.joinChain(chainId1);
+  expect(service.currentChain().metadata.id).toEqual(chainId1);
+  expect(service.getChain(chainId1).metadata.connected).toBe(true);
+  expect(service.getChain(chainId2).metadata.connected).toBe(false);
+
+  await service.joinChain(chainId2);
+  expect(service.currentChain().metadata.id).toEqual(chainId2);
+  expect(service.getChain(chainId1).metadata.connected).toBe(false);
+  expect(service.getChain(chainId2).metadata.connected).toBe(true);
+});
+
+test.skip('chain created with same config as existing chain will use existing chain', async () => {
+  /*
+   * TODO: Use config hashes to find if pre-existing chain instances already exist
+   */
+});
+
+test.skip('snapshot workflow: create, edit, revert snapshot', async () => {
   let maker;
   let contract;
   const options = {
@@ -127,6 +163,7 @@ test('snapshot workflow: create, edit, revert snapshot', async () => {
 
   await service.connectApp();
   await service.joinChannel();
+
   const { id } = await service.createChain(options);
 
   const chain = service.getChainById(id);
