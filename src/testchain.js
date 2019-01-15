@@ -2,6 +2,7 @@ import { Socket } from 'phoenix';
 import md5 from 'md5';
 
 const API_CHANNEL = 'api';
+const API_URL = 'ws://127.1:4000/socket';
 
 export default class TestChainService {
   constructor() {
@@ -17,7 +18,7 @@ export default class TestChainService {
    * socket url and if successful will then attempt to join
    * it's api channel.
    */
-  connectApp(url = 'ws://127.1:4000/socket') {
+  connectApp(url = API_URL) {
     return new Promise((resolve, reject) => {
       this._socket = new Socket(url, {
         transport: WebSocket
@@ -63,8 +64,6 @@ export default class TestChainService {
 
   createChainInstance(options) {
     const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
-
-    // options.clean_on_stop = true; // force removal on stop until route to delete is added
 
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
@@ -140,7 +139,7 @@ export default class TestChainService {
 
   startChain(id) {
     /*
-     * May not be possible. Unsure how to restart stopped chain
+     * TODO: restartChain
      */
 
     if (this._chainList[id].running) return true;
@@ -169,30 +168,25 @@ export default class TestChainService {
 
   takeSnapshot(id, label = 'snap:' + id) {
     return new Promise((resolve, reject) => {
+      this._registerEvent(id, label, 'snapshot_taken', res => {
+        console.log(res);
+        resolve();
+      });
+
       this._chainList[id].channel
         .push('take_snapshot')
-        .receive('ok', ({ snapshot }) => {
-          const snapId = snapshot.split('/')[4];
-
-          this._snapShots[snapId] = {
-            created: new Date(),
-            chain: id,
-            label: label,
-            route: snapshot
-          };
-
-          resolve(snapId);
-        });
+        .receive('ok', res => {});
     });
   }
 
-  revertSnapshot(snapId) {
-    const id = this.getSnap(snapId).chain;
+  revertSnapshot(snapshot) {
+    const id = this.getSnap(snapshot).chain;
     return new Promise((resolve, reject) => {
       this._chainList[id].channel
         .push('revert_snapshot', { snapshot })
-        .receive('ok', () => {
-          resolve(snapshot);
+        .receive('ok', res => {
+          console.log('snapshot reverted');
+          resolve(res);
         });
     });
   }
@@ -232,21 +226,3 @@ export default class TestChainService {
     }
   }
 }
-
-// export function take_snapshot(id) {
-//   chain(id)
-//     .push('take_snapshot')
-//     .receive('ok', ({ snapshot }) =>
-//       console.log('Snapshot made for chain %s with id %s', id, snapshot)
-//     )
-//     .receive('error', console.error);
-// }
-
-// export function revert_snapshot(id, snapshot) {
-//   chain(id)
-//     .push('revert_snapshot', { snapshot })
-//     .receive('ok', () =>
-//       console.log('Snapshot %s reverted to chain %s', snapshot, id)
-//     )
-//     .receive('error', console.error);
-// }
