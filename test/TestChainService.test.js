@@ -50,7 +50,7 @@ describe('app connectivity', async () => {
   });
 });
 
-describe('chain starting and stopping', async () => {
+describe('chain behaviour', async () => {
   let id;
 
   beforeEach(async () => {
@@ -112,6 +112,34 @@ describe('chain starting and stopping', async () => {
     expect(chain1.running).toBe(true);
     expect(chain2.connected).toBe(true);
     expect(chain2.running).toBe(true);
+  });
+});
+
+describe('snapshot examples', async () => {
+  let id;
+
+  beforeEach(async () => {
+    service = new TestChainService();
+    await service.initialize();
+  });
+
+  afterEach(async () => {
+    await service.removeAllChains();
+  });
+
+  test('will take a snapshot of the chain', async () => {
+    id = await service.createChainInstance({ ...options });
+
+    const description = 'NEW_SNAPSHOT';
+    const snapId = await service.takeSnapshot(id, description);
+    const snapshot = service.getSnap(snapId);
+
+    const delay = Date.now() - new Date(snapshot.date).getTime();
+    expect(delay).toBeLessThan(300); // roughly current time
+    expect(snapshot.description).toEqual(description);
+    expect(snapshot.id).toEqual(snapId);
+    expect(snapshot.chainId).toEqual(id);
+    expect(snapshot.path).toBeTruthy();
   });
 });
 

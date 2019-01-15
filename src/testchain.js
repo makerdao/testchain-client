@@ -10,7 +10,7 @@ export default class TestChainService {
     this._apiChannel = null;
     this._apiConnected = false;
     this._chainList = {};
-    this._snapShots = {};
+    this._snapshots = {};
   }
 
   async initialize() {
@@ -184,9 +184,10 @@ export default class TestChainService {
     const randomEventId = Math.random()
       .toString(36)
       .substr(2, 5);
-    this._registerEvent(id, `once:${randomEventId}`, event, () => {
+    this._registerEvent(id, `once:${randomEventId}`, event, async data => {
+      await this._sleep(100);
       this._unregisterEvent(id, `once:${randomEventId}`, event);
-      cb();
+      cb(data);
     });
   }
 
@@ -201,7 +202,10 @@ export default class TestChainService {
     if (this._chainList[id].running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'started', () => resolve(true));
+      this._chainOnce(id, 'started', data => {
+        console.log('RESTARTING', data);
+        resolve(true);
+      });
       this._apiChannel.push('start_existing', { id }).receive('ok', () => {
         this._chainList[id].running = true;
       });
@@ -212,7 +216,8 @@ export default class TestChainService {
     if (!(this._chainList[id] || {}).running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'stopped', async () => {
+      this._chainOnce(id, 'stopped', async data => {
+        console.log('STOPPING', data);
         this._chainList[id].running = false;
 
         if (this.isCleanedOnStop(id)) {
@@ -227,14 +232,15 @@ export default class TestChainService {
 
   takeSnapshot(id, label = 'snap:' + id) {
     return new Promise((resolve, reject) => {
-      this._registerEvent(id, label, 'snapshot_taken', res => {
-        console.log(res);
-        resolve();
+      this._chainOnce(id, 'snapshot_taken', data => {
+        const { id: snapId } = data;
+        this._snapshots[snapId] = {
+          ...data,
+          chainId: id
+        };
+        resolve(snapId);
       });
-
-      this._chainList[id].channel
-        .push('take_snapshot')
-        .receive('ok', res => {});
+      this._chainList[id].channel.push('take_snapshot', { description: label });
     });
   }
 
@@ -309,12 +315,12 @@ export default class TestChainService {
     return this._chainList[id];
   }
 
-  getSnapShots() {
-    return this._snapShots;
+  getSnapshots() {
+    return this._snapshots;
   }
 
   getSnap(id) {
-    return this._snapShots[id];
+    return this._snapshots[id];
   }
 
   isCleanedOnStop(id) {
