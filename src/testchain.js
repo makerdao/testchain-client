@@ -271,18 +271,24 @@ export default class TestChainService {
   async removeAllChains() {
     for (let id of Object.keys(this._chainList)) {
       await this.stopChain(id);
-      if (this.isCleanedOnStop(id)) {
-        await this._removeChain(id);
-      }
+      await this._removeChain(id);
     }
   }
 
   _removeChain(id) {
-    console.log('removing chain:' + id);
-    return new Promise((resolve, reject) => {
-      this._apiChannel.push('remove_chain', { id: id }).receive('ok', data => {
-        resolve(data);
-      });
+    return new Promise(async (resolve, reject) => {
+      const chains = await this._listChains();
+
+      for (let chain of chains) {
+        if (id === chain.id) {
+          this._apiChannel
+            .push('remove_chain', { id: id })
+            .receive('ok', data => {
+              resolve(data);
+            });
+        }
+      }
+      resolve();
     });
   }
 
