@@ -96,6 +96,27 @@ describe('chain starting and stopping', async () => {
     await service.restartChain(id);
     expect(service.getChain(id).running).toEqual(true);
   });
+
+  test('will create multiple chains', async () => {
+    const chainId1 = await service.createChainInstance({ ...options });
+
+    const chainId2 = await service.createChainInstance({
+      ...options,
+      http_port: 8546
+    });
+
+    const chainList = service.getChainList();
+    expect(Object.keys(chainList)[0]).toEqual(chainId1);
+    expect(Object.keys(chainList)[1]).toEqual(chainId2);
+
+    const chain1 = service.getChain(chainId1);
+    const chain2 = service.getChain(chainId2);
+
+    expect(chain1.connected).toBe(true);
+    expect(chain1.running).toBe(true);
+    expect(chain2.connected).toBe(true);
+    expect(chain2.running).toBe(true);
+  });
 });
 
 // beforeEach(async () => {
