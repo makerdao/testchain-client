@@ -16,7 +16,7 @@ export default class TestChainService {
   async initialize() {
     await this.connectApp();
     const chains = await this._listChains();
-    console.log('INITIALIZE CHAINS', chains);
+
     for (let chain of chains) {
       const options = {
         http_port: chain.http_port,
@@ -35,8 +35,8 @@ export default class TestChainService {
         connected: false,
         running: chain.status === 'active' ? true : false
       };
+
       await this._joinChain(chain.id);
-      console.log('INIT CHAIN LIST:', this._chainList);
     }
   }
 
@@ -172,15 +172,11 @@ export default class TestChainService {
     });
   }
 
-  startChain(id) {
-    /*
-     * TODO: restartChain
-     */
-
+  restartChain(id) {
     if (this._chainList[id].running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainList[id].channel.push('start').receive('ok', () => {
+      this._apiChannel.push('start_existing', { id }).receive('ok', () => {
         this._chainList[id].running = true;
         resolve(true);
       });
@@ -191,17 +187,13 @@ export default class TestChainService {
     if (!(this._chainList[id] || {}).running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainList[id].channel
-        .push('stop')
-        .receive('ok', x => {
-          console.log('ok call success', x);
-          this._chainList[id].running = false;
-          if (this._chainList[id].config.clean_on_stop) {
-            delete this._chainList[id];
-          }
-          resolve(true);
-        })
-        .receive('error', console.log('Error stopping chain'));
+      this._chainList[id].channel.push('stop').receive('ok', () => {
+        this._chainList[id].running = false;
+        if (this._chainList[id].config.clean_on_stop) {
+          delete this._chainList[id];
+        }
+        resolve(true);
+      });
     });
   }
 
@@ -250,7 +242,6 @@ export default class TestChainService {
 
   async removeAllChains() {
     const chains = await this._listChains();
-    console.log('list of chains', chains);
     for (let chain of chains) {
       if (chain.status === 'active') await this.stopChain(chain.id);
       await this._removeChain(chain.id);
@@ -260,19 +251,10 @@ export default class TestChainService {
   _removeChain(id) {
     return new Promise((resolve, reject) => {
       this._apiChannel.push('remove_chain', { id: id }).receive('ok', data => {
-        console.log('CHECK FOR THIS', data);
         resolve(data);
       });
     });
   }
-
-  /**
-   *
-   * api_channel
-    .push('remove_chain', { id: chain_id })
-    .receive('ok', () => console.log('Chain removed %s', id))
-    .receive('error', console.error)
-   */
 
   // status methods
   isConnectedSocket() {

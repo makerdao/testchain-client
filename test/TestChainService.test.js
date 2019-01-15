@@ -14,7 +14,7 @@ const options = {
   clean_on_stop: true
 };
 
-const hash = md5(JSON.stringify(options())); //will have to normalise ordering of values
+const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
 
 // TODO: we're cheating here until the testchain events get handled:
 const wait = async ms => {
@@ -32,7 +32,6 @@ const wait = async ms => {
 describe('app connectivity', async () => {
   beforeAll(async () => {
     service = new TestChainService();
-    // await service.connectApp();
     await service.initialize();
   });
 
@@ -63,7 +62,6 @@ describe('chain starting and stopping', async () => {
 
   beforeAll(async () => {
     service = new TestChainService();
-    // await service.connectApp();
     await service.initialize();
   });
 
@@ -72,23 +70,38 @@ describe('chain starting and stopping', async () => {
   });
 
   test('chain instance can be created', async () => {
-    id = await service.createChainInstance(options());
+    id = await service.createChainInstance({ ...options });
     const chain = service.getChain(id);
     const chainList = service.getChainList();
 
     expect(chain.channel.topic).toEqual('chain:' + id);
     expect(chain.channel.state).toEqual('joined');
-    expect(chain.hash).toEqual(hash);
+    expect(chain.hash).toEqual(md5(JSON.stringify({ ...options })));
     expect(chain.connected).toEqual(true);
     expect(chain.running).toEqual(true);
     expect(Object.keys(chainList)[0]).toEqual(id);
   });
 
   test('chain instance can be stopped', async () => {
-    await service.stopChain(id);
+    id = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
 
+    await service.stopChain(id);
     expect(service.getChain(id).running).toEqual(false);
-    await wait(7000);
+  });
+
+  test.only('chain instance can be restarted', async () => {
+    id = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    await service.stopChain(id);
+    expect(service.getChain(id).running).toEqual(false);
+    await service.restartChain(id);
+    expect(service.getChain(id).running).toEqual(true);
   });
 });
 
