@@ -114,7 +114,9 @@ export default class TestChainService {
           eventRefs: {}
         };
         await this._registerDefaultEventListeners(id);
-        this._chainOnce(id, 'started', () => resolve(id));
+        this._chainOnce(id, 'started', () => {
+          resolve(id);
+        });
         await this._joinChain(id);
       });
     });
@@ -177,8 +179,8 @@ export default class TestChainService {
 
   _chainOnce(id, event, cb) {
     // trigger a one-time callback from an event firing
-    this._registerEvent(id, `function${id}`, 'started', () => {
-      this._unregisterEvent(id, `function${id}`, 'started');
+    this._registerEvent(id, `function${id}`, event, () => {
+      this._unregisterEvent(id, `function${id}`, event);
       cb();
     });
   }
@@ -194,9 +196,9 @@ export default class TestChainService {
     if (this._chainList[id].running) return true;
 
     return new Promise((resolve, reject) => {
+      this._chainOnce(id, 'started', () => resolve(true));
       this._apiChannel.push('start_existing', { id }).receive('ok', () => {
         this._chainList[id].running = true;
-        resolve(true);
       });
     });
   }
@@ -205,12 +207,15 @@ export default class TestChainService {
     if (!(this._chainList[id] || {}).running) return true;
 
     return new Promise((resolve, reject) => {
+      this._chainOnce(id, 'stopped', () => {
+        resolve(true);
+      });
+
       this._chainList[id].channel.push('stop').receive('ok', () => {
         this._chainList[id].running = false;
         if (this._chainList[id].config.clean_on_stop) {
           delete this._chainList[id];
         }
-        resolve(true);
       });
     });
   }

@@ -62,7 +62,7 @@ describe('chain starting and stopping', async () => {
     await service.removeAllChains();
   });
 
-  test.only('chain instance can be created', async () => {
+  test('chain instance can be created', async () => {
     id = await service.createChainInstance({ ...options });
     const chain = service.getChain(id);
     const chainList = service.getChainList();
