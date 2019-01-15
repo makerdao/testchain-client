@@ -99,7 +99,7 @@ describe('chain starting and stopping', async () => {
 
   test('will create multiple chains', async () => {
     const chainId1 = await service.createChainInstance({ ...options });
-    console.log({ ...options });
+
     const chainId2 = await service.createChainInstance({
       ...options,
       http_port: 8546
