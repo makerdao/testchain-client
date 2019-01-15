@@ -99,15 +99,11 @@ describe('chain starting and stopping', async () => {
 
   test('will create multiple chains', async () => {
     const chainId1 = await service.createChainInstance({ ...options });
-
+    console.log({ ...options });
     const chainId2 = await service.createChainInstance({
       ...options,
       http_port: 8546
     });
-
-    const chainList = service.getChainList();
-    expect(Object.keys(chainList)[0]).toEqual(chainId1);
-    expect(Object.keys(chainList)[1]).toEqual(chainId2);
 
     const chain1 = service.getChain(chainId1);
     const chain2 = service.getChain(chainId2);

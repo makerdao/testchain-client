@@ -113,6 +113,7 @@ export default class TestChainService {
           running: true,
           eventRefs: {}
         };
+
         await this._registerDefaultEventListeners(id);
         this._chainOnce(id, 'started', () => {
           resolve(id);
@@ -173,14 +174,18 @@ export default class TestChainService {
   }
 
   _unregisterEvent(id, label, event) {
-    const ref = this._chainList[id].eventRefs[label + ':' + event];
+    const ref = (this._chainList[id] || {}).eventRefs[label + ':' + event];
+    delete this._chainList[id].eventRefs[label + ':' + event];
     this._chainList[id].channel.off(event, ref);
   }
 
   _chainOnce(id, event, cb) {
     // trigger a one-time callback from an event firing
-    this._registerEvent(id, `function${id}`, event, () => {
-      this._unregisterEvent(id, `function${id}`, event);
+    const randomEventId = Math.random()
+      .toString(36)
+      .substr(2, 5);
+    this._registerEvent(id, `once:${randomEventId}`, event, () => {
+      this._unregisterEvent(id, `once:${randomEventId}`, event);
       cb();
     });
   }
@@ -207,16 +212,16 @@ export default class TestChainService {
     if (!(this._chainList[id] || {}).running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'stopped', () => {
+      this._chainOnce(id, 'stopped', async () => {
+        this._chainList[id].running = false;
+
+        if (this.isCleanedOnStop(id)) {
+          delete this._chainList[id];
+        }
         resolve(true);
       });
 
-      this._chainList[id].channel.push('stop').receive('ok', () => {
-        this._chainList[id].running = false;
-        if (this._chainList[id].config.clean_on_stop) {
-          delete this._chainList[id];
-        }
-      });
+      this._chainList[id].channel.push('stop');
     });
   }
 
@@ -264,15 +269,16 @@ export default class TestChainService {
   }
 
   async removeAllChains() {
-    const chains = await this._listChains();
-
-    for (let chain of chains) {
-      if (chain.status === 'active') await this.stopChain(chain.id);
-      await this._removeChain(chain.id);
+    for (let id of Object.keys(this._chainList)) {
+      await this.stopChain(id);
+      if (this.isCleanedOnStop(id)) {
+        await this._removeChain(id);
+      }
     }
   }
 
   _removeChain(id) {
+    console.log('removing chain:' + id);
     return new Promise((resolve, reject) => {
       this._apiChannel.push('remove_chain', { id: id }).receive('ok', data => {
         resolve(data);
@@ -303,6 +309,10 @@ export default class TestChainService {
 
   getSnap(id) {
     return this._snapShots[id];
+  }
+
+  isCleanedOnStop(id) {
+    return ((this.getChain(id) || {}).config || {}).clean_on_stop;
   }
 
   async clearChains() {
