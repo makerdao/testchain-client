@@ -3,27 +3,18 @@ import TestChainService from '../src/testchain';
 import 'whatwg-fetch';
 import md5 from 'md5';
 
-jest.setTimeout(20000);
+//jest.setTimeout(5000);
 
 let service;
 
-const options = () => {
-  return {
-    http_port: 8545,
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: false
-  };
+const options = {
+  http_port: 8545,
+  accounts: 3,
+  block_mine_time: 0,
+  clean_on_stop: true
 };
 
-const hash = md5(JSON.stringify(options())); //will have to normalise ordering of values
-
-// TODO: we're cheating here until the testchain events get handled:
-const wait = async ms => {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
-};
+const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
 
 // test.only('will remove all chains', async () => {
 //   service = new TestChainService();
@@ -32,9 +23,8 @@ const wait = async ms => {
 // });
 
 describe('app connectivity', async () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     service = new TestChainService();
-    // await service.connectApp();
     await service.initialize();
   });
 
@@ -63,34 +53,65 @@ describe('app connectivity', async () => {
 describe('chain starting and stopping', async () => {
   let id;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     service = new TestChainService();
-    // await service.connectApp();
     await service.initialize();
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await service.removeAllChains();
   });
 
   test('chain instance can be created', async () => {
-    id = await service.createChainInstance(options());
+    id = await service.createChainInstance({ ...options });
     const chain = service.getChain(id);
     const chainList = service.getChainList();
 
     expect(chain.channel.topic).toEqual('chain:' + id);
     expect(chain.channel.state).toEqual('joined');
-    expect(chain.hash).toEqual(hash);
+    expect(chain.hash).toEqual(md5(JSON.stringify({ ...options })));
     expect(chain.connected).toEqual(true);
     expect(chain.running).toEqual(true);
     expect(Object.keys(chainList)[0]).toEqual(id);
   });
 
   test('chain instance can be stopped', async () => {
-    await service.stopChain(id);
+    id = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
 
+    await service.stopChain(id);
     expect(service.getChain(id).running).toEqual(false);
-    await wait(7000);
+  });
+
+  test('chain instance can be restarted', async () => {
+    id = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    await service.stopChain(id);
+    expect(service.getChain(id).running).toEqual(false);
+    await service.restartChain(id);
+    expect(service.getChain(id).running).toEqual(true);
+  });
+
+  test('will create multiple chains', async () => {
+    const chainId1 = await service.createChainInstance({ ...options });
+    console.log({ ...options });
+    const chainId2 = await service.createChainInstance({
+      ...options,
+      http_port: 8546
+    });
+
+    const chain1 = service.getChain(chainId1);
+    const chain2 = service.getChain(chainId2);
+
+    expect(chain1.connected).toBe(true);
+    expect(chain1.running).toBe(true);
+    expect(chain2.connected).toBe(true);
+    expect(chain2.running).toBe(true);
   });
 });
 

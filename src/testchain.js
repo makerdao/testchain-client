@@ -2,6 +2,7 @@ import { Socket } from 'phoenix';
 import md5 from 'md5';
 
 const API_CHANNEL = 'api';
+const API_URL = 'ws://127.1:4000/socket';
 
 export default class TestChainService {
   constructor() {
@@ -9,12 +10,13 @@ export default class TestChainService {
     this._apiChannel = null;
     this._apiConnected = false;
     this._chainList = {};
+    this._snapShots = {};
   }
 
   async initialize() {
     await this.connectApp();
     const chains = await this._listChains();
-    console.log('INITIALIZE CHAINS', chains);
+
     for (let chain of chains) {
       const options = {
         http_port: chain.http_port,
@@ -33,8 +35,8 @@ export default class TestChainService {
         connected: false,
         running: chain.status === 'active' ? true : false
       };
+
       await this._joinChain(chain.id);
-      console.log('INIT CHAIN LIST:', this._chainList);
     }
   }
 
@@ -43,7 +45,7 @@ export default class TestChainService {
    * socket url and if successful will then attempt to join
    * it's api channel.
    */
-  connectApp(url = 'ws://127.1:4000/socket') {
+  connectApp(url = API_URL) {
     return new Promise((resolve, reject) => {
       this._socket = new Socket(url, {
         transport: WebSocket
@@ -55,7 +57,7 @@ export default class TestChainService {
       });
 
       this._socket.onError(() => reject('SOCKET_ERROR'));
-      this._socket.onMessage(console.log);
+      //this._socket.onMessage(console.log);
 
       this._socket.connect();
     });
@@ -98,26 +100,26 @@ export default class TestChainService {
   createChainInstance(options) {
     const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
 
-    // options.clean_on_stop = true; // force removal on stop until route to delete is added
-
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
 
-      this._apiChannel
-        .push('start', options)
-        .receive('ok', async ({ id: id }) => {
-          this._chainList[id] = {
-            channel: this._socket.channel(`chain:${id}`),
-            id: id,
-            hash: hash,
-            config: options,
-            connected: false,
-            running: true
-          };
+      this._apiChannel.push('start', options).receive('ok', async ({ id }) => {
+        this._chainList[id] = {
+          channel: this._socket.channel(`chain:${id}`),
+          id: id,
+          hash: hash,
+          config: options,
+          connected: false,
+          running: true,
+          eventRefs: {}
+        };
 
-          await this._joinChain(id);
+        await this._registerDefaultEventListeners(id);
+        this._chainOnce(id, 'started', () => {
           resolve(id);
         });
+        await this._joinChain(id);
+      });
     });
   }
 
@@ -131,10 +133,60 @@ export default class TestChainService {
       if (!this._socket.isConnected())
         reject('Socket Connection Does Not Exist');
 
-      this._chainList[id].channel.join().receive('ok', () => {
-        this._chainList[id].connected = true;
-        resolve(true);
+      this._chainList[id].channel.join().receive('ok', async () => {
+        for (let i = 0; i < 100; i++) {
+          if (this._chainList[id].channel.state === 'joined') {
+            this._chainList[id].connected = true;
+            resolve(true);
+            break;
+          }
+          await this._sleep(100);
+        }
       });
+    });
+  }
+
+  _registerDefaultEventListeners(id) {
+    return new Promise(resolve => {
+      const eventNames = {
+        started: 'started',
+        error: 'error',
+        stopped: 'stopped',
+        snapshot_taken: 'snapshot_taken',
+        snapshot_reverted: 'snapshot_reverted'
+      };
+
+      for (let event of Object.values(eventNames)) {
+        if (event === eventNames.error) {
+          this._registerEvent(id, 'default', event, err => console.error(err));
+        }
+        this._registerEvent(id, 'default', event, data =>
+          console.log(id, event, data)
+        );
+      }
+      resolve();
+    });
+  }
+
+  _registerEvent(id, label, event, cb) {
+    const ref = this._chainList[id].channel.on(event, cb);
+    this._chainList[id].eventRefs[label + ':' + event] = ref;
+  }
+
+  _unregisterEvent(id, label, event) {
+    const ref = (this._chainList[id] || {}).eventRefs[label + ':' + event];
+    delete this._chainList[id].eventRefs[label + ':' + event];
+    this._chainList[id].channel.off(event, ref);
+  }
+
+  _chainOnce(id, event, cb) {
+    // trigger a one-time callback from an event firing
+    const randomEventId = Math.random()
+      .toString(36)
+      .substr(2, 5);
+    this._registerEvent(id, `once:${randomEventId}`, event, () => {
+      this._unregisterEvent(id, `once:${randomEventId}`, event);
+      cb();
     });
   }
 
@@ -145,18 +197,13 @@ export default class TestChainService {
     });
   }
 
-  startChain(id) {
-    /*
-     * May not be possible. Unsure how to restart stopped chain
-     TODO: wait for 'started' event to return (use listener);
-     */
-
+  restartChain(id) {
     if (this._chainList[id].running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainList[id].channel.push('start').receive('ok', () => {
+      this._chainOnce(id, 'started', () => resolve(true));
+      this._apiChannel.push('start_existing', { id }).receive('ok', () => {
         this._chainList[id].running = true;
-        resolve(true);
       });
     });
   }
@@ -165,38 +212,40 @@ export default class TestChainService {
     if (!(this._chainList[id] || {}).running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainList[id].channel
-        .push('stop')
-        .receive('ok', x => {
-          console.log('ok call success', x);
-          this._chainList[id].running = false;
-          if (this._chainList[id].config.clean_on_stop) {
-            delete this._chainList[id];
-          }
-          resolve(true);
-        })
-        .receive('error', console.log('Error stopping chain'));
+      this._chainOnce(id, 'stopped', async () => {
+        this._chainList[id].running = false;
+
+        if (this.isCleanedOnStop(id)) {
+          delete this._chainList[id];
+        }
+        resolve(true);
+      });
+
+      this._chainList[id].channel.push('stop');
     });
   }
 
-  takeSnapshot(id) {
+  takeSnapshot(id, label = 'snap:' + id) {
     return new Promise((resolve, reject) => {
+      this._registerEvent(id, label, 'snapshot_taken', res => {
+        console.log(res);
+        resolve();
+      });
+
       this._chainList[id].channel
         .push('take_snapshot')
-        .receive('ok', ({ snapshot }) => {
-          console.log('Snapshot made for chain %s with id %s', id, snapshot);
-          resolve({ snapshot });
-        });
+        .receive('ok', res => {});
     });
   }
 
-  revertSnapshot(id, snapshot) {
+  revertSnapshot(snapshot) {
+    const id = this.getSnap(snapshot).chain;
     return new Promise((resolve, reject) => {
       this._chainList[id].channel
         .push('revert_snapshot', { snapshot })
-        .receive('ok', () => {
-          console.log('Snapshot %s reverted to chain %s', snapshot, id);
-          resolve();
+        .receive('ok', res => {
+          console.log('snapshot reverted');
+          resolve(res);
         });
     });
   }
@@ -220,30 +269,22 @@ export default class TestChainService {
   }
 
   async removeAllChains() {
-    const chains = await this._listChains();
-    console.log('list of chains', chains);
-    for (let chain of chains) {
-      if (chain.status === 'active') await this.stopChain(chain.id);
-      await this._removeChain(chain.id);
+    for (let id of Object.keys(this._chainList)) {
+      await this.stopChain(id);
+      if (this.isCleanedOnStop(id)) {
+        await this._removeChain(id);
+      }
     }
   }
 
   _removeChain(id) {
+    console.log('removing chain:' + id);
     return new Promise((resolve, reject) => {
       this._apiChannel.push('remove_chain', { id: id }).receive('ok', data => {
-        console.log('CHECK FOR THIS', data);
         resolve(data);
       });
     });
   }
-
-  /**
-   * 
-   * api_channel
-    .push('remove_chain', { id: chain_id })
-    .receive('ok', () => console.log('Chain removed %s', id))
-    .receive('error', console.error)
-   */
 
   // status methods
   isConnectedSocket() {
@@ -262,6 +303,18 @@ export default class TestChainService {
     return this._chainList[id];
   }
 
+  getSnapShots() {
+    return this._snapShots;
+  }
+
+  getSnap(id) {
+    return this._snapShots[id];
+  }
+
+  isCleanedOnStop(id) {
+    return ((this.getChain(id) || {}).config || {}).clean_on_stop;
+  }
+
   async clearChains() {
     // convenience method to remove all chain instances
     // until delete route is added
@@ -271,52 +324,10 @@ export default class TestChainService {
       await this.stopChain(ids[i]);
     }
   }
+
+  async _sleep(ms) {
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
+  }
 }
-
-// export async function getChain(id) {
-//   chain(id).on('ok', () => console.log('getChain OK'));
-// }
-
-// export async function stopChain(id) {
-//   return stop(id);
-// }
-
-// /**PRIVATE METHODS */
-
-// export function start_channel(id) {
-//   chainList[id] = socket.channel(`chain:${id}`);
-//   chainList[id]
-//     .join()
-//     .receive('ok', () => console.log('Joined channel chain', id))
-//     .receive('error', console.error);
-//   return window[id];
-// }
-
-// export function chain(id) {
-//   return chainList[id];
-// }
-
-// export function stop(id) {
-//   chain(id)
-//     .push('stop')
-//     .receive('ok', () => console.log('Chain stopped !'))
-//     .receive('error', console.error);
-// }
-
-// export function take_snapshot(id) {
-//   chain(id)
-//     .push('take_snapshot')
-//     .receive('ok', ({ snapshot }) =>
-//       console.log('Snapshot made for chain %s with id %s', id, snapshot)
-//     )
-//     .receive('error', console.error);
-// }
-
-// export function revert_snapshot(id, snapshot) {
-//   chain(id)
-//     .push('revert_snapshot', { snapshot })
-//     .receive('ok', () =>
-//       console.log('Snapshot %s reverted to chain %s', snapshot, id)
-//     )
-//     .receive('error', console.error);
-// }
