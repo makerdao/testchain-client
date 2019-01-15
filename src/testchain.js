@@ -114,9 +114,8 @@ export default class TestChainService {
           eventRefs: {}
         };
         await this._registerDefaultEventListeners(id);
-
+        this._chainOnce(id, 'started', () => resolve(id));
         await this._joinChain(id);
-        resolve(id);
       });
     });
   }
@@ -131,9 +130,15 @@ export default class TestChainService {
       if (!this._socket.isConnected())
         reject('Socket Connection Does Not Exist');
 
-      this._chainList[id].channel.join().receive('ok', () => {
-        this._chainList[id].connected = true;
-        resolve(true);
+      this._chainList[id].channel.join().receive('ok', async () => {
+        for (let i = 0; i < 100; i++) {
+          if (this._chainList[id].channel.state === 'joined') {
+            this._chainList[id].connected = true;
+            resolve(true);
+            break;
+          }
+          await this._sleep(100);
+        }
       });
     });
   }
@@ -163,6 +168,19 @@ export default class TestChainService {
   _registerEvent(id, label, event, cb) {
     const ref = this._chainList[id].channel.on(event, cb);
     this._chainList[id].eventRefs[label + ':' + event] = ref;
+  }
+
+  _unregisterEvent(id, label, event) {
+    const ref = this._chainList[id].eventRefs[label + ':' + event];
+    this._chainList[id].channel.off(event, ref);
+  }
+
+  _chainOnce(id, event, cb) {
+    // trigger a one-time callback from an event firing
+    this._registerEvent(id, `function${id}`, 'started', () => {
+      this._unregisterEvent(id, `function${id}`, 'started');
+      cb();
+    });
   }
 
   _leaveChain(id) {
@@ -242,6 +260,7 @@ export default class TestChainService {
 
   async removeAllChains() {
     const chains = await this._listChains();
+
     for (let chain of chains) {
       if (chain.status === 'active') await this.stopChain(chain.id);
       await this._removeChain(chain.id);
@@ -289,5 +308,11 @@ export default class TestChainService {
     for (let i = 0; i < ids.length; i++) {
       await this.stopChain(ids[i]);
     }
+  }
+
+  async _sleep(ms) {
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
   }
 }

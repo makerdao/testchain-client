@@ -3,7 +3,7 @@ import TestChainService from '../src/testchain';
 import 'whatwg-fetch';
 import md5 from 'md5';
 
-jest.setTimeout(20000);
+//jest.setTimeout(5000);
 
 let service;
 
@@ -16,13 +16,6 @@ const options = {
 
 const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
 
-// TODO: we're cheating here until the testchain events get handled:
-const wait = async ms => {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
-};
-
 // test.only('will remove all chains', async () => {
 //   service = new TestChainService();
 //   await service.initialize();
@@ -30,7 +23,7 @@ const wait = async ms => {
 // });
 
 describe('app connectivity', async () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     service = new TestChainService();
     await service.initialize();
   });
@@ -60,16 +53,16 @@ describe('app connectivity', async () => {
 describe('chain starting and stopping', async () => {
   let id;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     service = new TestChainService();
     await service.initialize();
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await service.removeAllChains();
   });
 
-  test('chain instance can be created', async () => {
+  test.only('chain instance can be created', async () => {
     id = await service.createChainInstance({ ...options });
     const chain = service.getChain(id);
     const chainList = service.getChainList();
@@ -92,7 +85,7 @@ describe('chain starting and stopping', async () => {
     expect(service.getChain(id).running).toEqual(false);
   });
 
-  test.only('chain instance can be restarted', async () => {
+  test('chain instance can be restarted', async () => {
     id = await service.createChainInstance({
       ...options,
       clean_on_stop: false
