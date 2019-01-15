@@ -1,5 +1,4 @@
 import { Socket } from 'phoenix';
-import md5 from 'md5';
 import _ from 'lodash';
 
 const API_CHANNEL = 'api';
@@ -27,13 +26,10 @@ export default class TestChainService {
         clean_on_stop: chain.clean_on_stop
       };
 
-      const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
-
       this._chainList[chain.id] = {
         channel: this._socket.channel(`chain:${chain.id}`),
         id: chain.id,
-        hash: hash,
-        config: options,
+        options: options,
         connected: false,
         running: chain.status === 'active' ? true : false
       };
@@ -98,29 +94,31 @@ export default class TestChainService {
     });
   }
 
-  // This will automatically join the chain channel on success.
   createChainInstance(options) {
-    const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
-
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
 
-      this._apiChannel.push('start', options).receive('ok', async ({ id }) => {
+      let chainId = null;
+      this._apiOnce('started', async data => {
+        const id = chainId;
+
         this._chainList[id] = {
           channel: this._socket.channel(`chain:${id}`),
-          id: id,
-          hash: hash,
-          config: options,
+          options,
+          ...data,
           connected: false,
           running: true,
           eventRefs: {}
         };
 
         await this._registerDefaultEventListeners(id);
-        this._chainOnce(id, 'started', () => {
-          resolve(id);
-        });
         await this._joinChain(id);
+
+        resolve(id);
+      });
+
+      this._apiChannel.push('start', options).receive('ok', async ({ id }) => {
+        chainId = id;
       });
     });
   }

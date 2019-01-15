@@ -1,9 +1,6 @@
 import { setupTestMakerInstance } from './helpers';
 import TestChainService from '../src/testchain';
 import 'whatwg-fetch';
-import md5 from 'md5';
-
-//jest.setTimeout(5000);
 
 let service;
 
@@ -13,8 +10,6 @@ const options = {
   block_mine_time: 0,
   clean_on_stop: true
 };
-
-const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
 
 // test.only('will remove all chains', async () => {
 //   service = new TestChainService();
@@ -69,7 +64,6 @@ describe('chain behaviour', async () => {
 
     expect(chain.channel.topic).toEqual('chain:' + id);
     expect(chain.channel.state).toEqual('joined');
-    expect(chain.hash).toEqual(md5(JSON.stringify({ ...options })));
     expect(chain.connected).toEqual(true);
     expect(chain.running).toEqual(true);
     expect(Object.keys(chainList)[0]).toEqual(id);
