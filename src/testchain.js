@@ -11,6 +11,33 @@ export default class TestChainService {
     this._chainList = {};
   }
 
+  async initialize() {
+    await this.connectApp();
+    const chains = await this._listChains();
+    console.log('INITIALIZE CHAINS', chains);
+    for (let chain of chains) {
+      const options = {
+        http_port: chain.http_port,
+        accounts: chain.accounts,
+        block_mine_time: chain.block_mine_time,
+        clean_on_stop: chain.clean_on_stop
+      };
+
+      const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
+
+      this._chainList[chain.id] = {
+        channel: this._socket.channel(`chain:${chain.id}`),
+        id: chain.id,
+        hash: hash,
+        config: options,
+        connected: false,
+        running: chain.status === 'active' ? true : false
+      };
+      await this._joinChain(chain.id);
+      console.log('INIT CHAIN LIST:', this._chainList);
+    }
+  }
+
   /*
    * connectApp() will by default attempt to connect to a
    * socket url and if successful will then attempt to join
@@ -31,6 +58,13 @@ export default class TestChainService {
       this._socket.onMessage(console.log);
 
       this._socket.connect();
+    });
+  }
+
+  createListener(event, callback) {
+    return new Promise((resolve, reject) => {
+      const channel = this._apiChannel;
+      channel.on(event, callback);
     });
   }
 
@@ -60,6 +94,7 @@ export default class TestChainService {
     });
   }
 
+  // This will automatically join the chain channel on success.
   createChainInstance(options) {
     const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
 
@@ -113,6 +148,7 @@ export default class TestChainService {
   startChain(id) {
     /*
      * May not be possible. Unsure how to restart stopped chain
+     TODO: wait for 'started' event to return (use listener);
      */
 
     if (this._chainList[id].running) return true;
@@ -129,13 +165,17 @@ export default class TestChainService {
     if (!(this._chainList[id] || {}).running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainList[id].channel.push('stop').receive('ok', () => {
-        this._chainList[id].running = false;
-        if (this._chainList[id].config.clean_on_stop) {
-          delete this._chainList[id];
-        }
-        resolve(true);
-      });
+      this._chainList[id].channel
+        .push('stop')
+        .receive('ok', x => {
+          console.log('ok call success', x);
+          this._chainList[id].running = false;
+          if (this._chainList[id].config.clean_on_stop) {
+            delete this._chainList[id];
+          }
+          resolve(true);
+        })
+        .receive('error', console.log('Error stopping chain'));
     });
   }
 
@@ -160,6 +200,50 @@ export default class TestChainService {
         });
     });
   }
+
+  async listChains() {
+    return await this._listChains();
+  }
+
+  _listChains() {
+    return new Promise((resolve, reject) => {
+      // TODO: check if api channel is connected first
+      this._apiChannel.push('list_chains', {}).receive('ok', ({ chains }) => {
+        resolve(chains);
+      });
+      // TODO: error handling?
+    });
+  }
+
+  async removeChain(id) {
+    return await this._removeChain(id);
+  }
+
+  async removeAllChains() {
+    const chains = await this._listChains();
+    console.log('list of chains', chains);
+    for (let chain of chains) {
+      if (chain.status === 'active') await this.stopChain(chain.id);
+      await this._removeChain(chain.id);
+    }
+  }
+
+  _removeChain(id) {
+    return new Promise((resolve, reject) => {
+      this._apiChannel.push('remove_chain', { id: id }).receive('ok', data => {
+        console.log('CHECK FOR THIS', data);
+        resolve(data);
+      });
+    });
+  }
+
+  /**
+   * 
+   * api_channel
+    .push('remove_chain', { id: chain_id })
+    .receive('ok', () => console.log('Chain removed %s', id))
+    .receive('error', console.error)
+   */
 
   // status methods
   isConnectedSocket() {
