@@ -1,5 +1,6 @@
 import { Socket } from 'phoenix';
 import md5 from 'md5';
+import _ from 'lodash';
 
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
@@ -8,6 +9,7 @@ export default class TestChainService {
   constructor() {
     this._socket = null;
     this._apiChannel = null;
+    this._apiEventRefs = {};
     this._apiConnected = false;
     this._chainList = {};
     this._snapshots = {};
@@ -169,17 +171,40 @@ export default class TestChainService {
   }
 
   _registerEvent(id, label, event, cb) {
-    const ref = this._chainList[id].channel.on(event, cb);
-    this._chainList[id].eventRefs[label + ':' + event] = ref;
+    let ref;
+
+    if (id) {
+      ref = this._chainList[id].channel.on(event, cb);
+      _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
+    } else {
+      ref = this._apiChannel.on(event, cb);
+      this._apiEventRefs[label + ':' + event] = ref;
+    }
   }
 
   _unregisterEvent(id, label, event) {
-    const ref = (this._chainList[id] || {}).eventRefs[label + ':' + event];
-    delete this._chainList[id].eventRefs[label + ':' + event];
-    this._chainList[id].channel.off(event, ref);
+    let ref;
+
+    if (id) {
+      _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
+      delete this._chainList[id].eventRefs[label + ':' + event];
+      this._chainList[id].channel.off(event, ref);
+    } else {
+      ref = this._apiEventRefs[label + ':' + event];
+      delete this._apiEventRefs[label + ':' + event];
+      this._apiChannel.off(event, ref);
+    }
+  }
+
+  _apiOnce(event, cb) {
+    this._once(false, event, cb);
   }
 
   _chainOnce(id, event, cb) {
+    this._once(id, event, cb);
+  }
+
+  _once(id, event, cb) {
     // trigger a one-time callback from an event firing
     const randomEventId = Math.random()
       .toString(36)
