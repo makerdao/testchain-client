@@ -136,7 +136,7 @@ describe('snapshot examples', async () => {
     expect(snapshot.path).toBeTruthy();
   });
 
-  test.only('will restore snapshot of the chain', async () => {
+  test.skip('will restore snapshot of the chain', async () => {
     id = await service.createChainInstance({ ...options, accounts: 4 });
     let maker;
     const description = 'BEFORE_MINED_BLOCK';
