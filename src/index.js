@@ -1,3 +1,3 @@
-import TestchainService from './TestchainService';
+const TestchainService = require('./TestchainService').default;
 
 module.exports = TestchainService;
