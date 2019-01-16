@@ -254,7 +254,10 @@ export default class TestchainService {
           ...data,
           chainId: id
         };
-        resolve(snapId);
+        this._chainOnce(id, 'started', data => {
+          console.log('RESTARTING AFTER SNAPSHOT TAKEN', data);
+          resolve(snapId);
+        });
       });
       this._chainList[id].channel.push('take_snapshot', { description: label });
     });
