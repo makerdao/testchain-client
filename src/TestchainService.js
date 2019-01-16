@@ -95,7 +95,6 @@ export default class TestChainService {
   }
 
   createChainInstance(options) {
-    o;
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
 

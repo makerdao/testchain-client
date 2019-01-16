@@ -1,5 +1,5 @@
 import { setupTestMakerInstance } from './helpers';
-import TestChainService from '../src/testchain';
+import TestChainService from '../src';
 import 'whatwg-fetch';
 
 let service;

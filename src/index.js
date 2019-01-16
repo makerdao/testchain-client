@@ -1,3 +1,3 @@
-import TestChainService from './testchain';
+import TestChainService from './TestchainService';
 
 export default TestChainService;
