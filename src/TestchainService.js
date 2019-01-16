@@ -4,7 +4,7 @@ import md5 from 'md5';
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
 
-export default class TestChainService {
+export default class TestchainService {
   constructor() {
     this._socket = null;
     this._apiChannel = null;

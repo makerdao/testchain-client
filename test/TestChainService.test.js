@@ -1,5 +1,5 @@
 import { setupTestMakerInstance } from './helpers';
-import TestChainService from '../src/testchain';
+import TestchainService from '../src/TestchainService';
 import 'whatwg-fetch';
 import md5 from 'md5';
 
@@ -17,14 +17,14 @@ const options = {
 const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
 
 // test.only('will remove all chains', async () => {
-//   service = new TestChainService();
+//   service = new TestchainService();
 //   await service.initialize();
 //   await service.removeAllChains();
 // });
 
 describe('app connectivity', async () => {
   beforeEach(async () => {
-    service = new TestChainService();
+    service = new TestchainService();
     await service.initialize();
   });
 
@@ -54,7 +54,7 @@ describe('chain starting and stopping', async () => {
   let id;
 
   beforeEach(async () => {
-    service = new TestChainService();
+    service = new TestchainService();
     await service.initialize();
   });
 
@@ -116,7 +116,7 @@ describe('chain starting and stopping', async () => {
 });
 
 // beforeEach(async () => {
-//   service = new TestChainService();
+//   service = new TestchainService();
 //   // await service.connectApp();
 //   await service.initialize();
 // });
@@ -133,7 +133,7 @@ describe('chain starting and stopping', async () => {
 // describe('list chains', async () => {
 //   let service;
 //   beforeAll(async () => {
-//     service = new TestChainService();
+//     service = new TestchainService();
 //     await service.connectApp();
 
 //     // start first chain
