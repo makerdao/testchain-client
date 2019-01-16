@@ -1,3 +1,3 @@
 import TestChainService from './TestchainService';
 
-export default TestChainService;
+module.exports = TestChainService;

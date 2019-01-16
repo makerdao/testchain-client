@@ -1,7 +1,6 @@
 import Maker from '@makerdao/dai';
 import configPlugin from '@makerdao/dai-plugin-config';
 import governancePlugin from '@makerdao/dai-plugin-governance';
-import TestChainService from '../src';
 
 export async function setupTestMakerInstance(testchainId) {
   const makerConfig = {

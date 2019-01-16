@@ -1,5 +1,6 @@
 import { setupTestMakerInstance } from './helpers';
 import TestChainService from '../src';
+
 import 'whatwg-fetch';
 
 let service;
@@ -12,14 +13,14 @@ const options = {
 };
 
 // test.only('will remove all chains', async () => {
-//   service = new TestChainService();
+//   service = new TestchainService();
 //   await service.initialize();
 //   await service.removeAllChains();
 // });
 
 describe('app connectivity', async () => {
   beforeEach(async () => {
-    service = new TestChainService();
+    service = new TestchainService();
     await service.initialize();
   });
 
@@ -49,7 +50,7 @@ describe('chain behaviour', async () => {
   let id;
 
   beforeEach(async () => {
-    service = new TestChainService();
+    service = new TestchainService();
     await service.initialize();
   });
 
@@ -150,7 +151,7 @@ describe('snapshot examples', async () => {
 });
 
 // beforeEach(async () => {
-//   service = new TestChainService();
+//   service = new TestchainService();
 //   // await service.connectApp();
 //   await service.initialize();
 // });
@@ -167,7 +168,7 @@ describe('snapshot examples', async () => {
 // describe('list chains', async () => {
 //   let service;
 //   beforeAll(async () => {
-//     service = new TestChainService();
+//     service = new TestchainService();
 //     await service.connectApp();
 
 //     // start first chain

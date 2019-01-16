@@ -4,7 +4,7 @@ import _ from 'lodash';
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
 
-export default class TestChainService {
+export default class TestchainService {
   constructor() {
     this._socket = null;
     this._apiChannel = null;
@@ -31,7 +31,8 @@ export default class TestChainService {
         id: chain.id,
         options: options,
         connected: false,
-        running: chain.status === 'active' ? true : false
+        running: chain.status === 'active' ? true : false,
+        eventRefs: {}
       };
 
       await this._joinChain(chain.id);
