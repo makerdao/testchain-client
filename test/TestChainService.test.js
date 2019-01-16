@@ -1,5 +1,5 @@
 import { setupTestMakerInstance } from './helpers';
-import TestChainService from '../src';
+import TestchainService from '../src';
 
 import 'whatwg-fetch';
 
@@ -114,7 +114,7 @@ describe('snapshot examples', async () => {
   let id;
 
   beforeEach(async () => {
-    service = new TestChainService();
+    service = new TestchainService();
     await service.initialize();
   });
 

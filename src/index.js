@@ -1,3 +1,3 @@
-import TestChainService from './TestchainService';
+import TestchainService from './TestchainService';
 
-module.exports = TestChainService;
+module.exports = TestchainService;

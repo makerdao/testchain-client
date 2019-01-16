@@ -62,13 +62,6 @@ export default class TestchainService {
     });
   }
 
-  createListener(event, callback) {
-    return new Promise((resolve, reject) => {
-      const channel = this._apiChannel;
-      channel.on(event, callback);
-    });
-  }
-
   _disconnectApp(cb) {
     this._socket.disconnect(cb);
   }
