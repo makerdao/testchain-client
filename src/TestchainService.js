@@ -264,14 +264,16 @@ export default class TestchainService {
   }
 
   revertSnapshot(snapshot) {
-    const id = this.getSnap(snapshot).chain;
+    const id = this.getSnap(snapshot).chainId;
     return new Promise((resolve, reject) => {
-      this._chainList[id].channel
-        .push('revert_snapshot', { snapshot })
-        .receive('ok', res => {
-          console.log('snapshot reverted');
-          resolve(res);
+      this._chainOnce(id, 'snapshot_reverted', data => {
+        const reverted_snapshot = data;
+        this._chainOnce(id, 'started', data => {
+          console.log('RESTARTING AFTER SNAPSHOT REVERTED', reverted_snapshot);
+          resolve(reverted_snapshot);
         });
+      });
+      this._chainList[id].channel.push('revert_snapshot', { snapshot });
     });
   }
 

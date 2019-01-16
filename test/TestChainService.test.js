@@ -1,7 +1,8 @@
-import { setupTestMakerInstance } from './helpers';
+import { setupTestMakerInstance, callGanache } from './helpers';
 import TestchainService from '../src';
-
 import 'whatwg-fetch';
+
+jest.setTimeout(10000);
 
 let service;
 
@@ -126,28 +127,44 @@ describe('snapshot examples', async () => {
     const snapshot = service.getSnap(snapId);
 
     const delay = Date.now() - new Date(snapshot.date).getTime();
-    expect(delay).toBeLessThan(300); // roughly current time
+    expect(delay).toBeLessThan(2000); // roughly current time
     expect(snapshot.description).toEqual(description);
     expect(snapshot.id).toEqual(snapId);
     expect(snapshot.chainId).toEqual(id);
     expect(snapshot.path).toBeTruthy();
   });
 
-  test.only('will restore snapshot of the chain', async () => {
+  test('will restore snapshot of the chain', async () => {
     const { id } = await service.createChainInstance({
-      ...options,
-      accounts: 4
+      ...options
     });
     const chainUrl = service.getChain(id).rpc_url;
-    console.log(chainUrl);
-    let maker;
-    const description = 'BEFORE_MINED_BLOCK';
 
-    const snapId = await service.takeSnapshot(id, description);
+    let maker, contract;
     maker = await setupTestMakerInstance(3, chainUrl);
-    console.log(maker);
-    const block = await maker.service('web3')._web3.eth.getBlock();
-    console.log(block);
+    const description = 'BEFORE_CONTRACTS';
+    const snapId = await service.takeSnapshot(id, description);
+
+    const snapshot = service.getSnap(snapId);
+
+    expect(() => {
+      contract = maker.service('smartContract').getContractByName('CHIEF');
+    }).toThrow();
+
+    maker = await setupTestMakerInstance(2, chainUrl); // maker with contracts deployed
+    contract = maker.service('smartContract').getContractByName('CHIEF');
+    expect(/^(0x)?[0-9a-f]{40}$/i.test(contract.address)).toBe(true);
+
+    const res = await service.revertSnapshot(snapId);
+    expect(res.description).toEqual(description);
+    expect(res.date).toEqual(snapshot.date);
+    expect(res.id).toEqual(snapshot.id);
+    expect(res.path).toEqual(snapshot.path);
+
+    maker = await setupTestMakerInstance(3, chainUrl);
+    expect(() => {
+      contract = maker.service('smartContract').getContractByName('CHIEF');
+    }).toThrow();
   });
 });
 
