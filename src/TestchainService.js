@@ -1,5 +1,5 @@
 import { Socket } from 'phoenix';
-import md5 from 'md5';
+import _ from 'lodash';
 
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
@@ -8,9 +8,10 @@ export default class TestchainService {
   constructor() {
     this._socket = null;
     this._apiChannel = null;
+    this._apiEventRefs = {};
     this._apiConnected = false;
     this._chainList = {};
-    this._snapShots = {};
+    this._snapshots = {};
   }
 
   async initialize() {
@@ -25,13 +26,10 @@ export default class TestchainService {
         clean_on_stop: chain.clean_on_stop
       };
 
-      const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
-
       this._chainList[chain.id] = {
         channel: this._socket.channel(`chain:${chain.id}`),
         id: chain.id,
-        hash: hash,
-        config: options,
+        options: options,
         connected: false,
         running: chain.status === 'active' ? true : false,
         eventRefs: {}
@@ -97,29 +95,31 @@ export default class TestchainService {
     });
   }
 
-  // This will automatically join the chain channel on success.
   createChainInstance(options) {
-    const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
-
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
 
-      this._apiChannel.push('start', options).receive('ok', async ({ id }) => {
+      let chainId = null;
+      this._apiOnce('started', async data => {
+        const id = chainId;
+        console.log('started', data, options);
         this._chainList[id] = {
           channel: this._socket.channel(`chain:${id}`),
-          id: id,
-          hash: hash,
-          config: options,
+          options,
+          ...data,
           connected: false,
           running: true,
           eventRefs: {}
         };
 
         await this._registerDefaultEventListeners(id);
-        this._chainOnce(id, 'started', () => {
-          resolve(id);
-        });
         await this._joinChain(id);
+
+        resolve(id);
+      });
+
+      this._apiChannel.push('start', options).receive('ok', async ({ id }) => {
+        chainId = id;
       });
     });
   }
@@ -170,24 +170,48 @@ export default class TestchainService {
   }
 
   _registerEvent(id, label, event, cb) {
-    const ref = this._chainList[id].channel.on(event, cb);
-    this._chainList[id].eventRefs[label + ':' + event] = ref;
+    let ref;
+
+    if (id) {
+      ref = this._chainList[id].channel.on(event, cb);
+      _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
+    } else {
+      ref = this._apiChannel.on(event, cb);
+      this._apiEventRefs[label + ':' + event] = ref;
+    }
   }
 
   _unregisterEvent(id, label, event) {
-    const ref = (this._chainList[id] || {}).eventRefs[label + ':' + event];
-    delete this._chainList[id].eventRefs[label + ':' + event];
-    this._chainList[id].channel.off(event, ref);
+    let ref;
+
+    if (id) {
+      _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
+      delete this._chainList[id].eventRefs[label + ':' + event];
+      this._chainList[id].channel.off(event, ref);
+    } else {
+      ref = this._apiEventRefs[label + ':' + event];
+      delete this._apiEventRefs[label + ':' + event];
+      this._apiChannel.off(event, ref);
+    }
+  }
+
+  _apiOnce(event, cb) {
+    this._once(false, event, cb);
   }
 
   _chainOnce(id, event, cb) {
+    this._once(id, event, cb);
+  }
+
+  _once(id, event, cb) {
     // trigger a one-time callback from an event firing
     const randomEventId = Math.random()
       .toString(36)
       .substr(2, 5);
-    this._registerEvent(id, `once:${randomEventId}`, event, () => {
+    this._registerEvent(id, `once:${randomEventId}`, event, async data => {
+      await this._sleep(100);
       this._unregisterEvent(id, `once:${randomEventId}`, event);
-      cb();
+      cb(data);
     });
   }
 
@@ -202,7 +226,10 @@ export default class TestchainService {
     if (this._chainList[id].running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'started', () => resolve(true));
+      this._chainOnce(id, 'started', data => {
+        console.log('RESTARTING', data);
+        resolve(true);
+      });
       this._apiChannel.push('start_existing', { id }).receive('ok', () => {
         this._chainList[id].running = true;
       });
@@ -213,7 +240,7 @@ export default class TestchainService {
     if (!(this._chainList[id] || {}).running) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'stopped', async () => {
+      this._chainOnce(id, 'stopped', async data => {
         this._chainList[id].running = false;
 
         if (this.isCleanedOnStop(id)) {
@@ -228,14 +255,15 @@ export default class TestchainService {
 
   takeSnapshot(id, label = 'snap:' + id) {
     return new Promise((resolve, reject) => {
-      this._registerEvent(id, label, 'snapshot_taken', res => {
-        console.log(res);
-        resolve();
+      this._chainOnce(id, 'snapshot_taken', data => {
+        const { id: snapId } = data;
+        this._snapshots[snapId] = {
+          ...data,
+          chainId: id
+        };
+        resolve(snapId);
       });
-
-      this._chainList[id].channel
-        .push('take_snapshot')
-        .receive('ok', res => {});
+      this._chainList[id].channel.push('take_snapshot', { description: label });
     });
   }
 
@@ -310,12 +338,12 @@ export default class TestchainService {
     return this._chainList[id];
   }
 
-  getSnapShots() {
-    return this._snapShots;
+  getSnapshots() {
+    return this._snapshots;
   }
 
   getSnap(id) {
-    return this._snapShots[id];
+    return this._snapshots[id];
   }
 
   isCleanedOnStop(id) {

@@ -1,9 +1,7 @@
 import { setupTestMakerInstance } from './helpers';
-import TestchainService from '../src/TestchainService';
-import 'whatwg-fetch';
-import md5 from 'md5';
+import TestChainService from '../src';
 
-//jest.setTimeout(5000);
+import 'whatwg-fetch';
 
 let service;
 
@@ -13,8 +11,6 @@ const options = {
   block_mine_time: 0,
   clean_on_stop: true
 };
-
-const hash = md5(JSON.stringify(options)); //will have to normalise ordering of values
 
 // test.only('will remove all chains', async () => {
 //   service = new TestchainService();
@@ -50,7 +46,7 @@ describe('app connectivity', async () => {
   });
 });
 
-describe('chain starting and stopping', async () => {
+describe('chain behaviour', async () => {
   let id;
 
   beforeEach(async () => {
@@ -69,7 +65,6 @@ describe('chain starting and stopping', async () => {
 
     expect(chain.channel.topic).toEqual('chain:' + id);
     expect(chain.channel.state).toEqual('joined');
-    expect(chain.hash).toEqual(md5(JSON.stringify({ ...options })));
     expect(chain.connected).toEqual(true);
     expect(chain.running).toEqual(true);
     expect(Object.keys(chainList)[0]).toEqual(id);
@@ -112,6 +107,46 @@ describe('chain starting and stopping', async () => {
     expect(chain1.running).toBe(true);
     expect(chain2.connected).toBe(true);
     expect(chain2.running).toBe(true);
+  });
+});
+
+describe('snapshot examples', async () => {
+  let id;
+
+  beforeEach(async () => {
+    service = new TestChainService();
+    await service.initialize();
+  });
+
+  afterEach(async () => {
+    await service.removeAllChains();
+  });
+
+  test('will take a snapshot of the chain', async () => {
+    id = await service.createChainInstance({ ...options });
+
+    const description = 'NEW_SNAPSHOT';
+    const snapId = await service.takeSnapshot(id, description);
+    const snapshot = service.getSnap(snapId);
+
+    const delay = Date.now() - new Date(snapshot.date).getTime();
+    expect(delay).toBeLessThan(300); // roughly current time
+    expect(snapshot.description).toEqual(description);
+    expect(snapshot.id).toEqual(snapId);
+    expect(snapshot.chainId).toEqual(id);
+    expect(snapshot.path).toBeTruthy();
+  });
+
+  test.skip('will restore snapshot of the chain', async () => {
+    id = await service.createChainInstance({ ...options, accounts: 4 });
+    let maker;
+    const description = 'BEFORE_MINED_BLOCK';
+
+    const snapId = await service.takeSnapshot(id, description);
+    maker = await setupTestMakerInstance(3);
+    console.log(maker);
+    const block = await maker.service('web3')._web3.eth.getBlock();
+    console.log(block);
   });
 });
 
