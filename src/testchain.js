@@ -33,7 +33,8 @@ export default class TestChainService {
         hash: hash,
         config: options,
         connected: false,
-        running: chain.status === 'active' ? true : false
+        running: chain.status === 'active' ? true : false,
+        eventRefs: {}
       };
 
       await this._joinChain(chain.id);
