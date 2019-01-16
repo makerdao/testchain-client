@@ -108,7 +108,7 @@ export default class TestchainService {
         await this._registerDefaultEventListeners(id);
         await this._joinChain(id);
 
-        resolve(id);
+        resolve({ id: id, ...this._chainList[id] });
       });
 
       this._apiChannel.push('start', options).receive('ok', async ({ id }) => {

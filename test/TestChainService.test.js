@@ -47,8 +47,6 @@ describe('app connectivity', async () => {
 });
 
 describe('chain behaviour', async () => {
-  let id;
-
   beforeEach(async () => {
     service = new TestchainService();
     await service.initialize();
@@ -59,7 +57,7 @@ describe('chain behaviour', async () => {
   });
 
   test('chain instance can be created', async () => {
-    id = await service.createChainInstance({ ...options });
+    const { id } = await service.createChainInstance({ ...options });
     const chain = service.getChain(id);
     const chainList = service.getChainList();
 
@@ -71,7 +69,7 @@ describe('chain behaviour', async () => {
   });
 
   test('chain instance can be stopped', async () => {
-    id = await service.createChainInstance({
+    const { id } = await service.createChainInstance({
       ...options,
       clean_on_stop: false
     });
@@ -81,7 +79,7 @@ describe('chain behaviour', async () => {
   });
 
   test('chain instance can be restarted', async () => {
-    id = await service.createChainInstance({
+    const { id } = await service.createChainInstance({
       ...options,
       clean_on_stop: false
     });
@@ -93,9 +91,9 @@ describe('chain behaviour', async () => {
   });
 
   test('will create multiple chains', async () => {
-    const chainId1 = await service.createChainInstance({ ...options });
+    const { id: chainId1 } = await service.createChainInstance({ ...options });
 
-    const chainId2 = await service.createChainInstance({
+    const { id: chainId2 } = await service.createChainInstance({
       ...options,
       http_port: 8546
     });
@@ -111,8 +109,6 @@ describe('chain behaviour', async () => {
 });
 
 describe('snapshot examples', async () => {
-  let id;
-
   beforeEach(async () => {
     service = new TestchainService();
     await service.initialize();
@@ -123,7 +119,7 @@ describe('snapshot examples', async () => {
   });
 
   test('will take a snapshot of the chain', async () => {
-    id = await service.createChainInstance({ ...options });
+    const { id } = await service.createChainInstance({ ...options });
 
     const description = 'NEW_SNAPSHOT';
     const snapId = await service.takeSnapshot(id, description);
@@ -138,7 +134,10 @@ describe('snapshot examples', async () => {
   });
 
   test.skip('will restore snapshot of the chain', async () => {
-    id = await service.createChainInstance({ ...options, accounts: 4 });
+    const { id } = await service.createChainInstance({
+      ...options,
+      accounts: 4
+    });
     let maker;
     const description = 'BEFORE_MINED_BLOCK';
 
