@@ -133,16 +133,18 @@ describe('snapshot examples', async () => {
     expect(snapshot.path).toBeTruthy();
   });
 
-  test.skip('will restore snapshot of the chain', async () => {
+  test.only('will restore snapshot of the chain', async () => {
     const { id } = await service.createChainInstance({
       ...options,
       accounts: 4
     });
+    const chainUrl = service.getChain(id).rpc_url;
+    console.log(chainUrl);
     let maker;
     const description = 'BEFORE_MINED_BLOCK';
 
     const snapId = await service.takeSnapshot(id, description);
-    maker = await setupTestMakerInstance(3);
+    maker = await setupTestMakerInstance(3, chainUrl);
     console.log(maker);
     const block = await maker.service('web3')._web3.eth.getBlock();
     console.log(block);
