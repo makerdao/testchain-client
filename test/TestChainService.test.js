@@ -135,6 +135,18 @@ describe('snapshot examples', async () => {
     expect(snapshot.chainId).toEqual(id);
     expect(snapshot.path).toBeTruthy();
   });
+
+  test.only('will restore snapshot of the chain', async () => {
+    id = await service.createChainInstance({ ...options, accounts: 4 });
+    let maker;
+    const description = 'BEFORE_MINED_BLOCK';
+
+    const snapId = await service.takeSnapshot(id, description);
+    maker = await setupTestMakerInstance(3);
+    console.log(maker);
+    const block = await maker.service('web3')._web3.eth.getBlock();
+    console.log(block);
+  });
 });
 
 // beforeEach(async () => {

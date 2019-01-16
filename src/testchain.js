@@ -95,13 +95,14 @@ export default class TestChainService {
   }
 
   createChainInstance(options) {
+    o;
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
 
       let chainId = null;
       this._apiOnce('started', async data => {
         const id = chainId;
-
+        console.log('started', data, options);
         this._chainList[id] = {
           channel: this._socket.channel(`chain:${id}`),
           options,
@@ -240,7 +241,6 @@ export default class TestChainService {
 
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'stopped', async data => {
-        console.log('STOPPING', data);
         this._chainList[id].running = false;
 
         if (this.isCleanedOnStop(id)) {
