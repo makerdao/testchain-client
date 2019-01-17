@@ -5,6 +5,7 @@ import fetch from 'node-fetch';
 
 const logEvent = debug('log:event');
 const logSocket = debug('log:socket');
+const logDelete = debug('log:delete');
 
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
@@ -312,6 +313,15 @@ export default class TestchainService {
     return await res.json();
   }
 
+  async fetchDelete(id) {
+    const res = await fetch(`http://localhost:4000/chain/${id}`, {
+      method: 'DELETE'
+    });
+    const msg = await res.json();
+    msg['chain'] = id;
+    logDelete(`\n${JSON.stringify(msg, null, 4)}\n`);
+  }
+
   async listChains() {
     return await this._listChains();
   }
@@ -328,35 +338,11 @@ export default class TestchainService {
     });
   }
 
-  async removeChain(id) {
-    return await this._removeChain(id);
-  }
-
   async removeAllChains() {
     for (let id of Object.keys(this._chainList)) {
       await this.stopChain(id);
-      await this._removeChain(id);
+      await this.fetchDelete(id);
     }
-  }
-
-  _removeChain(id) {
-    return new Promise(async (resolve, reject) => {
-      const chains = await this._listChains();
-
-      for (let chain of chains) {
-        if (id === chain.id) {
-          this._apiChannel
-            .push('remove_chain', { id: id })
-            .receive('ok', data => {
-              resolve(data);
-            })
-            .receive('error', () => {
-              reject('Failed removal of chain:' + id);
-            });
-        }
-      }
-      resolve();
-    });
   }
 
   // status methods
@@ -376,6 +362,10 @@ export default class TestchainService {
     return this._chainList[id];
   }
 
+  getChainInfo(id) {
+    const { channel, eventRefs, ...info } = this._chainList[id];
+    return info;
+  }
   getSnapshots() {
     return this._snapshots;
   }
