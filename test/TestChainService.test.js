@@ -1,13 +1,15 @@
 import { setupTestMakerInstance, callGanache } from './helpers';
 import TestchainService from '../src';
 import 'whatwg-fetch';
+import debug from 'debug';
 
 jest.setTimeout(10000);
 
 let service;
 
+const log = debug('log:test');
+
 const options = {
-  http_port: 8545,
   accounts: 3,
   block_mine_time: 0,
   clean_on_stop: true
@@ -106,6 +108,24 @@ describe('chain behaviour', async () => {
     expect(chain1.running).toBe(true);
     expect(chain2.connected).toBe(true);
     expect(chain2.running).toBe(true);
+  });
+
+  test('will throw timeout creating chain instance without options', async () => {
+    expect.assertions(1);
+    try {
+      const { id } = await service.createChainInstance();
+    } catch (e) {
+      expect(e).toEqual('ChainCreationError: timeout');
+    }
+  });
+
+  test.skip('will throw error when stopping chain with wrong id', async () => {
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    await service.stopChain();
   });
 });
 

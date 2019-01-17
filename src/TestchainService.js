@@ -2,10 +2,12 @@ import { Socket } from 'phoenix';
 import _ from 'lodash';
 import debug from 'debug';
 
-const log = debug('log');
+const logEvent = debug('log:event');
+const logSocket = debug('log:socket');
 
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
+const API_TIMEOUT = 5000;
 
 export default class TestchainService {
   constructor() {
@@ -58,8 +60,12 @@ export default class TestchainService {
         resolve(this._socket.isConnected());
       });
 
-      this._socket.onError(() => reject('SOCKET_ERROR'));
-      //this._socket.onMessage(console.log);
+      this._socket.onError(e => {
+        throw new Error('SOCKET_ERROR');
+      });
+      this._socket.onMessage(msg => {
+        logSocket(`\n${JSON.stringify(msg, null, 2)}\n`);
+      });
 
       this._socket.connect();
     });
@@ -110,19 +116,27 @@ export default class TestchainService {
 
         await this._registerDefaultEventListeners(id);
         await this._joinChain(id);
-        log(
+        logEvent(
           `\n chain : ${id}\n event : started\n payload: ${JSON.stringify(
             data,
             null,
-            4
+            2
           )}\n`
         );
         resolve({ id: id, ...this._chainList[id] });
       });
 
-      this._apiChannel.push('start', options).receive('ok', async ({ id }) => {
-        chainId = id;
-      });
+      this._apiChannel
+        .push('start', options, API_TIMEOUT)
+        .receive('ok', async ({ id }) => {
+          chainId = id;
+        })
+        .receive('error', async error => {
+          reject('ChainCreationError: chain process crashed');
+        })
+        .receive('timeout', e => {
+          reject('ChainCreationError: timeout');
+        });
     });
   }
 
@@ -155,20 +169,23 @@ export default class TestchainService {
         started: 'started',
         error: 'error',
         stopped: 'stopped',
+        status_changed: 'status_changed',
         snapshot_taken: 'snapshot_taken',
         snapshot_reverted: 'snapshot_reverted'
       };
 
       for (let event of Object.values(eventNames)) {
         if (event === eventNames.error) {
-          this._registerEvent(id, 'default', event, err => console.error(err));
+          this._registerEvent(id, 'default', event, error =>
+            logEvent(`ERROR: ${error}`)
+          );
         }
         this._registerEvent(id, 'default', event, data => {
-          log(
+          logEvent(
             `\n chain : ${id}\n event : ${event}\n payload: ${JSON.stringify(
               data,
               null,
-              4
+              2
             )}\n`
           );
         });
@@ -244,8 +261,6 @@ export default class TestchainService {
   }
 
   stopChain(id) {
-    if (!(this._chainList[id] || {}).running) return true;
-
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'stopped', async data => {
         this._chainList[id].running = false;
@@ -255,7 +270,9 @@ export default class TestchainService {
         resolve(true);
       });
 
-      this._chainList[id].channel.push('stop');
+      this._chainList[id].channel.push('stop').receive('error', () => {
+        reject('chain stop error');
+      });
     });
   }
 
@@ -323,6 +340,9 @@ export default class TestchainService {
             .push('remove_chain', { id: id })
             .receive('ok', data => {
               resolve(data);
+            })
+            .receive('error', () => {
+              reject('Failed removal of chain:' + id);
             });
         }
       }
@@ -357,16 +377,6 @@ export default class TestchainService {
 
   isCleanedOnStop(id) {
     return ((this.getChain(id) || {}).config || {}).clean_on_stop;
-  }
-
-  async clearChains() {
-    // convenience method to remove all chain instances
-    // until delete route is added
-    const ids = Object.keys(this._chainList);
-
-    for (let i = 0; i < ids.length; i++) {
-      await this.stopChain(ids[i]);
-    }
   }
 
   async _sleep(ms) {
