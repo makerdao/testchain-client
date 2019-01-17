@@ -120,9 +120,17 @@ export default class TestchainService {
         resolve({ id: id, ...this._chainList[id] });
       });
 
-      this._apiChannel.push('start', options).receive('ok', async ({ id }) => {
-        chainId = id;
-      });
+      this._apiChannel
+        .push('start', options, API_TIMEOUT)
+        .receive('ok', async ({ id }) => {
+          chainId = id;
+        })
+        .receive('error', async error => {
+          reject('ChainCreationError: chain process crashed');
+        })
+        .receive('timeout', e => {
+          reject('ChainCreationError: timeout');
+        });
     });
   }
 
@@ -161,14 +169,16 @@ export default class TestchainService {
 
       for (let event of Object.values(eventNames)) {
         if (event === eventNames.error) {
-          this._registerEvent(id, 'default', event, err => console.error(err));
+          this._registerEvent(id, 'default', event, error =>
+            log(`ERROR: ${error}`)
+          );
         }
         this._registerEvent(id, 'default', event, data => {
-          log(
+          logEvent(
             `\n chain : ${id}\n event : ${event}\n payload: ${JSON.stringify(
               data,
               null,
-              4
+              2
             )}\n`
           );
         });

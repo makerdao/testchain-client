@@ -107,6 +107,24 @@ describe('chain behaviour', async () => {
     expect(chain2.connected).toBe(true);
     expect(chain2.running).toBe(true);
   });
+
+  test('will throw timeout creating chain instance without options', async () => {
+    expect.assertions(1);
+    try {
+      const { id } = await service.createChainInstance();
+    } catch (e) {
+      expect(e).toEqual('ChainCreationError: timeout');
+    }
+  });
+
+  test.only('will throw error when stopping chain incorrectly', async () => {
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+    log(id, parseInt(id) + 1);
+    await service.stopChain(parseInt(id) + 1);
+  });
 });
 
 describe('snapshot examples', async () => {
