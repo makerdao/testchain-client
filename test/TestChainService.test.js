@@ -25,10 +25,10 @@ const options = {
 describe('app connectivity', async () => {
   beforeEach(async () => {
     service = new TestchainService();
-    await service.initialize();
   });
 
   test('will connect & disconnect app', async () => {
+    await service.connectApp();
     expect(service.isConnectedSocket()).toBe(true);
     service._disconnectApp();
     expect(service.isConnectedSocket()).toBe(false);
@@ -43,7 +43,8 @@ describe('app connectivity', async () => {
     }
   });
 
-  test('disconnecting from socket will clear service state', () => {
+  test('disconnecting from socket will clear service state', async () => {
+    await service.connectApp();
     service._chainList['test'] = 1;
     expect(service._chainList.test).toEqual(1);
     service._disconnectApp();
@@ -52,6 +53,7 @@ describe('app connectivity', async () => {
   });
 
   test('will join & leave api channel', async () => {
+    await service.initialize();
     expect(service.isConnectedApi()).toBe(true);
     await service._leaveApi();
     expect(service.isConnectedApi()).toBe(false);
@@ -76,11 +78,11 @@ describe('chain behaviour', async () => {
     expect(chain.channel.topic).toEqual('chain:' + id);
     expect(chain.channel.state).toEqual('joined');
     expect(chain.connected).toEqual(true);
-    expect(chain.running).toEqual(true);
+    expect(chain.active).toEqual(true);
     expect(Object.keys(chainList)[0]).toEqual(id);
   });
 
-  test.only('initialize should populate chainLists with correct data', async () => {
+  test('initialize should populate chainLists with correct data', async () => {
     const chains = await service.listChains();
     expect(chains.length).toEqual(0);
     const { id } = await service.createChainInstance({
@@ -103,7 +105,7 @@ describe('chain behaviour', async () => {
     });
 
     await service.stopChain(id);
-    expect(service.getChain(id).running).toEqual(false);
+    expect(service.isChainActive(id)).toEqual(false);
   });
 
   test('chain instance can be restarted', async () => {
@@ -113,9 +115,9 @@ describe('chain behaviour', async () => {
     });
 
     await service.stopChain(id);
-    expect(service.getChain(id).running).toEqual(false);
+    expect(service.getChain(id).active).toEqual(false);
     await service.restartChain(id);
-    expect(service.getChain(id).running).toEqual(true);
+    expect(service.getChain(id).active).toEqual(true);
   });
 
   test('will create multiple chains', async () => {
@@ -130,9 +132,9 @@ describe('chain behaviour', async () => {
     const chain2 = service.getChain(chainId2);
 
     expect(chain1.connected).toBe(true);
-    expect(chain1.running).toBe(true);
+    expect(chain1.active).toBe(true);
     expect(chain2.connected).toBe(true);
-    expect(chain2.running).toBe(true);
+    expect(chain2.active).toBe(true);
   });
 
   test('will throw timeout creating chain instance without options', async () => {

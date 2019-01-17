@@ -39,7 +39,7 @@ export default class TestchainService {
         options: options,
         ...chainData.details,
         connected: false,
-        running: chain.status === 'active' ? true : false,
+        active: chain.status === 'active' ? true : false,
         eventRefs: {}
       };
       await this._registerDefaultEventListeners(chain.id);
@@ -65,7 +65,7 @@ export default class TestchainService {
       });
 
       this._socket.onError(e => {
-        throw new Error('SOCKET_ERROR');
+        reject('SOCKET_ERROR');
       });
       this._socket.onMessage(msg => {
         logSocket(`\n${JSON.stringify(msg, null, 2)}\n`);
@@ -115,7 +115,7 @@ export default class TestchainService {
           options,
           ...data,
           connected: false,
-          running: true,
+          active: true,
           eventRefs: {}
         };
 
@@ -252,14 +252,14 @@ export default class TestchainService {
   }
 
   restartChain(id) {
-    if (this._chainList[id].running) return true;
+    if (this._chainList[id].active) return true;
 
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'started', data => {
         resolve(true);
       });
       this._apiChannel.push('start_existing', { id }).receive('ok', () => {
-        this._chainList[id].running = true;
+        this._chainList[id].active = true;
       });
     });
   }
@@ -267,7 +267,7 @@ export default class TestchainService {
   stopChain(id) {
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'stopped', async data => {
-        this._chainList[id].running = false;
+        this._chainList[id].active = false;
         if (this.isCleanedOnStop(id)) {
           delete this._chainList[id];
         }
@@ -341,7 +341,7 @@ export default class TestchainService {
 
   async removeAllChains() {
     for (let id of Object.keys(this._chainList)) {
-      await this.stopChain(id);
+      if (this.isChainActive(id)) await this.stopChain(id);
       await this.fetchDelete(id);
     }
   }
@@ -367,6 +367,11 @@ export default class TestchainService {
     const { channel, eventRefs, ...info } = this._chainList[id];
     return info;
   }
+
+  isChainActive(id) {
+    return this._chainList[id].active;
+  }
+
   getSnapshots() {
     return this._snapshots;
   }
