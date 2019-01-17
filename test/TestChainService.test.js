@@ -1,13 +1,15 @@
 import { setupTestMakerInstance, callGanache } from './helpers';
 import TestchainService from '../src';
 import 'whatwg-fetch';
+import debug from 'debug';
 
 jest.setTimeout(10000);
 
 let service;
 
+const log = debug('log:test');
+
 const options = {
-  http_port: 8545,
   accounts: 3,
   block_mine_time: 0,
   clean_on_stop: true

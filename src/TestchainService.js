@@ -2,10 +2,12 @@ import { Socket } from 'phoenix';
 import _ from 'lodash';
 import debug from 'debug';
 
-const log = debug('log');
+const logEvent = debug('log:event');
+const logSocket = debug('log:socket');
 
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
+const API_TIMEOUT = 5000;
 
 export default class TestchainService {
   constructor() {
@@ -58,8 +60,12 @@ export default class TestchainService {
         resolve(this._socket.isConnected());
       });
 
-      this._socket.onError(() => reject('SOCKET_ERROR'));
-      //this._socket.onMessage(console.log);
+      this._socket.onError(e => {
+        throw new Error('SOCKET_ERROR');
+      });
+      this._socket.onMessage(msg => {
+        logSocket(`\n${JSON.stringify(msg, null, 2)}\n`);
+      });
 
       this._socket.connect();
     });
@@ -170,7 +176,7 @@ export default class TestchainService {
       for (let event of Object.values(eventNames)) {
         if (event === eventNames.error) {
           this._registerEvent(id, 'default', event, error =>
-            log(`ERROR: ${error}`)
+            logEvent(`ERROR: ${error}`)
           );
         }
         this._registerEvent(id, 'default', event, data => {
@@ -254,8 +260,6 @@ export default class TestchainService {
   }
 
   stopChain(id) {
-    if (!(this._chainList[id] || {}).running) return true;
-
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'stopped', async data => {
         this._chainList[id].running = false;
@@ -265,7 +269,9 @@ export default class TestchainService {
         resolve(true);
       });
 
-      this._chainList[id].channel.push('stop');
+      this._chainList[id].channel.push('stop').receive('error', () => {
+        reject('chain stop error');
+      });
     });
   }
 
