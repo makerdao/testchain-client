@@ -307,11 +307,18 @@ export default class TestchainService {
     });
   }
 
+  async fetchChain(id) {
+    const res = await fetch(`http://localhost:4000/chain/${id}`);
+    return await res.json();
+  }
+
   async listChains() {
     return await this._listChains();
   }
 
   _listChains() {
+    // this function will only respond with those chains which
+    // have clean_on_stop: false. Use only at initialize.
     return new Promise((resolve, reject) => {
       // TODO: check if api channel is connected first
       this._apiChannel.push('list_chains', {}).receive('ok', ({ chains }) => {
