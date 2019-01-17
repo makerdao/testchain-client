@@ -27,8 +27,8 @@ export default class TestchainService {
     const chains = await this._listChains();
 
     for (let chain of chains) {
+      const chainData = await this.fetchChain(chain.id);
       const options = {
-        http_port: chain.http_port,
         accounts: chain.accounts,
         block_mine_time: chain.block_mine_time,
         clean_on_stop: chain.clean_on_stop
@@ -36,12 +36,13 @@ export default class TestchainService {
 
       this._chainList[chain.id] = {
         channel: this._socket.channel(`chain:${chain.id}`),
-        id: chain.id,
         options: options,
+        ...chainData.details,
         connected: false,
         running: chain.status === 'active' ? true : false,
         eventRefs: {}
       };
+      await this._registerDefaultEventListeners(chain.id);
       await this._joinChain(chain.id);
     }
   }

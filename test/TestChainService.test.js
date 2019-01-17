@@ -2,6 +2,7 @@ import { setupTestMakerInstance, callGanache } from './helpers';
 import TestchainService from '../src';
 import 'whatwg-fetch';
 import debug from 'debug';
+import _ from 'lodash';
 
 jest.setTimeout(10000);
 
@@ -77,6 +78,22 @@ describe('chain behaviour', async () => {
     expect(chain.connected).toEqual(true);
     expect(chain.running).toEqual(true);
     expect(Object.keys(chainList)[0]).toEqual(id);
+  });
+
+  test.only('initialize should populate chainLists with correct data', async () => {
+    const chains = await service.listChains();
+    expect(chains.length).toEqual(0);
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+    const chainBeforeDisconnect = service.getChainInfo(id);
+
+    service._disconnectApp();
+    await service.initialize();
+    const chainAfterReconnect = service.getChainInfo(id);
+
+    expect(_.isEqual(chainBeforeDisconnect, chainAfterReconnect)).toBe(true);
   });
 
   test('chain instance can be stopped', async () => {
