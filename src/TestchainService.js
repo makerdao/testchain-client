@@ -1,9 +1,11 @@
 import { Socket } from 'phoenix';
 import _ from 'lodash';
 import debug from 'debug';
+import fetch from 'node-fetch';
 
 const logEvent = debug('log:event');
 const logSocket = debug('log:socket');
+const logDelete = debug('log:delete');
 
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
@@ -12,6 +14,7 @@ const API_TIMEOUT = 5000;
 export default class TestchainService {
   constructor() {
     this._socket = null;
+    this._socketConnected = false;
     this._apiChannel = null;
     this._apiEventRefs = {};
     this._apiConnected = false;
@@ -24,8 +27,8 @@ export default class TestchainService {
     const chains = await this._listChains();
 
     for (let chain of chains) {
+      const chainData = await this.fetchChain(chain.id);
       const options = {
-        http_port: chain.http_port,
         accounts: chain.accounts,
         block_mine_time: chain.block_mine_time,
         clean_on_stop: chain.clean_on_stop
@@ -33,13 +36,13 @@ export default class TestchainService {
 
       this._chainList[chain.id] = {
         channel: this._socket.channel(`chain:${chain.id}`),
-        id: chain.id,
         options: options,
+        ...chainData.details,
         connected: false,
-        running: chain.status === 'active' ? true : false,
+        active: chain.status === 'active' ? true : false,
         eventRefs: {}
       };
-
+      await this._registerDefaultEventListeners(chain.id);
       await this._joinChain(chain.id);
     }
   }
@@ -56,12 +59,13 @@ export default class TestchainService {
       });
 
       this._socket.onOpen(async () => {
+        this._socketConnected = true;
         await this._joinApi();
         resolve(this._socket.isConnected());
       });
 
       this._socket.onError(e => {
-        throw new Error('SOCKET_ERROR');
+        reject('SOCKET_ERROR');
       });
       this._socket.onMessage(msg => {
         logSocket(`\n${JSON.stringify(msg, null, 2)}\n`);
@@ -73,6 +77,7 @@ export default class TestchainService {
 
   _disconnectApp(cb) {
     this._socket.disconnect(cb);
+    this.constructor();
   }
 
   _joinApi() {
@@ -110,7 +115,7 @@ export default class TestchainService {
           options,
           ...data,
           connected: false,
-          running: true,
+          active: true,
           eventRefs: {}
         };
 
@@ -190,7 +195,6 @@ export default class TestchainService {
           );
         });
       }
-
       resolve();
     });
   }
@@ -248,14 +252,14 @@ export default class TestchainService {
   }
 
   restartChain(id) {
-    if (this._chainList[id].running) return true;
+    if (this._chainList[id].active) return true;
 
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'started', data => {
         resolve(true);
       });
       this._apiChannel.push('start_existing', { id }).receive('ok', () => {
-        this._chainList[id].running = true;
+        this._chainList[id].active = true;
       });
     });
   }
@@ -263,7 +267,7 @@ export default class TestchainService {
   stopChain(id) {
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'stopped', async data => {
-        this._chainList[id].running = false;
+        this._chainList[id].active = false;
         if (this.isCleanedOnStop(id)) {
           delete this._chainList[id];
         }
@@ -305,11 +309,27 @@ export default class TestchainService {
     });
   }
 
+  async fetchChain(id) {
+    const res = await fetch(`http://localhost:4000/chain/${id}`);
+    return await res.json();
+  }
+
+  async fetchDelete(id) {
+    const res = await fetch(`http://localhost:4000/chain/${id}`, {
+      method: 'DELETE'
+    });
+    const msg = await res.json();
+    msg['chain'] = id;
+    logDelete(`\n${JSON.stringify(msg, null, 4)}\n`);
+  }
+
   async listChains() {
     return await this._listChains();
   }
 
   _listChains() {
+    // this function will only respond with those chains which
+    // have clean_on_stop: false. Use only at initialize.
     return new Promise((resolve, reject) => {
       // TODO: check if api channel is connected first
       this._apiChannel.push('list_chains', {}).receive('ok', ({ chains }) => {
@@ -319,40 +339,16 @@ export default class TestchainService {
     });
   }
 
-  async removeChain(id) {
-    return await this._removeChain(id);
-  }
-
   async removeAllChains() {
     for (let id of Object.keys(this._chainList)) {
-      await this.stopChain(id);
-      await this._removeChain(id);
+      if (this.isChainActive(id)) await this.stopChain(id);
+      await this.fetchDelete(id);
     }
-  }
-
-  _removeChain(id) {
-    return new Promise(async (resolve, reject) => {
-      const chains = await this._listChains();
-
-      for (let chain of chains) {
-        if (id === chain.id) {
-          this._apiChannel
-            .push('remove_chain', { id: id })
-            .receive('ok', data => {
-              resolve(data);
-            })
-            .receive('error', () => {
-              reject('Failed removal of chain:' + id);
-            });
-        }
-      }
-      resolve();
-    });
   }
 
   // status methods
   isConnectedSocket() {
-    return this._socket.isConnected();
+    return this._socketConnected;
   }
 
   isConnectedApi() {
@@ -365,6 +361,15 @@ export default class TestchainService {
 
   getChain(id) {
     return this._chainList[id];
+  }
+
+  getChainInfo(id) {
+    const { channel, eventRefs, ...info } = this._chainList[id];
+    return info;
+  }
+
+  isChainActive(id) {
+    return this._chainList[id].active;
   }
 
   getSnapshots() {
