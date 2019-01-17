@@ -116,11 +116,11 @@ export default class TestchainService {
 
         await this._registerDefaultEventListeners(id);
         await this._joinChain(id);
-        log(
+        logEvent(
           `\n chain : ${id}\n event : started\n payload: ${JSON.stringify(
             data,
             null,
-            4
+            2
           )}\n`
         );
         resolve({ id: id, ...this._chainList[id] });
