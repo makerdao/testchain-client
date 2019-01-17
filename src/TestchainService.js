@@ -1,6 +1,7 @@
 import { Socket } from 'phoenix';
 import _ from 'lodash';
 import debug from 'debug';
+import fetch from 'node-fetch';
 
 const logEvent = debug('log:event');
 const logSocket = debug('log:socket');
