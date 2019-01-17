@@ -119,13 +119,13 @@ describe('chain behaviour', async () => {
     }
   });
 
-  test.only('will throw error when stopping chain incorrectly', async () => {
+  test.skip('will throw error when stopping chain with wrong id', async () => {
     const { id } = await service.createChainInstance({
       ...options,
       clean_on_stop: false
     });
-    log(id, parseInt(id) + 1);
-    await service.stopChain(parseInt(id) + 1);
+
+    await service.stopChain();
   });
 });
 

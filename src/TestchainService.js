@@ -169,6 +169,7 @@ export default class TestchainService {
         started: 'started',
         error: 'error',
         stopped: 'stopped',
+        status_changed: 'status_changed',
         snapshot_taken: 'snapshot_taken',
         snapshot_reverted: 'snapshot_reverted'
       };
@@ -339,6 +340,9 @@ export default class TestchainService {
             .push('remove_chain', { id: id })
             .receive('ok', data => {
               resolve(data);
+            })
+            .receive('error', () => {
+              reject('Failed removal of chain:' + id);
             });
         }
       }
@@ -373,16 +377,6 @@ export default class TestchainService {
 
   isCleanedOnStop(id) {
     return ((this.getChain(id) || {}).config || {}).clean_on_stop;
-  }
-
-  async clearChains() {
-    // convenience method to remove all chain instances
-    // until delete route is added
-    const ids = Object.keys(this._chainList);
-
-    for (let i = 0; i < ids.length; i++) {
-      await this.stopChain(ids[i]);
-    }
   }
 
   async _sleep(ms) {
