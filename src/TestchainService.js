@@ -13,6 +13,7 @@ const API_TIMEOUT = 5000;
 export default class TestchainService {
   constructor() {
     this._socket = null;
+    this._socketConnected = false;
     this._apiChannel = null;
     this._apiEventRefs = {};
     this._apiConnected = false;
@@ -40,7 +41,6 @@ export default class TestchainService {
         running: chain.status === 'active' ? true : false,
         eventRefs: {}
       };
-
       await this._joinChain(chain.id);
     }
   }
@@ -57,6 +57,7 @@ export default class TestchainService {
       });
 
       this._socket.onOpen(async () => {
+        this._socketConnected = true;
         await this._joinApi();
         resolve(this._socket.isConnected());
       });
@@ -74,6 +75,7 @@ export default class TestchainService {
 
   _disconnectApp(cb) {
     this._socket.disconnect(cb);
+    this.constructor();
   }
 
   _joinApi() {
@@ -191,7 +193,6 @@ export default class TestchainService {
           );
         });
       }
-
       resolve();
     });
   }
@@ -353,7 +354,7 @@ export default class TestchainService {
 
   // status methods
   isConnectedSocket() {
-    return this._socket.isConnected();
+    return this._socketConnected;
   }
 
   isConnectedApi() {

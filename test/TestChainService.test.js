@@ -42,6 +42,14 @@ describe('app connectivity', async () => {
     }
   });
 
+  test('disconnecting from socket will clear service state', () => {
+    service._chainList['test'] = 1;
+    expect(service._chainList.test).toEqual(1);
+    service._disconnectApp();
+    expect(service._socket).toEqual(null);
+    expect(service._chainList).toEqual({});
+  });
+
   test('will join & leave api channel', async () => {
     expect(service.isConnectedApi()).toBe(true);
     await service._leaveApi();
