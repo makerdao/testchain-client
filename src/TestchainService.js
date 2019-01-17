@@ -1,5 +1,8 @@
 import { Socket } from 'phoenix';
 import _ from 'lodash';
+import debug from 'debug';
+
+const log = debug('log');
 
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
@@ -74,6 +77,7 @@ export default class TestchainService {
 
       this._apiChannel.join().receive('ok', msg => {
         this._apiConnected = true;
+
         resolve(msg);
       });
     });
@@ -95,7 +99,6 @@ export default class TestchainService {
       let chainId = null;
       this._apiOnce('started', async data => {
         const id = chainId;
-        console.log('started', data, options);
         this._chainList[id] = {
           channel: this._socket.channel(`chain:${id}`),
           options,
@@ -107,7 +110,13 @@ export default class TestchainService {
 
         await this._registerDefaultEventListeners(id);
         await this._joinChain(id);
-
+        log(
+          `\n chain : ${id}\n event : started\n payload: ${JSON.stringify(
+            data,
+            null,
+            4
+          )}\n`
+        );
         resolve({ id: id, ...this._chainList[id] });
       });
 
@@ -154,10 +163,17 @@ export default class TestchainService {
         if (event === eventNames.error) {
           this._registerEvent(id, 'default', event, err => console.error(err));
         }
-        this._registerEvent(id, 'default', event, data =>
-          console.log(id, event, data)
-        );
+        this._registerEvent(id, 'default', event, data => {
+          log(
+            `\n chain : ${id}\n event : ${event}\n payload: ${JSON.stringify(
+              data,
+              null,
+              4
+            )}\n`
+          );
+        });
       }
+
       resolve();
     });
   }
@@ -202,7 +218,6 @@ export default class TestchainService {
       .toString(36)
       .substr(2, 5);
     this._registerEvent(id, `once:${randomEventId}`, event, async data => {
-      await this._sleep(100);
       this._unregisterEvent(id, `once:${randomEventId}`, event);
       cb(data);
     });
@@ -220,7 +235,6 @@ export default class TestchainService {
 
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'started', data => {
-        console.log('RESTARTING', data);
         resolve(true);
       });
       this._apiChannel.push('start_existing', { id }).receive('ok', () => {
@@ -235,7 +249,6 @@ export default class TestchainService {
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'stopped', async data => {
         this._chainList[id].running = false;
-
         if (this.isCleanedOnStop(id)) {
           delete this._chainList[id];
         }
@@ -255,7 +268,6 @@ export default class TestchainService {
           chainId: id
         };
         this._chainOnce(id, 'started', data => {
-          console.log('RESTARTING AFTER SNAPSHOT TAKEN', data);
           resolve(snapId);
         });
       });
@@ -269,7 +281,6 @@ export default class TestchainService {
       this._chainOnce(id, 'snapshot_reverted', data => {
         const reverted_snapshot = data;
         this._chainOnce(id, 'started', data => {
-          console.log('RESTARTING AFTER SNAPSHOT REVERTED', reverted_snapshot);
           resolve(reverted_snapshot);
         });
       });
