@@ -309,9 +309,17 @@ export default class TestchainService {
     });
   }
 
-  async fetchChain(id) {
-    const res = await fetch(`http://localhost:4000/chain/${id}`);
-    return await res.json();
+  fetchChain(id) {
+    return new Promise(async (resolve, reject) => {
+      const res = await fetch(`http://localhost:4000/chain/${id}`);
+      const obj = await res.json();
+
+      if (obj.status) {
+        reject('Chain Does Not Exist');
+      } else {
+        resolve(obj);
+      }
+    });
   }
 
   async fetchDelete(id) {

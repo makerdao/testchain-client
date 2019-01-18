@@ -214,3 +214,26 @@ describe('snapshot examples', async () => {
     }).toThrow();
   });
 });
+
+describe('chain removal', async () => {
+  beforeEach(async () => {
+    service = new TestchainService();
+    await service.initialize();
+  });
+
+  test('chain with clean_on_stop:true will remove chain when stopped', async () => {
+    expect.assertions(2);
+    const { id } = await service.createChainInstance({
+      ...options
+    });
+
+    const res = await service.fetchChain(id);
+    expect(res.details.id).toEqual(id);
+    await service.stopChain(id);
+    try {
+      await service.fetchChain(id);
+    } catch (e) {
+      expect(e).toEqual('Chain Does Not Exist');
+    }
+  });
+});
