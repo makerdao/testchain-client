@@ -216,9 +216,15 @@ describe('snapshot examples', async () => {
 });
 
 describe('chain removal', async () => {
+  let chainId;
+
   beforeEach(async () => {
     service = new TestchainService();
     await service.initialize();
+  });
+
+  afterAll(async () => {
+    await service.removeAllChains();
   });
 
   test('chain with clean_on_stop:true will remove chain when stopped', async () => {
@@ -230,10 +236,49 @@ describe('chain removal', async () => {
     const res = await service.fetchChain(id);
     expect(res.details.id).toEqual(id);
     await service.stopChain(id);
+    expect(service.chainExists(id)).toBe(false);
+  });
+
+  test('chain with clean_on_stop:false will not remove chain when stopped', async () => {
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    expect(await service.chainExists(id)).toBe(true);
+    await service.stopChain(id);
+    expect(await service.chainExists(id)).toBe(false);
+  });
+
+  test('chain with clean_on_stop:false will be removed by fetchDelete', async () => {
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    await service.stopChain(id);
+    expect(await service.chainExists(id)).toBe(true);
+    expect(service.isChainActive(id)).toBe(false);
+
+    await service.fetchDelete(id);
+    expect(await service.chainExists(id)).toBe(false);
+  });
+
+  test.only('fetchDelete will throw error if attempt to delete active chain is made', async () => {
+    expect.assertions(4);
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    expect(await service.chainExists(id)).toBe(true);
+    expect(service.isChainActive(id)).toBe(true);
+
     try {
-      await service.fetchChain(id);
+      await service.fetchDelete(id);
     } catch (e) {
-      expect(e).toEqual('Chain Does Not Exist');
+      expect(e).toEqual(Error('Chain Could Not Be Deleted'));
     }
+    expect(await service.chainExists(id)).toBe(true);
   });
 });

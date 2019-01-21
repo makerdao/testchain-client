@@ -309,12 +309,34 @@ export default class TestchainService {
     });
   }
 
+  /*
+   * fetchChain will send a get request to the server for a specific chain based on
+   * the id parameter.
+   * The server will respond with an object containing a status method 0 or 1.
+   * In this instance, 0 is a successful request and a details object with the chain info
+   * is passed alongside the status value. Should the status value be 1, the server indicates
+   * that the chain does not exist or is stopped.
+   */
   fetchChain(id) {
     return new Promise(async (resolve, reject) => {
       const res = await fetch(`http://localhost:4000/chain/${id}`);
       const obj = await res.json();
 
       if (obj.status) {
+        if (await this.chainExists(id)) {
+          const { accounts, coinbase, rpc_url, ws_url } = this.getChain(id);
+          resolve({
+            details: {
+              accounts,
+              coinbase,
+              id,
+              rpc_url,
+              ws_url
+            },
+            status: 1
+          });
+        }
+
         reject('Chain Does Not Exist');
       } else {
         resolve(obj);
@@ -327,6 +349,11 @@ export default class TestchainService {
       method: 'DELETE'
     });
     const msg = await res.json();
+
+    if (msg.status) {
+      throw new Error('Chain Could Not Be Deleted');
+    }
+
     msg['chain'] = id;
     logDelete(`\n${JSON.stringify(msg, null, 4)}\n`);
   }
@@ -377,7 +404,20 @@ export default class TestchainService {
   }
 
   isChainActive(id) {
-    return this._chainList[id].active;
+    return this.getChain(id).active;
+  }
+
+  async chainExists(id) {
+    if (this.isChainActive(id)) return true;
+
+    const chains = await this.listChains();
+    for (let chain of chains) {
+      if (chain.id === id) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   getSnapshots() {
