@@ -1,6 +1,9 @@
 <h1 align="center">
-Dai Testchain Plugin
+Testchain Client
 </h1>
+
+[![GitHub License][license]][license-url]
+[![NPM][npm]][npm-url]
 
 ### Development
 
@@ -13,4 +16,9 @@ We run Prettier on-commit, which means you can write code in whatever style you 
 
 ### License
 
-The dai testchain plugin is [MIT licensed](./LICENSE).
+The testchain client is [MIT licensed](./LICENSE).
+
+[license]: https://img.shields.io/badge/license-MIT-blue.svg
+[license-url]: https://github.com/makerdao/testchain-client/blob/master/LICENSE
+[npm]: https://img.shields.io/npm/v/@makerdao/testchain-client.svg?style=flat
+[npm-url]: https://www.npmjs.com/package/@makerdao/testchain-client
