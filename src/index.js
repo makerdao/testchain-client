@@ -1,3 +1,4 @@
-const TestchainService = require('./TestchainService').default;
+// const TestchainService = require('./TestchainService').default;
+const TestchainClient = require('./TestchainClient').default;
 
-module.exports = TestchainService;
+module.exports = TestchainClient;

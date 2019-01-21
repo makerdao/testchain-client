@@ -47,6 +47,10 @@ export default class TestchainService {
     }
   }
 
+  tcServiceTest(name) {
+    return 'Hello ' + name;
+  }
+
   /*
    * connectApp() will by default attempt to connect to a
    * socket url and if successful will then attempt to join
