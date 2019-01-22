@@ -19,8 +19,13 @@ const options = {
 
 test('test', async () => {
   const client = new TestchainClient();
+  //why does this seem to be of type SnapshotService?
+  // it should be TestchainClient
+  // also, move the mixin function to the main TestchainService and see what that looks like
+  console.log(client);
   console.log(client.testHi());
-  console.log(client.tcServiceTest('Philllly'));
+  console.log(client.tcServiceTest('yo'));
+  console.log(await service.connectApp());
 });
 
 // test.only('will remove all chains', async () => {
@@ -29,47 +34,47 @@ test('test', async () => {
 //   await service.removeAllChains();
 // });
 
-// describe('app connectivity', async () => {
-//   beforeEach(async () => {
-//     service = new TestchainService();
-//   });
+describe('app connectivity', async () => {
+  beforeEach(async () => {
+    service = new TestchainClient();
+  });
 
-//   test('will connect & disconnect app', async () => {
-//     await service.connectApp();
-//     expect(service.isConnectedSocket()).toBe(true);
-//     service._disconnectApp();
-//     expect(service.isConnectedSocket()).toBe(false);
-//   });
+  test('will connect & disconnect app', async () => {
+    await service.connectApp();
+    expect(service.isConnectedSocket()).toBe(true);
+    service._disconnectApp();
+    expect(service.isConnectedSocket()).toBe(false);
+  });
 
-//   test('will throw error for incorrect connection', async () => {
-//     expect.assertions(1);
-//     try {
-//       await service.connectApp('ws://1.1.1.1/socket');
-//     } catch (e) {
-//       expect(e).toEqual('SOCKET_ERROR');
-//     }
-//   });
+  test('will throw error for incorrect connection', async () => {
+    expect.assertions(1);
+    try {
+      await service.connectApp('ws://1.1.1.1/socket');
+    } catch (e) {
+      expect(e).toEqual('SOCKET_ERROR');
+    }
+  });
 
-//   test('disconnecting from socket will clear service state', async () => {
-//     await service.connectApp();
-//     service._chainList['test'] = 1;
-//     expect(service._chainList.test).toEqual(1);
-//     service._disconnectApp();
-//     expect(service._socket).toEqual(null);
-//     expect(service._chainList).toEqual({});
-//   });
+  test('disconnecting from socket will clear service state', async () => {
+    await service.connectApp();
+    service._chainList['test'] = 1;
+    expect(service._chainList.test).toEqual(1);
+    service._disconnectApp();
+    expect(service._socket).toEqual(null);
+    expect(service._chainList).toEqual({});
+  });
 
-//   test('will join & leave api channel', async () => {
-//     await service.initialize();
-//     expect(service.isConnectedApi()).toBe(true);
-//     await service._leaveApi();
-//     expect(service.isConnectedApi()).toBe(false);
-//   });
-// });
+  test('will join & leave api channel', async () => {
+    await service.initialize();
+    expect(service.isConnectedApi()).toBe(true);
+    await service._leaveApi();
+    expect(service.isConnectedApi()).toBe(false);
+  });
+});
 
 // describe('chain behaviour', async () => {
 //   beforeEach(async () => {
-//     service = new TestchainService();
+//     service = new TestchainClient();
 //     await service.initialize();
 //   });
 
@@ -165,7 +170,7 @@ test('test', async () => {
 
 // describe('snapshot examples', async () => {
 //   beforeEach(async () => {
-//     service = new TestchainService();
+//     service = new TestchainClient();
 //     await service.initialize();
 //   });
 
@@ -226,7 +231,7 @@ test('test', async () => {
 //   let chainId;
 
 //   beforeEach(async () => {
-//     service = new TestchainService();
+//     service = new TestchainClient();
 //     await service.initialize();
 //   });
 
@@ -271,7 +276,7 @@ test('test', async () => {
 //     expect(await service.chainExists(id)).toBe(false);
 //   });
 
-//   test.only('fetchDelete will throw error if attempt to delete active chain is made', async () => {
+//   test.skip('fetchDelete will throw error if attempt to delete active chain is made', async () => {
 //     expect.assertions(4);
 //     const { id } = await service.createChainInstance({
 //       ...options,

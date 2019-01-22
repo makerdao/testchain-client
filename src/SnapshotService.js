@@ -1,5 +1,7 @@
 export default class SnapshotService {
-  constructor() {}
+  constructor() {
+    this._testProp = 'someTestConstructorProp';
+  }
   testHi() {
     return 'Hi';
   }
