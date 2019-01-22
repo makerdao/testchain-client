@@ -26,6 +26,8 @@ export default class TestchainService {
     await this.connectApp();
     const chains = await this._listChains();
 
+    console.log('initialize gets these chains', chains);
+
     for (let chain of chains) {
       const chainData = await this.fetchChain(chain.id);
       const options = {
@@ -355,6 +357,7 @@ export default class TestchainService {
     const msg = await res.json();
 
     if (msg.status) {
+      console.log('STSTUS', msg.status);
       throw new Error('Chain Could Not Be Deleted');
     }
 
@@ -379,7 +382,9 @@ export default class TestchainService {
   }
 
   async removeAllChains() {
+    console.log('chain list containing ids to remove', this._chainList);
     for (let id of Object.keys(this._chainList)) {
+      console.log('id to remove', id);
       if (this.isChainActive(id)) await this.stopChain(id);
       await this.fetchDelete(id);
     }
@@ -399,6 +404,12 @@ export default class TestchainService {
   }
 
   getChain(id) {
+    console.log(
+      'getChain looking for this id',
+      id,
+      'it exists?',
+      !!this._chainList[id]
+    );
     return this._chainList[id];
   }
 

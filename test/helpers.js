@@ -9,8 +9,7 @@ export async function setupTestMakerInstance(testchainId, url) {
       [
         configPlugin,
         {
-          testchainId: testchainId,
-          url: url
+          testchainId: testchainId
         }
       ]
     ],
