@@ -36,10 +36,13 @@ test('test', async () => {
 
 describe('app connectivity', async () => {
   beforeEach(async () => {
+    // service = TestchainClient;
+
     service = new TestchainClient();
+    console.log('SERVICE:', service);
   });
 
-  test('will connect & disconnect app', async () => {
+  test.only('will connect & disconnect app', async () => {
     await service.connectApp();
     expect(service.isConnectedSocket()).toBe(true);
     service._disconnectApp();

@@ -19,16 +19,27 @@ class TestchainClient {
 //     });
 //   }
 // }
-const client = classMixin(TestchainClient, TestchainService, SnapshotService);
+// const client = classMixin(TestchainClient, TestchainService);
+const client = mixin(TestchainService, TestchainClient.prototype);
 
-function classMixin(testchainService, ...services) {
-  //   console.log(services);
-  for (let _service of services) {
-    for (var key of Object.getOwnPropertyNames(_service.prototype)) {
-      testchainService.prototype[key] = _service.prototype[key];
+function mixin(source, target) {
+  for (var prop in source) {
+    if (source.hasOwnProperty(prop)) {
+      target[prop] = source[prop];
     }
   }
-  return testchainService;
+  return target;
+}
+
+function classMixin(testchainClient, _service) {
+  console.log(_service);
+  //   for (let _service of otherClasses) {
+  for (var key of Object.getOwnPropertyNames(_service.prototype)) {
+    console.log(key);
+    testchainClient.prototype[key] = _service.prototype[key];
+  }
+  //   }
+  return testchainClient;
 }
 
 module.exports = client;
