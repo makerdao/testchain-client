@@ -27,10 +27,14 @@ describe('app connectivity', async () => {
     service = new TestchainService();
   });
 
+  afterEach(async () => {
+    await service._disconnectApp();
+  });
+
   test('will connect & disconnect app', async () => {
     await service.connectApp();
     expect(service.isConnectedSocket()).toBe(true);
-    service._disconnectApp();
+    await service._disconnectApp();
     expect(service.isConnectedSocket()).toBe(false);
   });
 
@@ -47,7 +51,7 @@ describe('app connectivity', async () => {
     await service.connectApp();
     service._chainList['test'] = 1;
     expect(service._chainList.test).toEqual(1);
-    service._disconnectApp();
+    await service._disconnectApp();
     expect(service._socket).toEqual(null);
     expect(service._chainList).toEqual({});
   });
@@ -68,6 +72,7 @@ describe('chain behaviour', async () => {
 
   afterEach(async () => {
     await service.removeAllChains();
+    await service._disconnectApp();
   });
 
   test('chain instance can be created', async () => {
@@ -91,7 +96,7 @@ describe('chain behaviour', async () => {
     });
     const chainBeforeDisconnect = service.getChainInfo(id);
 
-    service._disconnectApp();
+    await service._disconnectApp();
     await service.initialize();
     const chainAfterReconnect = service.getChainInfo(id);
 
@@ -135,6 +140,7 @@ describe('chain behaviour', async () => {
     expect(chain1.active).toBe(true);
     expect(chain2.connected).toBe(true);
     expect(chain2.active).toBe(true);
+    await service.removeAllChains();
   });
 
   test('will throw timeout creating chain instance without options', async () => {
@@ -156,6 +162,72 @@ describe('chain behaviour', async () => {
   });
 });
 
+describe('chain removal', async () => {
+  let chainId;
+
+  beforeEach(async () => {
+    service = new TestchainService();
+    await service.initialize();
+  });
+
+  afterEach(async () => {
+    await service.removeAllChains();
+    await service._disconnectApp();
+  });
+
+  test('chain with clean_on_stop:true will remove chain when stopped', async () => {
+    expect.assertions(2);
+    const { id } = await service.createChainInstance({
+      ...options
+    });
+
+    expect(await service.chainExists(id)).toBe(true);
+    await service.stopChain(id);
+    expect(await service.chainExists(id)).toBe(false);
+  });
+
+  test('chain with clean_on_stop:false will not remove chain when stopped', async () => {
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    expect(await service.chainExists(id)).toBe(true);
+    await service.stopChain(id);
+    expect(await service.chainExists(id)).toBe(true);
+  });
+
+  test('chain with clean_on_stop:false will be removed by fetchDelete', async () => {
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+    await service.stopChain(id);
+    expect(await service.chainExists(id)).toBe(true);
+    expect(service.isChainActive(id)).toBe(false);
+    await service.fetchDelete(id);
+    expect(await service.chainExists(id)).toBe(false);
+  });
+
+  test('fetchDelete will throw error if attempt to delete active chain is made', async () => {
+    expect.assertions(4);
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    expect(await service.chainExists(id)).toBe(true);
+    expect(service.isChainActive(id)).toBe(true);
+
+    try {
+      await service.fetchDelete(id);
+    } catch (e) {
+      expect(e).toEqual('Chain Could Not Be Deleted');
+      expect(await service.chainExists(id)).toBe(true);
+    }
+  });
+});
+
 describe('snapshot examples', async () => {
   beforeEach(async () => {
     service = new TestchainService();
@@ -164,6 +236,7 @@ describe('snapshot examples', async () => {
 
   afterEach(async () => {
     await service.removeAllChains();
+    await service._disconnectApp();
   });
 
   test('will take a snapshot of the chain', async () => {
@@ -212,73 +285,5 @@ describe('snapshot examples', async () => {
     expect(() => {
       contract = maker.service('smartContract').getContractByName('CHIEF');
     }).toThrow();
-  });
-});
-
-describe('chain removal', async () => {
-  let chainId;
-
-  beforeEach(async () => {
-    service = new TestchainService();
-    await service.initialize();
-  });
-
-  afterAll(async () => {
-    await service.removeAllChains();
-  });
-
-  test('chain with clean_on_stop:true will remove chain when stopped', async () => {
-    expect.assertions(2);
-    const { id } = await service.createChainInstance({
-      ...options
-    });
-
-    const res = await service.fetchChain(id);
-    expect(res.details.id).toEqual(id);
-    await service.stopChain(id);
-    expect(service.chainExists(id)).toBe(false);
-  });
-
-  test('chain with clean_on_stop:false will not remove chain when stopped', async () => {
-    const { id } = await service.createChainInstance({
-      ...options,
-      clean_on_stop: false
-    });
-
-    expect(await service.chainExists(id)).toBe(true);
-    await service.stopChain(id);
-    expect(await service.chainExists(id)).toBe(false);
-  });
-
-  test('chain with clean_on_stop:false will be removed by fetchDelete', async () => {
-    const { id } = await service.createChainInstance({
-      ...options,
-      clean_on_stop: false
-    });
-
-    await service.stopChain(id);
-    expect(await service.chainExists(id)).toBe(true);
-    expect(service.isChainActive(id)).toBe(false);
-
-    await service.fetchDelete(id);
-    expect(await service.chainExists(id)).toBe(false);
-  });
-
-  test.only('fetchDelete will throw error if attempt to delete active chain is made', async () => {
-    expect.assertions(4);
-    const { id } = await service.createChainInstance({
-      ...options,
-      clean_on_stop: false
-    });
-
-    expect(await service.chainExists(id)).toBe(true);
-    expect(service.isChainActive(id)).toBe(true);
-
-    try {
-      await service.fetchDelete(id);
-    } catch (e) {
-      expect(e).toEqual(Error('Chain Could Not Be Deleted'));
-    }
-    expect(await service.chainExists(id)).toBe(true);
   });
 });

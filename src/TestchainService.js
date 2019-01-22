@@ -75,9 +75,15 @@ export default class TestchainService {
     });
   }
 
-  _disconnectApp(cb) {
-    this._socket.disconnect(cb);
-    this.constructor();
+  _disconnectApp() {
+    if (this._socketConnected) {
+      return new Promise(resolve => {
+        this._socket.disconnect(() => {
+          this.constructor();
+          resolve();
+        });
+      });
+    }
   }
 
   _joinApi() {
@@ -269,6 +275,8 @@ export default class TestchainService {
       this._chainOnce(id, 'stopped', async data => {
         this._chainList[id].active = false;
         if (this.isCleanedOnStop(id)) {
+          await this._leaveChain(id);
+          logDelete(`\n"stopping and deleting chain:${id}\n`);
           delete this._chainList[id];
         }
         resolve(true);
@@ -344,18 +352,23 @@ export default class TestchainService {
     });
   }
 
-  async fetchDelete(id) {
-    const res = await fetch(`http://localhost:4000/chain/${id}`, {
-      method: 'DELETE'
+  fetchDelete(id) {
+    return new Promise(async (resolve, reject) => {
+      const res = await fetch(`http://localhost:4000/chain/${id}`, {
+        method: 'DELETE'
+      });
+      const msg = await res.json();
+
+      if (msg.status) {
+        logDelete(msg);
+        reject('Chain Could Not Be Deleted');
+      } else {
+        msg['chain'] = id;
+        logDelete(`\n${JSON.stringify(msg, null, 4)}\n`);
+        await this._leaveChain(id);
+        resolve();
+      }
     });
-    const msg = await res.json();
-
-    if (msg.status) {
-      throw new Error('Chain Could Not Be Deleted');
-    }
-
-    msg['chain'] = id;
-    logDelete(`\n${JSON.stringify(msg, null, 4)}\n`);
   }
 
   async listChains() {
@@ -376,8 +389,13 @@ export default class TestchainService {
 
   async removeAllChains() {
     for (let id of Object.keys(this._chainList)) {
-      if (this.isChainActive(id)) await this.stopChain(id);
-      await this.fetchDelete(id);
+      if (this.isChainActive(id)) {
+        await this.stopChain(id);
+      }
+
+      if (await this.chainExists(id)) {
+        await this.fetchDelete(id);
+      }
     }
   }
 
