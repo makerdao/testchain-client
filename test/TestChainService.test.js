@@ -152,13 +152,19 @@ describe('chain behaviour', async () => {
     }
   });
 
-  test.skip('will throw error when stopping chain with wrong id', async () => {
+  test('will throw error when stopping chain with wrong id', async () => {
     const { id } = await service.createChainInstance({
       ...options,
       clean_on_stop: false
     });
+    const wrongId = 'wrongId';
 
-    await service.stopChain();
+    expect.assertions(1);
+    try {
+      await service.stopChain(wrongId);
+    } catch (e) {
+      expect(e).toEqual(`No chain with ID ${wrongId}`);
+    }
   });
 });
 
@@ -258,32 +264,13 @@ describe('snapshot examples', async () => {
     const { id } = await service.createChainInstance({
       ...options
     });
-    const chainUrl = service.getChain(id).rpc_url;
 
-    let maker, contract;
-    maker = await setupTestMakerInstance(3, chainUrl);
-    const description = 'BEFORE_CONTRACTS';
+    const description = 'Test Snapshot';
     const snapId = await service.takeSnapshot(id, description);
 
-    const snapshot = service.getSnap(snapId);
-
-    expect(() => {
-      contract = maker.service('smartContract').getContractByName('CHIEF');
-    }).toThrow();
-
-    maker = await setupTestMakerInstance(2, chainUrl); // maker with contracts deployed
-    contract = maker.service('smartContract').getContractByName('CHIEF');
-    expect(/^(0x)?[0-9a-f]{40}$/i.test(contract.address)).toBe(true);
-
     const res = await service.revertSnapshot(snapId);
-    expect(res.description).toEqual(description);
-    expect(res.date).toEqual(snapshot.date);
-    expect(res.id).toEqual(snapshot.id);
-    expect(res.path).toEqual(snapshot.path);
 
-    maker = await setupTestMakerInstance(3, chainUrl);
-    expect(() => {
-      contract = maker.service('smartContract').getContractByName('CHIEF');
-    }).toThrow();
+    expect(res.id).toBe(snapId);
+    expect(res.description).toBe(description);
   });
 });

@@ -270,8 +270,10 @@ export default class TestchainService {
     });
   }
 
-  stopChain(id) {
+  async stopChain(id) {
+    const exists = await this.chainExists(id);
     return new Promise((resolve, reject) => {
+      if (!exists) reject(`No chain with ID ${id}`);
       this._chainOnce(id, 'stopped', async data => {
         this._chainList[id].active = false;
         if (this.isCleanedOnStop(id)) {
@@ -413,7 +415,8 @@ export default class TestchainService {
   }
 
   getChain(id) {
-    return this._chainList[id];
+    const chainList = Object.values(this._chainList);
+    return chainList.find(chain => chain.id === id);
   }
 
   getChainInfo(id) {
@@ -422,7 +425,8 @@ export default class TestchainService {
   }
 
   isChainActive(id) {
-    return this.getChain(id).active;
+    const chain = this.getChain(id);
+    return chain ? chain.active : false;
   }
 
   async chainExists(id) {
