@@ -8,8 +8,9 @@ const logSocket = debug('log:socket');
 const logDelete = debug('log:delete');
 
 const API_CHANNEL = 'api';
-const API_URL = 'ws://127.1:4000/socket';
+const API_URL = 'ws://127.1:4001/socket';
 const API_TIMEOUT = 5000;
+const HTTP_URL = 'http://localhost:4001/chain/';
 
 export default class TestchainService {
   constructor() {
@@ -329,7 +330,7 @@ export default class TestchainService {
    */
   fetchChain(id) {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`http://localhost:4000/chain/${id}`);
+      const res = await fetch(`${HTTP_URL}${id}`);
       const obj = await res.json();
 
       if (obj.status) {
@@ -356,7 +357,7 @@ export default class TestchainService {
 
   fetchDelete(id) {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`http://localhost:4000/chain/${id}`, {
+      const res = await fetch(`${HTTP_URL}${id}`, {
         method: 'DELETE'
       });
       const msg = await res.json();
