@@ -13,6 +13,10 @@ const API_TIMEOUT = 5000;
 
 export default class TestchainService {
   constructor() {
+    this.applyConstructor();
+  }
+
+  applyConstructor() {
     this._socket = null;
     this._socketConnected = false;
     this._apiChannel = null;
@@ -25,8 +29,6 @@ export default class TestchainService {
   async initialize() {
     await this.connectApp();
     const chains = await this._listChains();
-
-    console.log('initialize gets these chains', chains);
 
     for (let chain of chains) {
       const chainData = await this.fetchChain(chain.id);
@@ -47,10 +49,6 @@ export default class TestchainService {
       await this._registerDefaultEventListeners(chain.id);
       await this._joinChain(chain.id);
     }
-  }
-
-  tcServiceTest(name) {
-    return 'Hello ' + name;
   }
 
   /*
@@ -81,9 +79,15 @@ export default class TestchainService {
     });
   }
 
-  _disconnectApp(cb) {
-    this._socket.disconnect(cb);
-    this.constructor();
+  _disconnectApp() {
+    if (this._socketConnected) {
+      return new Promise(resolve => {
+        this._socket.disconnect(() => {
+          this.applyConstructor();
+          resolve();
+        });
+      });
+    }
   }
 
   _joinApi() {
@@ -174,82 +178,6 @@ export default class TestchainService {
     });
   }
 
-  _registerDefaultEventListeners(id) {
-    return new Promise(resolve => {
-      const eventNames = {
-        started: 'started',
-        error: 'error',
-        stopped: 'stopped',
-        status_changed: 'status_changed',
-        snapshot_taken: 'snapshot_taken',
-        snapshot_reverted: 'snapshot_reverted'
-      };
-
-      for (let event of Object.values(eventNames)) {
-        if (event === eventNames.error) {
-          this._registerEvent(id, 'default', event, error =>
-            logEvent(`ERROR: ${error}`)
-          );
-        }
-        this._registerEvent(id, 'default', event, data => {
-          logEvent(
-            `\n chain : ${id}\n event : ${event}\n payload: ${JSON.stringify(
-              data,
-              null,
-              2
-            )}\n`
-          );
-        });
-      }
-      resolve();
-    });
-  }
-
-  _registerEvent(id, label, event, cb) {
-    let ref;
-
-    if (id) {
-      ref = this._chainList[id].channel.on(event, cb);
-      _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
-    } else {
-      ref = this._apiChannel.on(event, cb);
-      this._apiEventRefs[label + ':' + event] = ref;
-    }
-  }
-
-  _unregisterEvent(id, label, event) {
-    let ref;
-
-    if (id) {
-      _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
-      delete this._chainList[id].eventRefs[label + ':' + event];
-      this._chainList[id].channel.off(event, ref);
-    } else {
-      ref = this._apiEventRefs[label + ':' + event];
-      delete this._apiEventRefs[label + ':' + event];
-      this._apiChannel.off(event, ref);
-    }
-  }
-
-  _apiOnce(event, cb) {
-    this._once(false, event, cb);
-  }
-
-  _chainOnce(id, event, cb) {
-    this._once(id, event, cb);
-  }
-
-  _once(id, event, cb) {
-    // trigger a one-time callback from an event firing
-    const randomEventId = Math.random()
-      .toString(36)
-      .substr(2, 5);
-    this._registerEvent(id, `once:${randomEventId}`, event, async data => {
-      this._unregisterEvent(id, `once:${randomEventId}`, event);
-      cb(data);
-    });
-  }
-
   _leaveChain(id) {
     return new Promise(resolve => {
       this._chainList[id].connected = false;
@@ -270,11 +198,15 @@ export default class TestchainService {
     });
   }
 
-  stopChain(id) {
+  async stopChain(id) {
+    const exists = await this.chainExists(id);
     return new Promise((resolve, reject) => {
+      if (!exists) reject(`No chain with ID ${id}`);
       this._chainOnce(id, 'stopped', async data => {
         this._chainList[id].active = false;
         if (this.isCleanedOnStop(id)) {
+          await this._leaveChain(id);
+          logDelete(`\n"stopping and deleting chain:${id}\n`);
           delete this._chainList[id];
         }
         resolve(true);
@@ -283,35 +215,6 @@ export default class TestchainService {
       this._chainList[id].channel.push('stop').receive('error', () => {
         reject('chain stop error');
       });
-    });
-  }
-
-  takeSnapshot(id, label = 'snap:' + id) {
-    return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'snapshot_taken', data => {
-        const { id: snapId } = data;
-        this._snapshots[snapId] = {
-          ...data,
-          chainId: id
-        };
-        this._chainOnce(id, 'started', data => {
-          resolve(snapId);
-        });
-      });
-      this._chainList[id].channel.push('take_snapshot', { description: label });
-    });
-  }
-
-  revertSnapshot(snapshot) {
-    const id = this.getSnap(snapshot).chainId;
-    return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'snapshot_reverted', data => {
-        const reverted_snapshot = data;
-        this._chainOnce(id, 'started', data => {
-          resolve(reverted_snapshot);
-        });
-      });
-      this._chainList[id].channel.push('revert_snapshot', { snapshot });
     });
   }
 
@@ -350,19 +253,23 @@ export default class TestchainService {
     });
   }
 
-  async fetchDelete(id) {
-    const res = await fetch(`http://localhost:4000/chain/${id}`, {
-      method: 'DELETE'
+  fetchDelete(id) {
+    return new Promise(async (resolve, reject) => {
+      const res = await fetch(`http://localhost:4000/chain/${id}`, {
+        method: 'DELETE'
+      });
+      const msg = await res.json();
+
+      if (msg.status) {
+        logDelete(msg);
+        reject('Chain Could Not Be Deleted');
+      } else {
+        msg['chain'] = id;
+        logDelete(`\n${JSON.stringify(msg, null, 4)}\n`);
+        await this._leaveChain(id);
+        resolve();
+      }
     });
-    const msg = await res.json();
-
-    if (msg.status) {
-      console.log('STSTUS', msg.status);
-      throw new Error('Chain Could Not Be Deleted');
-    }
-
-    msg['chain'] = id;
-    logDelete(`\n${JSON.stringify(msg, null, 4)}\n`);
   }
 
   async listChains() {
@@ -382,11 +289,14 @@ export default class TestchainService {
   }
 
   async removeAllChains() {
-    console.log('chain list containing ids to remove', this._chainList);
     for (let id of Object.keys(this._chainList)) {
-      console.log('id to remove', id);
-      if (this.isChainActive(id)) await this.stopChain(id);
-      await this.fetchDelete(id);
+      if (this.isChainActive(id)) {
+        await this.stopChain(id);
+      }
+
+      if (await this.chainExists(id)) {
+        await this.fetchDelete(id);
+      }
     }
   }
 
@@ -404,13 +314,8 @@ export default class TestchainService {
   }
 
   getChain(id) {
-    console.log(
-      'getChain looking for this id',
-      id,
-      'it exists?',
-      !!this._chainList[id]
-    );
-    return this._chainList[id];
+    const chainList = Object.values(this._chainList);
+    return chainList.find(chain => chain.id === id);
   }
 
   getChainInfo(id) {
@@ -419,7 +324,8 @@ export default class TestchainService {
   }
 
   isChainActive(id) {
-    return this.getChain(id).active;
+    const chain = this.getChain(id);
+    return chain ? chain.active : false;
   }
 
   async chainExists(id) {
@@ -433,14 +339,6 @@ export default class TestchainService {
     }
 
     return false;
-  }
-
-  getSnapshots() {
-    return this._snapshots;
-  }
-
-  getSnap(id) {
-    return this._snapshots[id];
   }
 
   isCleanedOnStop(id) {

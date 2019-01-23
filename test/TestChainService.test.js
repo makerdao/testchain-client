@@ -1,6 +1,4 @@
 import { setupTestMakerInstance, callGanache } from './helpers';
-// import TestchainService from '../src';
-import Maker from '@makerdao/dai';
 import TestchainClient from '../src';
 import 'whatwg-fetch';
 import debug from 'debug';
@@ -14,67 +12,51 @@ const log = debug('log:test');
 
 const options = {
   accounts: 3,
-  block_mine_time: 1,
-  clean_on_stop: false
+  block_mine_time: 0,
+  clean_on_stop: true
 };
 
-// test('test', async () => {
-//   const client = new TestchainClient();
-//   //why does this seem to be of type SnapshotService?
-//   // it should be TestchainClient
-//   // also, move the mixin function to the main TestchainService and see what that looks like
-//   console.log(client);
-//   console.log(client.testHi());
-//   console.log(client.tcServiceTest('yo'));
-//   console.log(await client.connectApp());
-// });
+describe('app connectivity', async () => {
+  beforeEach(async () => {
+    service = new TestchainClient();
+  });
 
-test.skip('will remove all chains', async () => {
-  service = new TestchainClient();
-  await service.initialize();
-  await service.removeAllChains();
+  afterEach(async () => {
+    await service._disconnectApp();
+  });
+
+  test('will connect & disconnect app', async () => {
+    await service.connectApp();
+    expect(service.isConnectedSocket()).toBe(true);
+    await service._disconnectApp();
+    expect(service.isConnectedSocket()).toBe(false);
+  });
+
+  test('will throw error for incorrect connection', async () => {
+    expect.assertions(1);
+    try {
+      await service.connectApp('ws://1.1.1.1/socket');
+    } catch (e) {
+      expect(e).toEqual('SOCKET_ERROR');
+    }
+  });
+
+  test('disconnecting from socket will clear service state', async () => {
+    await service.connectApp();
+    service._chainList['test'] = 1;
+    expect(service._chainList.test).toEqual(1);
+    await service._disconnectApp();
+    expect(service._socket).toEqual(null);
+    expect(service._chainList).toEqual({});
+  });
+
+  test('will join & leave api channel', async () => {
+    await service.initialize();
+    expect(service.isConnectedApi()).toBe(true);
+    await service._leaveApi();
+    expect(service.isConnectedApi()).toBe(false);
+  });
 });
-
-// describe('app connectivity', async () => {
-//   beforeEach(async () => {
-//     // service = TestchainClient;
-
-//     service = new TestchainClient();
-//     console.log('SERVICE:', service);
-//   });
-
-//   test.only('will connect & disconnect app', async () => {
-//     await service.connectApp();
-//     expect(service.isConnectedSocket()).toBe(true);
-//     service._disconnectApp();
-//     expect(service.isConnectedSocket()).toBe(false);
-//   });
-
-//   test('will throw error for incorrect connection', async () => {
-//     expect.assertions(1);
-//     try {
-//       await service.connectApp('ws://1.1.1.1/socket');
-//     } catch (e) {
-//       expect(e).toEqual('SOCKET_ERROR');
-//     }
-//   });
-
-//   test('disconnecting from socket will clear service state', async () => {
-//     await service.connectApp();
-//     service._chainList['test'] = 1;
-//     expect(service._chainList.test).toEqual(1);
-//     service._disconnectApp();
-//     expect(service._socket).toEqual(null);
-//     expect(service._chainList).toEqual({});
-//   });
-
-//   test('will join & leave api channel', async () => {
-//     await service.initialize();
-//     expect(service.isConnectedApi()).toBe(true);
-//     await service._leaveApi();
-//     expect(service.isConnectedApi()).toBe(false);
-//   });
-// });
 
 describe('chain behaviour', async () => {
   beforeEach(async () => {
@@ -84,6 +66,7 @@ describe('chain behaviour', async () => {
 
   afterEach(async () => {
     await service.removeAllChains();
+    await service._disconnectApp();
   });
 
   test('chain instance can be created', async () => {
@@ -98,7 +81,7 @@ describe('chain behaviour', async () => {
     expect(Object.keys(chainList)[0]).toEqual(id);
   });
 
-  test.skip('initialize should populate chainLists with correct data', async () => {
+  test('initialize should populate chainLists with correct data', async () => {
     const chains = await service.listChains();
     expect(chains.length).toEqual(0);
     const { id } = await service.createChainInstance({
@@ -107,7 +90,7 @@ describe('chain behaviour', async () => {
     });
     const chainBeforeDisconnect = service.getChainInfo(id);
 
-    service._disconnectApp();
+    await service._disconnectApp();
     await service.initialize();
     const chainAfterReconnect = service.getChainInfo(id);
 
@@ -151,6 +134,7 @@ describe('chain behaviour', async () => {
     expect(chain1.active).toBe(true);
     expect(chain2.connected).toBe(true);
     expect(chain2.active).toBe(true);
+    await service.removeAllChains();
   });
 
   test('will throw timeout creating chain instance without options', async () => {
@@ -162,13 +146,85 @@ describe('chain behaviour', async () => {
     }
   });
 
-  test.skip('will throw error when stopping chain with wrong id', async () => {
+  test('will throw error when stopping chain with wrong id', async () => {
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+    const wrongId = 'wrongId';
+
+    expect.assertions(1);
+    try {
+      await service.stopChain(wrongId);
+    } catch (e) {
+      expect(e).toEqual(`No chain with ID ${wrongId}`);
+    }
+  });
+});
+
+describe('chain removal', async () => {
+  let chainId;
+
+  beforeEach(async () => {
+    service = new TestchainClient();
+    await service.initialize();
+  });
+
+  afterEach(async () => {
+    await service.removeAllChains();
+    await service._disconnectApp();
+  });
+
+  test('chain with clean_on_stop:true will remove chain when stopped', async () => {
+    expect.assertions(2);
+    const { id } = await service.createChainInstance({
+      ...options
+    });
+
+    expect(await service.chainExists(id)).toBe(true);
+    await service.stopChain(id);
+    expect(await service.chainExists(id)).toBe(false);
+  });
+
+  test('chain with clean_on_stop:false will not remove chain when stopped', async () => {
     const { id } = await service.createChainInstance({
       ...options,
       clean_on_stop: false
     });
 
-    await service.stopChain();
+    expect(await service.chainExists(id)).toBe(true);
+    await service.stopChain(id);
+    expect(await service.chainExists(id)).toBe(true);
+  });
+
+  test('chain with clean_on_stop:false will be removed by fetchDelete', async () => {
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+    await service.stopChain(id);
+    expect(await service.chainExists(id)).toBe(true);
+    expect(service.isChainActive(id)).toBe(false);
+    await service.fetchDelete(id);
+    expect(await service.chainExists(id)).toBe(false);
+  });
+
+  test('fetchDelete will throw error if attempt to delete active chain is made', async () => {
+    expect.assertions(4);
+    const { id } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+
+    expect(await service.chainExists(id)).toBe(true);
+    expect(service.isChainActive(id)).toBe(true);
+
+    try {
+      await service.fetchDelete(id);
+    } catch (e) {
+      expect(e).toEqual('Chain Could Not Be Deleted');
+      expect(await service.chainExists(id)).toBe(true);
+    }
   });
 });
 
@@ -180,6 +236,7 @@ describe('snapshot examples', async () => {
 
   afterEach(async () => {
     await service.removeAllChains();
+    await service._disconnectApp();
   });
 
   test('will take a snapshot of the chain', async () => {
@@ -211,71 +268,3 @@ describe('snapshot examples', async () => {
     expect(res.description).toBe(description);
   });
 });
-
-// describe('chain removal', async () => {
-//   let chainId;
-
-//   beforeEach(async () => {
-//     service = new TestchainClient();
-//     await service.initialize();
-//   });
-
-//   afterAll(async () => {
-//     await service.removeAllChains();
-//   });
-
-//   test('chain with clean_on_stop:true will remove chain when stopped', async () => {
-//     expect.assertions(2);
-//     const { id } = await service.createChainInstance({
-//       ...options
-//     });
-
-//     const res = await service.fetchChain(id);
-//     expect(res.details.id).toEqual(id);
-//     await service.stopChain(id);
-//     expect(service.chainExists(id)).toBe(false);
-//   });
-
-//   test('chain with clean_on_stop:false will not remove chain when stopped', async () => {
-//     const { id } = await service.createChainInstance({
-//       ...options,
-//       clean_on_stop: false
-//     });
-
-//     expect(await service.chainExists(id)).toBe(true);
-//     await service.stopChain(id);
-//     expect(await service.chainExists(id)).toBe(false);
-//   });
-
-//   test('chain with clean_on_stop:false will be removed by fetchDelete', async () => {
-//     const { id } = await service.createChainInstance({
-//       ...options,
-//       clean_on_stop: false
-//     });
-
-//     await service.stopChain(id);
-//     expect(await service.chainExists(id)).toBe(true);
-//     expect(service.isChainActive(id)).toBe(false);
-
-//     await service.fetchDelete(id);
-//     expect(await service.chainExists(id)).toBe(false);
-//   });
-
-//   test.skip('fetchDelete will throw error if attempt to delete active chain is made', async () => {
-//     expect.assertions(4);
-//     const { id } = await service.createChainInstance({
-//       ...options,
-//       clean_on_stop: false
-//     });
-
-//     expect(await service.chainExists(id)).toBe(true);
-//     expect(service.isChainActive(id)).toBe(true);
-
-//     try {
-//       await service.fetchDelete(id);
-//     } catch (e) {
-//       expect(e).toEqual(Error('Chain Could Not Be Deleted'));
-//     }
-//     expect(await service.chainExists(id)).toBe(true);
-//   });
-// });
