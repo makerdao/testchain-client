@@ -175,6 +175,7 @@ export default class TestchainService {
     });
   }
 
+  /**Event handling services */
   _registerDefaultEventListeners(id) {
     return new Promise(resolve => {
       const eventNames = {
@@ -291,6 +292,7 @@ export default class TestchainService {
     });
   }
 
+  /**Snapshot services */
   takeSnapshot(id, label = 'snap:' + id) {
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'snapshot_taken', data => {
@@ -318,6 +320,35 @@ export default class TestchainService {
       });
       this._chainList[id].channel.push('revert_snapshot', { snapshot });
     });
+  }
+
+  listSnapshots() {
+    const chain = 'ganache';
+    return new Promise((resolve, reject) => {
+      this._apiChannel
+        .push('list_snapshots', { chain })
+        .receive('ok', ({ snapshots }) => {
+          // TODO: remove this when list_snapshots is working
+          if (snapshots.length === 0) resolve(this._mockSnapshots());
+          resolve(snapshots);
+        })
+        .receive('error', console.error)
+        .receive('timeout', () =>
+          console.log('Timeout loading list of snapshots')
+        );
+    });
+  }
+
+  _mockSnapshots() {
+    return [
+      {
+        chain: 'ganache',
+        date: '2019-01-24T14:32:51.955227Z',
+        description: 'Mock Snapshot A',
+        id: '12935070267439547315',
+        path: '/tmp/snapshots/12935070267439547315.tgz'
+      }
+    ];
   }
 
   /*
@@ -352,6 +383,17 @@ export default class TestchainService {
       } else {
         resolve(obj);
       }
+    });
+  }
+
+  fetchSnapshots() {
+    const chainType = 'ganache';
+    return new Promise(async (resolve, reject) => {
+      const res = await fetch(
+        `http://localhost:4001/chain/snapshots/${chainType}`
+      );
+      const { list, status } = await res.json();
+      status === 0 ? resolve(list) : reject('Error fetching snapshot');
     });
   }
 

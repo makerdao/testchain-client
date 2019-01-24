@@ -273,4 +273,15 @@ describe('snapshot examples', async () => {
     expect(res.id).toBe(snapId);
     expect(res.description).toBe(description);
   });
+
+  test('will list snapshots for a chain', async () => {
+    const { id } = await service.createChainInstance({ ...options });
+    const chain = await service.fetchChain(id);
+
+    const description = 'NEW_SNAPSHOT';
+    await service.takeSnapshot(id, description);
+
+    const scp = await service.fetchSnapshots();
+    console.log('snapshots', scp);
+  });
 });
