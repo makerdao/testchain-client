@@ -20,7 +20,7 @@ export default class TestchainService {
     this._apiEventRefs = {};
     this._apiConnected = false;
     this._chainList = {};
-    this._snapshots = {};
+    this._snapshots = [];
   }
 
   async initialize() {
@@ -43,6 +43,9 @@ export default class TestchainService {
         active: chain.status === 'active' ? true : false,
         eventRefs: {}
       };
+      const snapshots = await this.fetchSnapshots();
+      snapshots.map(snapshot => (this._snapshots[snapshot.id] = snapshot));
+
       await this._registerDefaultEventListeners(chain.id);
       await this._joinChain(chain.id);
     }
@@ -309,17 +312,37 @@ export default class TestchainService {
     });
   }
 
-  revertSnapshot(snapshot) {
-    const id = this.getSnap(snapshot).chainId;
+  restoreSnapshot(snapshotId) {
+    const snapshot = this.getSnap(snapshotId);
+    let chainId;
+    if (snapshot) chainId = snapshot.chainId;
+
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'snapshot_reverted', data => {
+      if (!chainId) reject('No chain associated with this snapshot.');
+      this._chainOnce(chainId, 'snapshot_reverted', data => {
         const reverted_snapshot = data;
-        this._chainOnce(id, 'started', data => {
+        this._chainOnce(chainId, 'started', data => {
           resolve(reverted_snapshot);
         });
       });
-      this._chainList[id].channel.push('revert_snapshot', { snapshot });
+
+      this._chainList[chainId].channel
+        .push('revert_snapshot', {
+          snapshot: snapshotId
+        })
+        .receive('error', console.error)
+        .receive('timeout', () =>
+          console.log('Timeout loading list of snapshots')
+        );
     });
+  }
+
+  getSnapshots() {
+    return this._snapshots;
+  }
+
+  getSnap(id) {
+    return this._snapshots[id];
   }
 
   listSnapshots() {
@@ -483,14 +506,6 @@ export default class TestchainService {
     }
 
     return false;
-  }
-
-  getSnapshots() {
-    return this._snapshots;
-  }
-
-  getSnap(id) {
-    return this._snapshots[id];
   }
 
   isCleanedOnStop(id) {
