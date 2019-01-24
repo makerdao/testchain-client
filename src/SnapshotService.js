@@ -1,15 +1,22 @@
 export default class SnapshotService {
-  constructor() {}
+  constructor(eventHandler) {
+    this.eventHandler = eventHandler;
+    this._snapshots = {};
+  }
 
   takeSnapshot(id, label = 'snap:' + id) {
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'snapshot_taken', data => {
+      this.eventHandler._chainOnce(id, 'snapshot_taken', data => {
         const { id: snapId } = data;
         this._snapshots[snapId] = {
           ...data,
           chainId: id
         };
-        this._chainOnce(id, 'started', data => {
+        // TODO: pretty much blocked by this. SS Service doesn't keep track of chain channels
+        // which we need to pass to eventHandler service. Conversely, the EH service could
+        // take an id, but then it would need a chain channel.
+        // Putting aside for now.
+        this.eventHandler._chainOnce(id, 'started', data => {
           resolve(snapId);
         });
       });
@@ -20,9 +27,9 @@ export default class SnapshotService {
   revertSnapshot(snapshot) {
     const id = this.getSnap(snapshot).chainId;
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'snapshot_reverted', data => {
+      this.eventHandler._chainOnce(id, 'snapshot_reverted', data => {
         const reverted_snapshot = data;
-        this._chainOnce(id, 'started', data => {
+        this.eventHandler._chainOnce(id, 'started', data => {
           resolve(reverted_snapshot);
         });
       });
@@ -33,7 +40,7 @@ export default class SnapshotService {
     return this._snapshots;
   }
 
-  getSnap(id) {
+  getSnapshot(id) {
     return this._snapshots[id];
   }
 

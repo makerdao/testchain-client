@@ -2,6 +2,8 @@ import { Socket } from 'phoenix';
 import _ from 'lodash';
 import debug from 'debug';
 import fetch from 'node-fetch';
+import EventHandlerService from './EventHandlerService';
+import SnapshotService from './SnapshotService';
 
 const logEvent = debug('log:event');
 const logSocket = debug('log:socket');
@@ -25,10 +27,17 @@ export default class TestchainService {
     this._apiConnected = false;
     this._chainList = {};
     this._snapshots = {};
+    this._eventHandler = {};
   }
 
   async initialize() {
     await this.connectApp();
+    this._eventHandler = new EventHandlerService(this._apiChannel);
+    //TODO: better way to implement api channel handling
+    delegate(this, [
+      // new EventHandlerService(this._apiChannel),
+      new SnapshotService(this._eventHandler)
+    ]);
     const chains = await this._listChains();
 
     for (let chain of chains) {
@@ -47,7 +56,9 @@ export default class TestchainService {
         active: chain.status === 'active' ? true : false,
         eventRefs: {}
       };
-      await this._registerDefaultEventListeners(chain.id);
+      await this._eventHandler._registerDefaultEventListeners(
+        this._chainList[chain.id]
+      );
       await this._joinChain(chain.id);
     }
   }
@@ -119,7 +130,7 @@ export default class TestchainService {
       if (!this._apiConnected) reject('Not connected to a channel');
 
       let chainId = null;
-      this._apiOnce('started', async data => {
+      this._eventHandler._apiOnce('started', async data => {
         const id = chainId;
         this._chainList[id] = {
           channel: this._socket.channel(`chain:${id}`),
@@ -130,7 +141,9 @@ export default class TestchainService {
           eventRefs: {}
         };
 
-        await this._registerDefaultEventListeners(id);
+        await this._eventHandler._registerDefaultEventListeners(
+          this._chainList[id]
+        );
         await this._joinChain(id);
         logEvent(
           `\n chain : ${id}\n event : started\n payload: ${JSON.stringify(
@@ -190,7 +203,7 @@ export default class TestchainService {
     if (this._chainList[id].active) return true;
 
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'started', data => {
+      this._eventHandler._chainOnce(this._chainList[id], 'started', data => {
         resolve(true);
       });
       this._apiChannel.push('start_existing', { id }).receive('ok', () => {
@@ -203,15 +216,19 @@ export default class TestchainService {
     const exists = await this.chainExists(id);
     return new Promise((resolve, reject) => {
       if (!exists) reject(`No chain with ID ${id}`);
-      this._chainOnce(id, 'stopped', async data => {
-        this._chainList[id].active = false;
-        if (this.isCleanedOnStop(id)) {
-          await this._leaveChain(id);
-          logDelete(`\n"stopping and deleting chain:${id}\n`);
-          delete this._chainList[id];
+      this._eventHandler._chainOnce(
+        this._chainList[id],
+        'stopped',
+        async data => {
+          this._chainList[id].active = false;
+          if (this.isCleanedOnStop(id)) {
+            await this._leaveChain(id);
+            logDelete(`\n"stopping and deleting chain:${id}\n`);
+            delete this._chainList[id];
+          }
+          resolve(true);
         }
-        resolve(true);
-      });
+      );
 
       this._chainList[id].channel.push('stop').receive('error', () => {
         reject('chain stop error');
@@ -349,6 +366,141 @@ export default class TestchainService {
   async _sleep(ms) {
     return new Promise(resolve => {
       setTimeout(resolve, ms);
+    });
+  }
+  /**EVENT HANDLER METHODS */
+  // _registerDefaultEventListeners(id) {
+  //   return new Promise(resolve => {
+  //     const eventNames = {
+  //       started: 'started',
+  //       error: 'error',
+  //       stopped: 'stopped',
+  //       status_changed: 'status_changed',
+  //       snapshot_taken: 'snapshot_taken',
+  //       snapshot_reverted: 'snapshot_reverted'
+  //     };
+
+  //     for (let event of Object.values(eventNames)) {
+  //       if (event === eventNames.error) {
+  //         this._registerEvent(id, 'default', event, error =>
+  //           logEvent(`ERROR: ${error}`)
+  //         );
+  //       }
+  //       this._registerEvent(id, 'default', event, data => {
+  //         logEvent(
+  //           `\n chain : ${id}\n event : ${event}\n payload: ${JSON.stringify(
+  //             data,
+  //             null,
+  //             2
+  //           )}\n`
+  //         );
+  //       });
+  //     }
+  //     resolve();
+  //   });
+  // }
+
+  // _registerEvent(id, label, event, cb) {
+  //   let ref;
+
+  //   if (id) {
+  //     ref = this._chainList[id].channel.on(event, cb);
+  //     _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
+  //   } else {
+  //     ref = this._apiChannel.on(event, cb);
+  //     this._apiEventRefs[label + ':' + event] = ref;
+  //   }
+  // }
+
+  // _unregisterEvent(id, label, event) {
+  //   let ref;
+
+  //   if (id) {
+  //     _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
+  //     delete this._chainList[id].eventRefs[label + ':' + event];
+  //     this._chainList[id].channel.off(event, ref);
+  //   } else {
+  //     ref = this._apiEventRefs[label + ':' + event];
+  //     delete this._apiEventRefs[label + ':' + event];
+  //     this._apiChannel.off(event, ref);
+  //   }
+  // }
+
+  // _apiOnce(event, cb) {
+  //   this._once(false, event, cb);
+  // }
+
+  // _chainOnce(id, event, cb) {
+  //   this._once(id, event, cb);
+  // }
+
+  // _once(id, event, cb) {
+  //   // trigger a one-time callback from an event firing
+  //   const randomEventId = Math.random()
+  //     .toString(36)
+  //     .substr(2, 5);
+  //   this._registerEvent(id, `once:${randomEventId}`, event, async data => {
+  //     this._unregisterEvent(id, `once:${randomEventId}`, event);
+  //     cb(data);
+  //   });
+  // }
+}
+
+const methodsToDelegate = [
+  'takeSnapshot',
+  'revertSnapshot',
+  'getSnapshots',
+  'getSnapshot',
+  'listSnapshotsByChainId'
+];
+
+// function delegate(client, services) {
+//   // console.log('SERVICES TO LOOP OVER', services);
+//   for (const service of services) {
+//     // console.log('SERVICES ITSELF', service);
+//     const m = methodsToDelegate.find(servNam => {
+//       console.log(servNam, service);
+//       return service == servNam;
+//     });
+//     for (const serviceName in methodsToDelegate) {
+//       for (const methodName of serviceName) {
+//         console.log(
+//           'this method name is in this service',
+//           methodName,
+//           service[methodName]
+//         );
+//         if (service[methodName]) {
+//           client[methodName] = (...args) => service[methodName](...args);
+//         }
+//       }
+//     }
+//   }
+// }
+
+// function delegate(client, services) {
+//   for (const serviceName in services) {
+//     for (const methodName of services[serviceName]) {
+//       // Object.assign(client.prototype, service.prototype);
+//       console.log('methodName in loop', methodName);
+//       // client[methodName] = (...args) => serviceName[methodName](...args);
+//       client[methodName] = service[methodName];
+//     }
+//   }
+// }
+
+function delegate(client, services) {
+  for (const service of services) {
+    // Object.assign(client.prototype, service.prototype);
+    // console.log('service in loop', service);
+    // console.log(
+    //   'client proto/service proto',
+    //   client.prototype,
+    //   service.prototype
+    // );
+    methodsToDelegate.forEach(method => {
+      if (service[method])
+        client[method] = (...args) => service[method](...args);
+      //   if (service[method]) client[method] = service[method];
     });
   }
 }

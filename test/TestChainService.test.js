@@ -1,5 +1,6 @@
 import { setupTestMakerInstance, callGanache } from './helpers';
-import TestchainClient from '../src';
+import TestchainService from '../src/TestchainService';
+// import TestchainClient from '../src';
 import 'whatwg-fetch';
 import debug from 'debug';
 import _ from 'lodash';
@@ -18,7 +19,7 @@ const options = {
 
 describe('app connectivity', async () => {
   beforeEach(async () => {
-    service = new TestchainClient();
+    service = new TestchainService();
   });
 
   afterEach(async () => {
@@ -60,7 +61,7 @@ describe('app connectivity', async () => {
 
 describe('chain behaviour', async () => {
   beforeEach(async () => {
-    service = new TestchainClient();
+    service = new TestchainService();
     await service.initialize();
   });
 
@@ -166,7 +167,7 @@ describe('chain removal', async () => {
   let chainId;
 
   beforeEach(async () => {
-    service = new TestchainClient();
+    service = new TestchainService();
     await service.initialize();
   });
 
@@ -230,7 +231,7 @@ describe('chain removal', async () => {
 
 describe('snapshot examples', async () => {
   beforeEach(async () => {
-    service = new TestchainClient();
+    service = new TestchainService();
     await service.initialize();
   });
 
@@ -239,7 +240,7 @@ describe('snapshot examples', async () => {
     await service._disconnectApp();
   });
 
-  test('will take a snapshot of the chain', async () => {
+  test.only('will take a snapshot of the chain', async () => {
     const { id } = await service.createChainInstance({ ...options });
 
     const description = 'NEW_SNAPSHOT';

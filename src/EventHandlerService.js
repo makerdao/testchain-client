@@ -3,7 +3,11 @@ import debug from 'debug';
 const logEvent = debug('log:event');
 
 export default class EventHandlerService {
-  _registerDefaultEventListeners(id) {
+  constructor(apiChannel) {
+    this._apiEventRefs = {};
+    this._apiChannel = apiChannel;
+  }
+  _registerDefaultEventListeners(chain) {
     return new Promise(resolve => {
       const eventNames = {
         started: 'started',
@@ -16,17 +20,15 @@ export default class EventHandlerService {
 
       for (let event of Object.values(eventNames)) {
         if (event === eventNames.error) {
-          this._registerEvent(id, 'default', event, error =>
+          this._registerEvent(chain, 'default', event, error =>
             logEvent(`ERROR: ${error}`)
           );
         }
-        this._registerEvent(id, 'default', event, data => {
+        this._registerEvent(chain, 'default', event, data => {
           logEvent(
-            `\n chain : ${id}\n event : ${event}\n payload: ${JSON.stringify(
-              data,
-              null,
-              2
-            )}\n`
+            `\n chain : ${
+              chain.id
+            }\n event : ${event}\n payload: ${JSON.stringify(data, null, 2)}\n`
           );
         });
       }
@@ -34,25 +36,25 @@ export default class EventHandlerService {
     });
   }
 
-  _registerEvent(id, label, event, cb) {
+  _registerEvent(chain, label, event, cb) {
     let ref;
 
-    if (id) {
-      ref = this._chainList[id].channel.on(event, cb);
-      _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
+    if (chain) {
+      ref = chain.channel.on(event, cb);
+      _.set(this, `_chainList.${chain.id}.eventRefs.${label}:${event}`, ref);
     } else {
       ref = this._apiChannel.on(event, cb);
       this._apiEventRefs[label + ':' + event] = ref;
     }
   }
 
-  _unregisterEvent(id, label, event) {
+  _unregisterEvent(chain, label, event) {
     let ref;
 
-    if (id) {
-      _.set(this, `_chainList.${id}.eventRefs.${label}:${event}`, ref);
-      delete this._chainList[id].eventRefs[label + ':' + event];
-      this._chainList[id].channel.off(event, ref);
+    if (chain) {
+      _.set(this, `_chainList.${chain.id}.eventRefs.${label}:${event}`, ref);
+      delete chain.eventRefs[label + ':' + event];
+      chain.channel.off(event, ref);
     } else {
       ref = this._apiEventRefs[label + ':' + event];
       delete this._apiEventRefs[label + ':' + event];
@@ -64,17 +66,17 @@ export default class EventHandlerService {
     this._once(false, event, cb);
   }
 
-  _chainOnce(id, event, cb) {
-    this._once(id, event, cb);
+  _chainOnce(chain, event, cb) {
+    this._once(chain, event, cb);
   }
 
-  _once(id, event, cb) {
+  _once(chain, event, cb) {
     // trigger a one-time callback from an event firing
     const randomEventId = Math.random()
       .toString(36)
       .substr(2, 5);
-    this._registerEvent(id, `once:${randomEventId}`, event, async data => {
-      this._unregisterEvent(id, `once:${randomEventId}`, event);
+    this._registerEvent(chain, `once:${randomEventId}`, event, async data => {
+      this._unregisterEvent(chain, `once:${randomEventId}`, event);
       cb(data);
     });
   }
