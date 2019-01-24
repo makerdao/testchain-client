@@ -1,5 +1,6 @@
 export default class SnapshotService {
   constructor() {}
+
   takeSnapshot(id, label = 'snap:' + id) {
     return new Promise((resolve, reject) => {
       this._chainOnce(id, 'snapshot_taken', data => {
@@ -34,5 +35,16 @@ export default class SnapshotService {
 
   getSnap(id) {
     return this._snapshots[id];
+  }
+
+  listSnapshotsByChainId(chainId) {
+    return new Promise((resolve, reject) => {
+      this._apiChannel
+        .push('list_snapshots', { chain: chainId })
+        .receive('ok', data => {
+          console.log('return this data', data);
+          resolve(data);
+        });
+    });
   }
 }

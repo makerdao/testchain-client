@@ -246,6 +246,9 @@ describe('snapshot examples', async () => {
     const snapId = await service.takeSnapshot(id, description);
     const snapshot = service.getSnap(snapId);
 
+    const s = await service.listSnapshotsByChainId(id);
+    console.log('ssssss', s);
+
     const delay = Date.now() - new Date(snapshot.date).getTime();
     expect(delay).toBeLessThan(2000); // roughly current time
     expect(snapshot.description).toEqual(description);
@@ -267,4 +270,13 @@ describe('snapshot examples', async () => {
     expect(res.id).toBe(snapId);
     expect(res.description).toBe(description);
   });
+
+  // test.only('will list snapshots', async () => {
+  //   const { id } = await service.createChainInstance({
+  //     ...options
+  //   });
+
+  //   const s = await service.listSnapshotsByChainId(id);
+  //   console.log('ssssss', s);
+  // });
 });
