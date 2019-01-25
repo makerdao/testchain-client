@@ -16,12 +16,6 @@ const options = {
   clean_on_stop: true
 };
 
-// test.only('will remove all chains', async () => {
-//   service = new TestchainService();
-//   await service.initialize();
-//   await service.removeAllChains();
-// });
-
 describe('app connectivity', async () => {
   beforeEach(async () => {
     service = new TestchainService();
@@ -248,7 +242,7 @@ describe('snapshot examples', async () => {
   test('will take a snapshot of the chain', async () => {
     const { id } = await service.createChainInstance({ ...options });
 
-    const description = 'NEW_SNAPSHOT';
+    const description = 'Jest takeSnapshot';
     const snapId = await service.takeSnapshot(id, description);
     const snapshot = service.getSnap(snapId);
 
@@ -265,12 +259,26 @@ describe('snapshot examples', async () => {
       ...options
     });
 
-    const description = 'Test Snapshot';
+    const description = 'Jest restoreSnapshot';
     const snapId = await service.takeSnapshot(id, description);
 
-    const res = await service.revertSnapshot(snapId);
+    const res = await service.restoreSnapshot(snapId);
 
     expect(res.id).toBe(snapId);
     expect(res.description).toBe(description);
+  });
+
+  test('will list snapshots for a chain', async () => {
+    const { id } = await service.createChainInstance({ ...options });
+
+    const description = 'Jest listSnapshots';
+    const snapshotId = await service.takeSnapshot(id, description);
+    const snapshots = await service.fetchSnapshots();
+
+    const targetSnapshot = snapshots.find(
+      snapshot => snapshot.id === snapshotId
+    );
+    expect(snapshots.length > 0).toBe(true);
+    expect(targetSnapshot.description).toBe(description);
   });
 });
