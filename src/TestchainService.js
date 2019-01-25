@@ -345,33 +345,19 @@ export default class TestchainService {
     return this._snapshots[id];
   }
 
+  // Use fetchSnapshots() instead, this doesn't seem to be working
+  // TODO: factor this out if we don't need it.
   listSnapshots() {
     const chain = 'ganache';
     return new Promise((resolve, reject) => {
       this._apiChannel
         .push('list_snapshots', { chain })
-        .receive('ok', ({ snapshots }) => {
-          // TODO: remove this when list_snapshots is working
-          if (snapshots.length === 0) resolve(this._mockSnapshots());
-          resolve(snapshots);
-        })
+        .receive('ok', ({ snapshots }) => resolve(snapshots))
         .receive('error', console.error)
         .receive('timeout', () =>
           console.log('Timeout loading list of snapshots')
         );
     });
-  }
-
-  _mockSnapshots() {
-    return [
-      {
-        chain: 'ganache',
-        date: '2019-01-24T14:32:51.955227Z',
-        description: 'Mock Snapshot A',
-        id: '12935070267439547315',
-        path: '/tmp/snapshots/12935070267439547315.tgz'
-      }
-    ];
   }
 
   /*
@@ -412,9 +398,7 @@ export default class TestchainService {
   fetchSnapshots() {
     const chainType = 'ganache';
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(
-        `http://localhost:4001/chain/snapshots/${chainType}`
-      );
+      const res = await fetch(`${HTTP_URL}snapshots/${chainType}`);
       const { list, status } = await res.json();
       status === 0 ? resolve(list) : reject('Error fetching snapshot');
     });

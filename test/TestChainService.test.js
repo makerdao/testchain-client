@@ -270,12 +270,15 @@ describe('snapshot examples', async () => {
 
   test('will list snapshots for a chain', async () => {
     const { id } = await service.createChainInstance({ ...options });
-    const chain = await service.fetchChain(id);
 
     const description = 'Jest listSnapshots';
-    await service.takeSnapshot(id, description);
+    const snapshotId = await service.takeSnapshot(id, description);
+    const snapshots = await service.fetchSnapshots();
 
-    const scp = await service.fetchSnapshots();
-    console.log('snapshots', scp);
+    const targetSnapshot = snapshots.find(
+      snapshot => snapshot.id === snapshotId
+    );
+    expect(snapshots.length > 0).toBe(true);
+    expect(targetSnapshot.description).toBe(description);
   });
 });
