@@ -432,7 +432,9 @@ export default class TestchainService {
     // have clean_on_stop: false. Use only at initialize.
     return new Promise((resolve, reject) => {
       // TODO: check if api channel is connected first
-      this._apiChannel.push('list_chains', {}).receive('ok', ({ chains }) => {
+      this._apiChannel.push('list_chains', {}).receive('ok', data => {
+        console.log(data);
+        const { chains } = data;
         resolve(chains);
       });
       // TODO: error handling?

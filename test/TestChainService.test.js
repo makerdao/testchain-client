@@ -81,6 +81,23 @@ describe('chain behaviour', async () => {
     expect(Object.keys(chainList)[0]).toEqual(id);
   });
 
+  test.only('list_chain', async () => {
+    const { id: id1 } = await service.createChainInstance({ ...options });
+    const { id: id2 } = await service.createChainInstance({
+      ...options,
+      clean_on_stop: false
+    });
+    console.log(id1, id2);
+    const chain1 = service.getChainInfo(id1);
+    const chain2 = service.getChainInfo(id2);
+
+    const chainsList = await service.listChains();
+
+    log(chain1);
+    log(chain2);
+    log(chainsList);
+  });
+
   test('initialize should populate chainLists with correct data', async () => {
     const chains = await service.listChains();
     expect(chains.length).toEqual(0);
