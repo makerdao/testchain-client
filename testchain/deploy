@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+# DESCRIPTION: Temporary contracts deployment script for development of the testchain client and dashboard.
+# stop the script if anything fails
+set -e
+
+START_TIME=`date +%s`
+CWD=`dirname $0`
+# 1. Manually set port for now:  
+PORT=8592
+
+# 2. Make sure $HOME is set
+# 3. Projects directory relative to $HOME
+PROJECTS_DIR='/Documents/code/web'
+
+# ./node_modules/.bin/ganache-cli -i 999 -p $PORT -a 1000 \
+#   -m "hill law jazz limb penalty escape public dish stand bracket blue jar" \
+#   >./ganache.out & netpid=$!
+# trap "kill $netpid" EXIT
+
+export ETH_RPC_URL=http://127.1:$PORT
+
+# Configure seth
+export SOLC_FLAGS=${SOLC_FLAGS:-"--optimize"}
+export ETH_GAS=${ETH_GAS:-"4500000"}
+export ETH_FROM=${ETH_FROM:-$(seth rpc eth_coinbase)} # defaults to 0x16fb96a5fa0427af0c8f7cf1eb4870231c8154b6
+export SETH_STATUS=yes
+export ETH_RPC_ACCOUNTS=yes # Don't use ethsign
+
+cd $CWD/src/ds-chief
+dapp update 2>/dev/null
+dapp build 2>/dev/null
+export SETH_ASYNC=yes
+test -z $GOV && GOVtx=$(dapp create DSToken $(seth --to-bytes32 $(seth --from-ascii 'GOV')))
+test -z $IOU && IOUtx=$(dapp create DSToken $(seth --to-bytes32 $(seth --from-ascii 'IOU')))
+export SETH_ASYNC=no
+test -z $GOV && GOV=$(seth receipt $GOVtx contractAddress)
+test -z $IOU && IOU=$(seth receipt $IOUtx contractAddress)
+MAX_YAYS=5
+CHIEF=$(dapp create DSChief $GOV $IOU $MAX_YAYS)
+# Chief mints and burns IOUs, so it must be the owner of the token contract 
+seth send $IOU 'setOwner(address)' $CHIEF
+# Seed our coinbase account with some Gov
+seth send $GOV 'mint(uint256)' $(seth --to-uint256 $(seth --to-wei 100 eth))
+cd -
+
+cd  $CWD/src/vote-proxy
+dapp update 2>/dev/null
+dapp build 2>/dev/null
+PROXY_FACTORY=$(dapp create VoteProxyFactory $CHIEF)
+cd -
+
+cd  $CWD/src/symbolic-voting
+dapp update 2>/dev/null
+dapp build 2>/dev/null
+VOTE_PROXY_RESOLVER=$(dapp create VoteProxyResolver $PROXY_FACTORY)
+POLLING=$(dapp create Polling $GOV $IOU $VOTE_PROXY_RESOLVER '')
+cd -
+
+# Save the contract addresses to a JSON file in the config plugin directory
+cat > $HOME/$PROJECTS_DIR/dai-plugin-config/contracts/addresses/testnet.json <<- EOM
+{
+  "mkr": "$GOV",
+  "iou": "$IOU",
+  "chief": "$CHIEF",
+  "polling": "$POLLING",
+  "proxy_factory": "$PROXY_FACTORY"
+}
+EOM
+
+# Amend the sdk's mkr token testnet address so that we can interact with the mkr token we've deployed in this script
+# NOTE: this likely can be better handled if the greater 'testchain' repo is updated to accommodate the gov contracts
+
+# 4. Update this path based on which projects are being tested.
+
+#Governance Dashboard
+cat > $HOME/$PROJECTS_DIR/governance-dashboard/node_modules/@makerdao/dai/contracts/addresses/testnet.json <<- EOM
+{
+  "GOV": "$GOV"
+}
+EOM
+

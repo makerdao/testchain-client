@@ -1,0 +1,9 @@
+[submodule "testchain/src/ds-chief"]
+	path = testchain/src/ds-chief
+	url = https://github.com/dapphub/ds-chief
+[submodule "testchain/src/vote-proxy"]
+	path = testchain/src/vote-proxy
+	url = https://github.com/makerdao/vote-proxy
+[submodule "testchain/src/symbolic-voting"]
+	path = testchain/src/symbolic-voting
+	url = https://github.com/makerdao/symbolic-voting.git
