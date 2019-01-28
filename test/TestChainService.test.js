@@ -82,7 +82,7 @@ describe('chain behaviour', async () => {
   });
 
   test('initialize should populate chainLists with correct data', async () => {
-    const chains = await service.listChains();
+    const chains = await service.fetchChains();
     expect(chains.length).toEqual(0);
     const { id } = await service.createChainInstance({
       ...options,
@@ -209,6 +209,16 @@ describe('chain removal', async () => {
     expect(await service.chainExists(id)).toBe(false);
   });
 
+  test('chain will fail deletion by fetchDelete if active', async () => {
+    expect.assertions(1);
+    const { id } = await service.createChainInstance({ ...options });
+    try {
+      await service.fetchDelete(id);
+    } catch (e) {
+      expect(e).toEqual(`Chain Could Not Be Deleted`);
+    }
+  });
+
   test('fetchDelete will throw error if attempt to delete active chain is made', async () => {
     expect.assertions(4);
     const { id } = await service.createChainInstance({
@@ -225,6 +235,18 @@ describe('chain removal', async () => {
       expect(e).toEqual('Chain Could Not Be Deleted');
       expect(await service.chainExists(id)).toBe(true);
     }
+  });
+
+  test('removeAllChains will remove all chains', async () => {
+    await service.createChainInstance({ ...options });
+    await service.createChainInstance({ ...options });
+
+    let chainList = await service.fetchChains();
+    expect(chainList.length).toEqual(2);
+
+    await service.removeAllChains();
+    chainList = await service.fetchChains();
+    expect(chainList.length).toEqual(0);
   });
 });
 
@@ -278,6 +300,7 @@ describe('snapshot examples', async () => {
     const targetSnapshot = snapshots.find(
       snapshot => snapshot.id === snapshotId
     );
+
     expect(snapshots.length > 0).toBe(true);
     expect(targetSnapshot.description).toBe(description);
   });

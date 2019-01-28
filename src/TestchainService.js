@@ -10,7 +10,7 @@ const logDelete = debug('log:delete');
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
 const API_TIMEOUT = 5000;
-const HTTP_URL = 'http://localhost:4000/chain/';
+const HTTP_URL = 'http://localhost:4000';
 
 export default class TestchainService {
   constructor() {
@@ -25,7 +25,7 @@ export default class TestchainService {
 
   async initialize() {
     await this.connectApp();
-    const chains = await this._listChains();
+    const chains = await this.fetchChains();
 
     for (let chain of chains) {
       const chainData = await this.fetchChain(chain.id);
@@ -43,12 +43,13 @@ export default class TestchainService {
         active: chain.status === 'active' ? true : false,
         eventRefs: {}
       };
-      const snapshots = await this.fetchSnapshots();
-      snapshots.map(snapshot => (this._snapshots[snapshot.id] = snapshot));
 
       await this._registerDefaultEventListeners(chain.id);
       await this._joinChain(chain.id);
     }
+
+    const snapshots = await this.fetchSnapshots();
+    snapshots.map(snapshot => (this._snapshots[snapshot.id] = snapshot));
   }
 
   /*
@@ -344,22 +345,6 @@ export default class TestchainService {
   getSnap(id) {
     return this._snapshots[id];
   }
-
-  // Use fetchSnapshots() instead, this doesn't seem to be working
-  // TODO: factor this out if we don't need it.
-  listSnapshots() {
-    const chain = 'ganache';
-    return new Promise((resolve, reject) => {
-      this._apiChannel
-        .push('list_snapshots', { chain })
-        .receive('ok', ({ snapshots }) => resolve(snapshots))
-        .receive('error', console.error)
-        .receive('timeout', () =>
-          console.log('Timeout loading list of snapshots')
-        );
-    });
-  }
-
   /*
    * fetchChain will send a get request to the server for a specific chain based on
    * the id parameter.
@@ -370,35 +355,25 @@ export default class TestchainService {
    */
   fetchChain(id) {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}${id}`);
+      const res = await fetch(`${HTTP_URL}/chain/${id}`);
       const obj = await res.json();
 
-      if (obj.status) {
-        if (await this.chainExists(id)) {
-          const { accounts, coinbase, rpc_url, ws_url } = this.getChain(id);
-          resolve({
-            details: {
-              accounts,
-              coinbase,
-              id,
-              rpc_url,
-              ws_url
-            },
-            status: 1
-          });
-        }
+      obj.status === 0 ? resolve(obj) : reject('Chain Does Not Exist');
+    });
+  }
 
-        reject('Chain Does Not Exist');
-      } else {
-        resolve(obj);
-      }
+  fetchChains() {
+    return new Promise(async (resolve, reject) => {
+      const res = await fetch(`${HTTP_URL}/chains`);
+      const { list } = await res.json();
+      resolve(list);
     });
   }
 
   fetchSnapshots() {
     const chainType = 'ganache';
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}snapshots/${chainType}`);
+      const res = await fetch(`${HTTP_URL}/chain/snapshots/${chainType}`);
       const { list, status } = await res.json();
       status === 0 ? resolve(list) : reject('Error fetching snapshot');
     });
@@ -406,7 +381,7 @@ export default class TestchainService {
 
   fetchDelete(id) {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}${id}`, {
+      const res = await fetch(`${HTTP_URL}/chain/${id}`, {
         method: 'DELETE'
       });
       const msg = await res.json();
@@ -423,24 +398,10 @@ export default class TestchainService {
     });
   }
 
-  async listChains() {
-    return await this._listChains();
-  }
-
-  _listChains() {
-    // this function will only respond with those chains which
-    // have clean_on_stop: false. Use only at initialize.
-    return new Promise((resolve, reject) => {
-      // TODO: check if api channel is connected first
-      this._apiChannel.push('list_chains', {}).receive('ok', ({ chains }) => {
-        resolve(chains);
-      });
-      // TODO: error handling?
-    });
-  }
-
   async removeAllChains() {
-    for (let id of Object.keys(this._chainList)) {
+    const chainList = await this.fetchChains();
+    for (const chain of chainList) {
+      const id = chain.id;
       if (this.isChainActive(id)) {
         await this.stopChain(id);
       }
@@ -482,7 +443,7 @@ export default class TestchainService {
   async chainExists(id) {
     if (this.isChainActive(id)) return true;
 
-    const chains = await this.listChains();
+    const chains = await this.fetchChains();
     for (let chain of chains) {
       if (chain.id === id) {
         return true;
