@@ -431,22 +431,22 @@ export default class TestchainService {
     });
   }
 
-  async listChains() {
-    return await this._listChains();
-  }
+  // async listChains() {
+  //   return await this._listChains();
+  // }
 
-  _listChains() {
-    // this function will only respond with those chains which
-    // have clean_on_stop: false. Use only at initialize.
-    return new Promise((resolve, reject) => {
-      // TODO: check if api channel is connected first
-      this._apiChannel.push('list_chains', {}).receive('ok', data => {
-        const { chains } = data;
-        resolve(chains);
-      });
-      // TODO: error handling?
-    });
-  }
+  // _listChains() {
+  //   // this function will only respond with those chains which
+  //   // have clean_on_stop: false. Use only at initialize.
+  //   return new Promise((resolve, reject) => {
+  //     // TODO: check if api channel is connected first
+  //     this._apiChannel.push('list_chains', {}).receive('ok', data => {
+  //       const { chains } = data;
+  //       resolve(chains);
+  //     });
+  //     // TODO: error handling?
+  //   });
+  // }
 
   async removeAllChains() {
     for (let id of Object.keys(this._chainList)) {
