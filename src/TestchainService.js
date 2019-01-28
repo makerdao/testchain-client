@@ -10,7 +10,7 @@ const logDelete = debug('log:delete');
 const API_CHANNEL = 'api';
 const API_URL = 'ws://127.1:4000/socket';
 const API_TIMEOUT = 5000;
-const HTTP_URL = 'http://localhost:4000/chain/';
+const HTTP_URL = 'http://localhost:4000/';
 
 export default class TestchainService {
   constructor() {
@@ -370,7 +370,7 @@ export default class TestchainService {
    */
   fetchChain(id) {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}${id}`);
+      const res = await fetch(`${HTTP_URL}/chain/${id}`);
       const obj = await res.json();
 
       if (obj.status) {
@@ -395,6 +395,14 @@ export default class TestchainService {
     });
   }
 
+  fetchChains() {
+    return new Promise(async (resolve, reject) => {
+      const res = await fetch(`${HTTP_URL}/chains`);
+      const { list } = await res.json();
+      resolve(list);
+    });
+  }
+
   fetchSnapshots() {
     const chainType = 'ganache';
     return new Promise(async (resolve, reject) => {
@@ -406,7 +414,7 @@ export default class TestchainService {
 
   fetchDelete(id) {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}${id}`, {
+      const res = await fetch(`${HTTP_URL}/chain/${id}`, {
         method: 'DELETE'
       });
       const msg = await res.json();
@@ -433,7 +441,6 @@ export default class TestchainService {
     return new Promise((resolve, reject) => {
       // TODO: check if api channel is connected first
       this._apiChannel.push('list_chains', {}).receive('ok', data => {
-        console.log(data);
         const { chains } = data;
         resolve(chains);
       });

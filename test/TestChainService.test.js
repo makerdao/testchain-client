@@ -91,11 +91,12 @@ describe('chain behaviour', async () => {
     const chain1 = service.getChainInfo(id1);
     const chain2 = service.getChainInfo(id2);
 
-    const chainsList = await service.listChains();
-
-    log(chain1);
-    log(chain2);
+    const chainsList = await service.fetchChains();
     log(chainsList);
+    await service.stopChain(id2);
+
+    const chainsList2 = await service.fetchChains();
+    log(chainsList2);
   });
 
   test('initialize should populate chainLists with correct data', async () => {
