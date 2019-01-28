@@ -7,7 +7,7 @@ set -e
 START_TIME=`date +%s`
 CWD=`dirname $0`
 # 1. Manually set port for now:  
-PORT=8592
+PORT=8593
 
 # 2. Make sure $HOME is set
 # 3. Projects directory relative to $HOME
@@ -80,3 +80,5 @@ cat > $HOME/$PROJECTS_DIR/governance-dashboard/node_modules/@makerdao/dai/contra
 }
 EOM
 
+
+echo "Deployed scripts successfully."

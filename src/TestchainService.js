@@ -8,9 +8,9 @@ const logSocket = debug('log:socket');
 const logDelete = debug('log:delete');
 
 const API_CHANNEL = 'api';
-const API_URL = 'ws://127.1:4001/socket';
+const API_URL = 'ws://127.1:4000/socket';
 const API_TIMEOUT = 5000;
-const HTTP_URL = 'http://localhost:4001/chain/';
+const HTTP_URL = 'http://localhost:4000/chain/';
 
 export default class TestchainService {
   constructor() {
