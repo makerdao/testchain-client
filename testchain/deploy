@@ -6,8 +6,8 @@ set -e
 
 START_TIME=`date +%s`
 CWD=`dirname $0`
-# 1. Manually set port for now:  
-PORT=8593
+# 1. Port number is provided as an argument to the deploy script
+PORT=$1 || 2000
 
 # 2. Make sure $HOME is set
 # 3. Projects directory relative to $HOME
@@ -58,6 +58,7 @@ POLLING=$(dapp create Polling $GOV $IOU $VOTE_PROXY_RESOLVER '')
 cd -
 
 # Save the contract addresses to a JSON file in the config plugin directory
+#TODO should this be in /dist ??
 cat > $HOME/$PROJECTS_DIR/dai-plugin-config/contracts/addresses/testnet.json <<- EOM
 {
   "mkr": "$GOV",

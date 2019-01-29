@@ -297,19 +297,28 @@ export default class TestchainService {
   }
 
   /**Snapshot services */
-  takeSnapshot(id, label = 'snap:' + id) {
+  takeSnapshot(options) {
+    // takeSnapshot(id, label = 'snap:' + id) {
+    const { chainId, description } = options;
+    const label = `snap:${chainId},${description}`;
+    // TODO, refactor restoreSnapshot to parse label & return props (chainId, description) to dashboard
+    // Temporary fix to link snapshots and chains until they are returned from api
+    // link package sage
     return new Promise((resolve, reject) => {
-      this._chainOnce(id, 'snapshot_taken', data => {
+      this._chainOnce(chainId, 'snapshot_taken', data => {
         const { id: snapId } = data;
         this._snapshots[snapId] = {
           ...data,
-          chainId: id
+          chainId
         };
-        this._chainOnce(id, 'started', data => {
+        this._chainOnce(chainId, 'started', data => {
+          console.log('chainonce resolved, we have data', data);
           resolve(snapId);
         });
       });
-      this._chainList[id].channel.push('take_snapshot', { description: label });
+      this._chainList[chainId].channel.push('take_snapshot', {
+        description: label
+      });
     });
   }
 

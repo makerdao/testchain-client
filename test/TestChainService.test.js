@@ -265,12 +265,13 @@ describe('snapshot examples', async () => {
     const { id } = await service.createChainInstance({ ...options });
 
     const description = 'Jest takeSnapshot';
-    const snapId = await service.takeSnapshot(id, description);
+    const label = `snap:${id},${description}`;
+    const snapId = await service.takeSnapshot({ chainId: id, description });
     const snapshot = service.getSnap(snapId);
 
     const delay = Date.now() - new Date(snapshot.date).getTime();
     expect(delay).toBeLessThan(2000); // roughly current time
-    expect(snapshot.description).toEqual(description);
+    expect(snapshot.description).toEqual(label);
     expect(snapshot.id).toEqual(snapId);
     expect(snapshot.chainId).toEqual(id);
     expect(snapshot.path).toBeTruthy();
@@ -282,19 +283,21 @@ describe('snapshot examples', async () => {
     });
 
     const description = 'Jest restoreSnapshot';
-    const snapId = await service.takeSnapshot(id, description);
+    const label = `snap:${id},${description}`;
+    const snapId = await service.takeSnapshot({ chainId: id, description });
 
     const res = await service.restoreSnapshot(snapId);
 
     expect(res.id).toBe(snapId);
-    expect(res.description).toBe(description);
+    expect(res.description).toBe(label);
   });
 
   test('will list snapshots for a chain', async () => {
     const { id } = await service.createChainInstance({ ...options });
 
     const description = 'Jest listSnapshots';
-    const snapshotId = await service.takeSnapshot(id, description);
+    const label = `snap:${id},${description}`;
+    const snapshotId = await service.takeSnapshot({ chainId: id, description });
     const snapshots = await service.fetchSnapshots();
 
     const targetSnapshot = snapshots.find(
@@ -302,6 +305,6 @@ describe('snapshot examples', async () => {
     );
 
     expect(snapshots.length > 0).toBe(true);
-    expect(targetSnapshot.description).toBe(description);
+    expect(targetSnapshot.description).toBe(label);
   });
 });
