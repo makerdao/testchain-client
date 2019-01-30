@@ -16,9 +16,9 @@
     "web3-utils": "^1.0.0-beta.36"
   },
   "devDependencies": {
-    "@makerdao/dai": "^0.9.10",
-    "@makerdao/dai-plugin-config": "^0.0.1",
-    "@makerdao/dai-plugin-governance": "^0.3.5",
+    "@makerdao/dai": "^0.10.0",
+    "@makerdao/dai-plugin-config": "^0.0.2",
+    "@makerdao/dai-plugin-governance": "^0.3.6",
     "babel-cli": "^6.26.0",
     "babel-eslint": "^10.0.1",
     "babel-plugin-transform-runtime": "^6.23.0",

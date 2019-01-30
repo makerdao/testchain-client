@@ -58,8 +58,7 @@ POLLING=$(dapp create Polling $GOV $IOU $VOTE_PROXY_RESOLVER '')
 cd -
 
 # Save the contract addresses to a JSON file in the config plugin directory
-#TODO should this be in /dist ??
-cat > $HOME/$PROJECTS_DIR/dai-plugin-config/contracts/addresses/testnet.json <<- EOM
+cat > $HOME/$PROJECTS_DIR/dai-plugin-config/dist/contracts/addresses/testnet.json <<- EOM
 {
   "mkr": "$GOV",
   "iou": "$IOU",

@@ -298,12 +298,9 @@ export default class TestchainService {
 
   /**Snapshot services */
   takeSnapshot(options) {
-    // takeSnapshot(id, label = 'snap:' + id) {
     const { chainId, description } = options;
-    const label = `snap:${chainId},${description}`;
-    // TODO, refactor restoreSnapshot to parse label & return props (chainId, description) to dashboard
-    // Temporary fix to link snapshots and chains until they are returned from api
-    // link package sage
+    // TODO move this hack into a private method so it can be easily removed when we have chain/snapshot link available in ex_testchain
+    const label = `{"snap":"${chainId}","desc":"${description}"}`;
     return new Promise((resolve, reject) => {
       this._chainOnce(chainId, 'snapshot_taken', data => {
         const { id: snapId } = data;
@@ -384,6 +381,13 @@ export default class TestchainService {
     return new Promise(async (resolve, reject) => {
       const res = await fetch(`${HTTP_URL}/chain/snapshots/${chainType}`);
       const { list, status } = await res.json();
+      // TODO move this hack into a private method so it can be easily removed when we have chain/snapshot link available in ex_testchain
+      list.map(snapshot => {
+        const json = JSON.parse(snapshot.description);
+        console.log(json);
+        snapshot.description = json.desc;
+        snapshot.chainId = json.snap;
+      });
       status === 0 ? resolve(list) : reject('Error fetching snapshot');
     });
   }
