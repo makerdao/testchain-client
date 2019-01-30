@@ -309,7 +309,6 @@ export default class TestchainService {
           chainId
         };
         this._chainOnce(chainId, 'started', data => {
-          console.log('chainonce resolved, we have data', data);
           resolve(snapId);
         });
       });
@@ -384,7 +383,6 @@ export default class TestchainService {
       // TODO move this hack into a private method so it can be easily removed when we have chain/snapshot link available in ex_testchain
       list.map(snapshot => {
         const json = JSON.parse(snapshot.description);
-        console.log(json);
         snapshot.description = json.desc;
         snapshot.chainId = json.snap;
       });

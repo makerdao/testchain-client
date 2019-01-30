@@ -265,7 +265,7 @@ describe('snapshot examples', async () => {
     const { id } = await service.createChainInstance({ ...options });
 
     const description = 'Jest takeSnapshot';
-    const label = `snap:${id},${description}`;
+    const label = `{"snap":"${id}","desc":"${description}"}`;
     const snapId = await service.takeSnapshot({ chainId: id, description });
     const snapshot = service.getSnap(snapId);
 
@@ -283,7 +283,7 @@ describe('snapshot examples', async () => {
     });
 
     const description = 'Jest restoreSnapshot';
-    const label = `snap:${id},${description}`;
+    const label = `{"snap":"${id}","desc":"${description}"}`;
     const snapId = await service.takeSnapshot({ chainId: id, description });
 
     const res = await service.restoreSnapshot(snapId);
@@ -296,7 +296,6 @@ describe('snapshot examples', async () => {
     const { id } = await service.createChainInstance({ ...options });
 
     const description = 'Jest listSnapshots';
-    const label = `snap:${id},${description}`;
     const snapshotId = await service.takeSnapshot({ chainId: id, description });
     const snapshots = await service.fetchSnapshots();
 
@@ -305,6 +304,6 @@ describe('snapshot examples', async () => {
     );
 
     expect(snapshots.length > 0).toBe(true);
-    expect(targetSnapshot.description).toBe(label);
+    expect(targetSnapshot.description).toBe(description);
   });
 });
