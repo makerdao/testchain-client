@@ -46,6 +46,10 @@ export default class SocketService {
   }
 
   url() {
-    return this.socket().endPointUrl();
+    return this.socket().endPointURL();
+  }
+
+  channel(...args) {
+    this.socket().channel(...args);
   }
 }
