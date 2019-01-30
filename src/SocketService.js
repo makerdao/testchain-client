@@ -5,6 +5,10 @@ export default class SocketService {
     this._socket = null;
   }
 
+  async start() {
+    await this.connect();
+  }
+
   connect(url = 'ws://127.1:4000/socket') {
     return new Promise((resolve, reject) => {
       this._socket = new Socket(url, {
