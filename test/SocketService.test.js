@@ -30,7 +30,7 @@ test('service will disconnect', async () => {
   expect(service.connected()).toBe(false);
 });
 
-test('service will connect on initialize', async () => {
-  await service.initialize();
+test('service will connect on start', async () => {
+  await service.start();
   expect(service.connected()).toBe(true);
 });

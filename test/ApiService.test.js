@@ -1,14 +1,12 @@
-import { get } from '../src/ServiceProvider';
+import ServiceProvider from '../src/core/ServiceProvider';
 import ApiService from '../src/ApiService';
 
-let socket, service;
+let provider, service;
 beforeEach(() => {
-  socket = get('socket');
-  socket.start();
-  service = new ApiService();
-  service.start(socket);
+  provider = new ServiceProvider();
+  service = provider.service('api');
 });
 
-test('service will connect to api channel', async () => {
-  console.log(service);
+test('service can use socket service', async () => {
+  //  expect(service._socket).
 });

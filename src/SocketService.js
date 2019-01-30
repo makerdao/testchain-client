@@ -1,7 +1,9 @@
 import { Socket } from 'phoenix';
+import Service from './core/Service.js';
 
-export default class SocketService {
+export default class SocketService extends Service {
   constructor(name = 'socket') {
+    super(name, ['chainMgr']);
     this._socket = null;
   }
 

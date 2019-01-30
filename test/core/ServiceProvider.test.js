@@ -1,6 +1,6 @@
-import ServiceProvider from '../src/ServiceProvider.js';
-import SocketService from '../src/SocketService.js';
-import ApiService from '../src/ApiService.js';
+import ServiceProvider from '../../src/core/ServiceProvider.js';
+import SocketService from '../../src/SocketService.js';
+import ApiService from '../../src/ApiService.js';
 
 describe('Provider instance will build all services', () => {
   const provider = new ServiceProvider();
@@ -15,15 +15,7 @@ describe('Provider instance will build all services', () => {
     expect(api instanceof ApiService).toBe(true);
   });
 
-  test('will inject get function into all services', () => {
-    const providerSocket = provider.service('socket');
-    const plainSocket = new SocketService();
-
-    expect(providerSocket.hasOwnProperty('get')).toBe(true);
-    expect(plainSocket.hasOwnProperty('get')).toBe(false);
-  });
-
-  test('services can call use other services using get', async () => {
+  test('services access dependency services using get', async () => {
     const apiService = provider.service('api');
     const socketService = apiService.get('socket');
     await socketService.start();

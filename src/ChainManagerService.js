@@ -1,8 +1,8 @@
 import Service from './core/Service.js';
 
-export default class ApiService extends Service {
-  constructor(name = 'api') {
-    super(name, ['socket']);
+export default class ChainManagerService extends Service {
+  constructor(name = 'chainMgr') {
+    super(name, ['socket', 'api']);
   }
 
   start() {}
