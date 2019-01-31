@@ -1,5 +1,5 @@
 import { Socket } from 'phoenix';
-import Service from './core/Service.js';
+import Service from '../core/Service.js';
 
 export default class SocketService extends Service {
   constructor(name = 'socket') {

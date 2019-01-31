@@ -1,10 +1,12 @@
-import SocketService from '../src/SocketService.js';
+import ServiceProvider from '../../src/core/ServiceProvider.js';
+import SocketService from '../../src/services/SocketService.js';
 
-let service;
+let provider, service;
 const incorrectUrl = 'ws://a.a.a.a:4000/socket';
 
 beforeEach(() => {
-  service = new SocketService();
+  provider = new ServiceProvider();
+  service = provider.service('socket');
 });
 
 test('service will connect to socket', async () => {

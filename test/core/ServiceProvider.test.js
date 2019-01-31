@@ -1,6 +1,6 @@
 import ServiceProvider from '../../src/core/ServiceProvider.js';
-import SocketService from '../../src/SocketService.js';
-import ApiService from '../../src/ApiService.js';
+import SocketService from '../../src/services/SocketService.js';
+import ApiService from '../../src/services/ApiService.js';
 
 describe('Provider instance will build all services', () => {
   const provider = new ServiceProvider();

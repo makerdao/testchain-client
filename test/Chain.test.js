@@ -1,6 +1,6 @@
 import Chain from '../src/Chain.js';
-import SocketService from '../src/SocketService.js';
-import ApiService from '../src/ApiService.js';
+import SocketService from '../src/services/SocketService.js';
+import ApiService from '../src/services/ApiService.js';
 
 let chain = new Chain();
 

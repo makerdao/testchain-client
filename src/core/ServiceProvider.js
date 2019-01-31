@@ -1,9 +1,9 @@
 import Container from './Container';
 import uniq from 'lodash.uniq';
 
-import SocketService from '../SocketService';
-import ApiService from '../ApiService';
-import ChainManagerService from '../ChainManagerService';
+import SocketService from '../services/SocketService';
+import ApiService from '../services/ApiService';
+import ChainManagerService from '../services/ChainManagerService';
 
 const serviceList = {
   socket: SocketService,

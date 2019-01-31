@@ -1,4 +1,4 @@
-import Service from './core/Service.js';
+import Service from '../core/Service.js';
 
 export default class ChainManagerService extends Service {
   constructor(name = 'chainMgr') {

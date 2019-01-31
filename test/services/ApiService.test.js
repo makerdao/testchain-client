@@ -1,5 +1,5 @@
-import ServiceProvider from '../src/core/ServiceProvider';
-import ApiService from '../src/ApiService';
+import ServiceProvider from '../../src/core/ServiceProvider';
+import ApiService from '../../src/services/ApiService';
 
 let provider, service;
 beforeEach(() => {
