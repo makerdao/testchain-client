@@ -2,7 +2,7 @@ import ServiceManager from './ServiceManager';
 
 export default class Service {
   constructor(name, dependencies = []) {
-    this._serviceManager = new ServiceManager(name, dependencies);
+    this._serviceManager = new ServiceManager(name, this, dependencies);
   }
 
   manager() {

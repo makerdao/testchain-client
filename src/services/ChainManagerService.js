@@ -5,8 +5,6 @@ export default class ChainManagerService extends Service {
     super(name, ['socket', 'api']);
   }
 
-  start() {}
-
   async connect() {
     this._api = this._socket.channel(this._apiChannel);
     await this._joinApi();
@@ -18,7 +16,6 @@ export default class ChainManagerService extends Service {
         if (!this._socket.connected()) {
           reject('Socket Connection Does Not Exist');
         }
-
         resolve(msg);
       });
     });

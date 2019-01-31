@@ -3,12 +3,8 @@ import Service from '../core/Service.js';
 
 export default class SocketService extends Service {
   constructor(name = 'socket') {
-    super(name, ['chainMgr']);
+    super(name);
     this._socket = null;
-  }
-
-  async start() {
-    await this.connect();
   }
 
   connect(url = 'ws://127.1:4000/socket') {
@@ -18,8 +14,8 @@ export default class SocketService extends Service {
       });
 
       this._socket.onOpen(() => {
-        this._connected = true;
-        resolve();
+        console.log(this.socket().isConnected());
+        resolve(this);
       });
 
       this._socket.onError(e => {
@@ -47,11 +43,11 @@ export default class SocketService extends Service {
     return false;
   }
 
-  url() {
-    return this.socket().endPointURL();
+  channel(...args) {
+    return this._socket.channel(...args);
   }
 
-  channel(...args) {
-    this.socket().channel(...args);
+  url() {
+    return this.socket().endPointURL();
   }
 }

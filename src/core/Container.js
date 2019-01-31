@@ -20,6 +20,11 @@ export default class Container {
     return this._services[name];
   }
 
+  async init(service) {
+    const manager = this._services[service].manager();
+    await manager.init();
+  }
+
   injectDependencies() {
     const services = values(this._services);
     for (let service of services) {

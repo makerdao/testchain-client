@@ -7,8 +7,8 @@ import ChainManagerService from '../services/ChainManagerService';
 
 const serviceList = {
   socket: SocketService,
-  api: ApiService,
-  chainMgr: ChainManagerService
+  api: ApiService
+  //chainMgr: ChainManagerService
 };
 
 /**
@@ -25,7 +25,7 @@ export default class ServiceProvider {
     this._container = null;
   }
 
-  buildContainer() {
+  buildContainer(autoConnect = false) {
     const container = new Container();
 
     let instance;
@@ -36,6 +36,10 @@ export default class ServiceProvider {
 
     this._registerDependencies(container);
     container.injectDependencies();
+
+    for (const service in this._services) {
+      container.init(service);
+    }
     this._container = container;
     return container;
   }
@@ -59,8 +63,8 @@ export default class ServiceProvider {
     this._registerDependencies(container);
   }
 
-  service(name) {
-    if (!this._container) this.buildContainer();
+  service(name, autoConnect = true) {
+    if (!this._container) this.buildContainer(autoConnect);
     return this._container.service(name);
   }
 

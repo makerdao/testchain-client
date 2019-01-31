@@ -1,8 +1,9 @@
 export default class ServiceManager {
-  constructor(name, dependencies) {
+  constructor(name, service, dependencies) {
     this._name = name;
     this._dependencies = dependencies;
     this._injections = {};
+    this._service = service;
     dependencies.forEach(d => (this._injections[d] = null));
   }
 
@@ -16,6 +17,10 @@ export default class ServiceManager {
 
   dependency(name) {
     return this._injections[name];
+  }
+
+  init() {
+    return this._service.connect();
   }
 
   inject(dependency, service) {
