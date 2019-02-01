@@ -21,6 +21,10 @@ export default class SocketService {
         resolve();
       });
 
+      this._socket.onMessage(msg => {
+        //console.log(msg);
+      });
+
       this._socket.onError(e => {
         reject('Socket Failed To Connect');
       });

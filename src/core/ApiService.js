@@ -1,13 +1,19 @@
+import fetch from 'node-fetch';
+import EventService from './EventService';
+
 export default class ApiService {
-  constructor(socketService) {
+  constructor(socketService, url = 'http://localhost:4000') {
     this._socket = socketService;
     this._api = null;
+    this._url = url;
+    this._event = null;
   }
 
   init() {
     return new Promise(resolve => {
-      this.join('api', ({ message, channel }) => {
+      this._api = this.join('api', ({ message, channel }) => {
         this._api = channel;
+        this._event = new EventService(this._api);
         resolve(message);
       });
     });
@@ -26,16 +32,13 @@ export default class ApiService {
     });
   }
 
-  pushAsync(event, payload = {}, timeout = 5000) {
+  pushAsync(event, payload = {}) {
     return new Promise((resolve, reject) => {
-      this.api()
-        .push(event, payload, timeout)
-        .receive('ok', resolve)
-        .receive('error', reject('ChainError: chain process crashed'))
-        .reject(
-          'timeout',
-          reject('ChainError: chain took too long to respond')
-        );
+      this._event.once(event, data => {
+        resolve(data);
+      });
+
+      this._api.push(event, payload);
     });
   }
 
@@ -51,6 +54,14 @@ export default class ApiService {
 
   api() {
     return this._api;
+  }
+
+  request(route, method = 'GET') {
+    return new Promise(async (resolve, reject) => {
+      const result = await fetch(this._url + route, { method });
+      const { status, ...data } = await result.json();
+      status === 0 ? resolve(data) : reject('ChainError: api request failed');
+    });
   }
 
   connected() {
