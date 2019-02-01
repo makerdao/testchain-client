@@ -51,6 +51,6 @@ export default class SocketService {
   }
 
   channel(...args) {
-    return this.socket.channel(...args);
+    return this._socket.channel(...args);
   }
 }

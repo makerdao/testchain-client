@@ -6,12 +6,12 @@ beforeEach(() => {
   service = new SocketService();
 });
 
-test('service will initialise correctly', async () => {
+test('service will initialize correctly', async () => {
   await service.init();
   expect(service.connected()).toBe(true);
 });
 
-test('service will fail to initialise with incorrect url', async () => {
+test('service will fail to initialize with incorrect url', async () => {
   expect.assertions(2);
   const incorrectUrl = 'ws://a.a.a.a:4000/socket';
 
