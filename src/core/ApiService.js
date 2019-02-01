@@ -28,6 +28,19 @@ export default class ApiService {
     });
   }
 
+  push(event, options = {}, timeout = 5000) {
+    return new Promise((resolve, reject) => {
+      this._api
+        .push(event, options, timeout)
+        .receive('ok', resolve)
+        .receive('error', reject('ChainError: chain process crashed'))
+        .reject(
+          'timeout',
+          reject('ChainError: chain took too long to respond')
+        );
+    });
+  }
+
   api() {
     return this._api;
   }
