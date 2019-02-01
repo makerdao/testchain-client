@@ -99,7 +99,6 @@ export default class TestchainService {
 
       this._apiChannel.join().receive('ok', msg => {
         this._apiConnected = true;
-
         resolve(msg);
       });
     });

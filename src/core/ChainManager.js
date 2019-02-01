@@ -1,3 +1,5 @@
+import ChainObject from './ChainObject.js';
+
 export default class ChainManager {
   constructor(apiService) {
     this._api = apiService;
@@ -7,28 +9,46 @@ export default class ChainManager {
 
   init() {
     return new Promise(async (resolve, reject) => {
-      const chainsList = await this.requestAllChains();
+      const { list } = await this.requestAllChains();
+
+      list.forEach(async chainData => {
+        const { id } = chainData;
+        this._chains[id] = new ChainObject(id, this._api);
+        this.chain(id).populate([chainData]);
+      });
+
       this._connected = true;
+      resolve();
     });
   }
 
-  requestAllChains() {
+  async requestAllChains() {
     return this._api.request(`/chains/`);
   }
 
-  requestChain(id) {
-    return this._api.request(`/chain/${id}`);
+  chain(id) {
+    return this._chains[id];
   }
 
-  removeChain(id) {
-    return this._api.request(`/chain/${id}`, 'DELETE');
+  async removeChain(id) {
+    await this.chain(id).delete();
+    delete this._chains[id];
   }
 
   connected() {
     return this._connected;
   }
 
-  createChain(config) {
-    return this._api.pushAsync('start', config);
+  /**
+    Have to make an extra request to list all chains as
+    `/chain/{id}` only lists a portion of the chain information
+  */
+  async createChain(config) {
+    const { id } = await this._api.pushAsync('start', config);
+    this._chains[id] = new ChainObject(id, this._api);
+
+    const { list } = await this.requestAllChains();
+    this.chain(id).populate(list);
+    return id;
   }
 }

@@ -42,6 +42,12 @@ export default class ApiService {
     });
   }
 
+  pushReceive(event, payload = {}) {
+    return new Promise((resolve, reject) => {
+      this._api.push(event, payload).receive('ok', resolve);
+    });
+  }
+
   leave() {
     return new Promise(resolve => {
       this.api()

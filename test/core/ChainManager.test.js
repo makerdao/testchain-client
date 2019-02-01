@@ -7,7 +7,7 @@ let socket, api, service;
 const options = {
   accounts: 3,
   block_mine_time: 0,
-  clean_on_stop: true
+  clean_on_stop: false
 };
 
 beforeEach(async () => {
@@ -17,6 +17,11 @@ beforeEach(async () => {
 
   await socket.init();
   await api.init();
+});
+
+test.only('service will initialize correctly', async () => {
+  service.createChain({ ...options });
+  await service.init();
 });
 
 test('chain manager will create chain instance', async () => {
