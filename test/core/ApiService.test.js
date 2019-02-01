@@ -10,17 +10,27 @@ beforeEach(async () => {
 });
 
 test('service should initialize correctly', async () => {
-  await service.init();
+  const msg = await service.init();
+  expect(msg).toEqual('Welcome to ExTestchain !');
   expect(service.connected()).toBe(true);
 });
 
+test('service can leave api channel', async () => {
+  await service.init();
+  await service.leave();
+  expect(service.connected()).toBe(false);
+});
+
 test('service will join channel', async () => {
-  let channelObj;
+  let _channel;
   const name = 'NEW_CHANNEL';
   let promise = new Promise(resolve => {
-    channelObj = service.join(name, resolve);
+    service.join(name, ({ channel }) => {
+      _channel = channel;
+      resolve();
+    });
   });
   await promise;
-  expect(channelObj.channel.state).toEqual('joined');
-  expect(channelObj.channel.topic).toEqual(name);
+  expect(_channel.state).toEqual('joined');
+  expect(_channel.topic).toEqual(name);
 });

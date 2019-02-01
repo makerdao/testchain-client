@@ -1,26 +1,24 @@
 export default class ApiService {
   constructor(socketService) {
     this._socket = socketService;
-
     this._api = null;
-    this._connected = false;
   }
 
   init() {
     return new Promise(resolve => {
-      this._api = this.join('api', () => {
-        this._connected = true;
-        resolve();
+      this.join('api', ({ message, channel }) => {
+        this._api = channel;
+        resolve(message);
       });
     });
   }
 
   join(channelName, cb) {
     const channel = this._socket.channel(channelName);
-    return channel.join().receive('ok', async () => {
+    channel.join().receive('ok', async ({ message }) => {
       for (let i = 0; i < 20; i++) {
         if (channel.state === 'joined') {
-          cb();
+          cb({ message, channel });
           break;
         }
         await this._sleep(100);
@@ -28,10 +26,10 @@ export default class ApiService {
     });
   }
 
-  push(event, options = {}, timeout = 5000) {
+  pushAsync(event, payload = {}, timeout = 5000) {
     return new Promise((resolve, reject) => {
-      this._api
-        .push(event, options, timeout)
+      this.api()
+        .push(event, payload, timeout)
         .receive('ok', resolve)
         .receive('error', reject('ChainError: chain process crashed'))
         .reject(
@@ -41,12 +39,25 @@ export default class ApiService {
     });
   }
 
+  leave() {
+    return new Promise(resolve => {
+      this.api()
+        .leave()
+        .receive('ok', () => {
+          resolve();
+        });
+    });
+  }
+
   api() {
     return this._api;
   }
 
   connected() {
-    return this._connected;
+    if (this.api()) {
+      return this.api().state === 'joined';
+    }
+    return false;
   }
 
   _sleep(ms) {
