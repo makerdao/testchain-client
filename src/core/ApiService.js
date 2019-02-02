@@ -11,7 +11,7 @@ export default class ApiService {
 
   init() {
     return new Promise(resolve => {
-      this._api = this.join('api', ({ message, channel }) => {
+      this._api = this.join('api', ({ channel, message }) => {
         this._api = channel;
         this._event = new EventService(this._api);
         resolve(message);
@@ -24,7 +24,7 @@ export default class ApiService {
     channel.join().receive('ok', async ({ message }) => {
       for (let i = 0; i < 20; i++) {
         if (channel.state === 'joined') {
-          cb({ message, channel });
+          cb({ channel, message });
           break;
         }
         await this._sleep(100);

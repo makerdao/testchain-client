@@ -4,7 +4,6 @@ export default class ChainManager {
   constructor(apiService) {
     this._api = apiService;
     this._chains = {};
-    this._connected = false;
   }
 
   init() {
@@ -14,41 +13,53 @@ export default class ChainManager {
       list.forEach(async chainData => {
         const { id } = chainData;
         this._chains[id] = new ChainObject(id, this._api);
-        this.chain(id).populate([chainData]);
+        await this.chain(id).init([chainData]);
       });
 
-      this._connected = true;
       resolve();
     });
   }
 
-  async requestAllChains() {
+  createChain(config) {
+    return new Promise(async resolve => {
+      const { id } = await this._api.pushAsync('start', config);
+      this._chains[id] = new ChainObject(id, this._api);
+
+      const { list } = await this.requestAllChains();
+      const msg = await this.chain(id).init(list);
+      resolve(id);
+    });
+  }
+
+  requestAllChains() {
     return this._api.request(`/chains/`);
   }
 
+  requestChain(id) {
+    return this.chain(id).get();
+  }
+
   chain(id) {
-    return this._chains[id];
+    if (!!this._chains[id]) return this._chains[id];
+    throw new Error('ChainError: No chain exists');
   }
 
-  async removeChain(id) {
-    await this.chain(id).delete();
-    delete this._chains[id];
+  connected(id) {}
+
+  removeChain(id) {
+    this.chain(id).delete(() => {
+      delete this._chains[id];
+    });
   }
 
-  connected() {
-    return this._connected;
-  }
-
-  /**
-    Have to make an extra request to list all chains as
-    `/chain/{id}` only lists a portion of the chain information
-  */
-  async createChain(config) {
-    const { id } = await this._api.pushAsync('start', config);
-    this._chains[id] = new ChainObject(id, this._api);
-
-    const { list } = await this.requestAllChains();
-    this.chain(id).populate(list);
-    return id;
+  async clean() {
+    for (const chain of this._chains) {
+      const id = chain.id;
+      if (this.chain(id).active()) {
+        await this.chain(id).stop();
+      } else {
+        await this.chain(id).delete();
+      }
+    }
   }
 }
