@@ -1,9 +1,12 @@
-import { Socket } from 'phoenix';
+import { Socket, Channel } from 'phoenix';
+import EventService from './EventService';
 
 export default class SocketService {
   constructor() {
     this._url = null;
     this._socket = null;
+    this._event = null;
+    this._channels = {};
   }
 
   init(url = 'ws://127.1:4000/socket') {
@@ -18,17 +21,17 @@ export default class SocketService {
       });
 
       this._socket.onOpen(() => {
+        this._event = new EventService(this._socket);
         resolve();
       });
 
       this._socket.onMessage(msg => {
-        //console.log(msg);
+        console.log(msg);
       });
 
       this._socket.onError(e => {
         reject('Socket Failed To Connect');
       });
-
       this._socket.connect();
     });
   }
@@ -43,18 +46,79 @@ export default class SocketService {
     return this._url;
   }
 
-  socket() {
-    return this._socket;
-  }
-
   connected() {
-    if (this.socket()) {
-      return this.socket().isConnected();
+    if (this._socket) {
+      return this._socket.isConnected();
     }
     return this._socket.isConnected();
   }
 
-  channel(...args) {
-    return this._socket.channel(...args);
+  channel(name) {
+    if (!this._channels[name]) {
+      this._channels[name] = this._socket.channel(name);
+    }
+    return this._channels[name];
+  }
+
+  join(name) {
+    return new Promise((resolve, reject) => {
+      if (this._joined(name)) {
+        resolve();
+      }
+      this.channel(name)
+        .join()
+        .receive('ok', async ({ message }) => {
+          const channel = this.channel(name);
+          for (let i = 0; i < 20; i++) {
+            if (channel.state === 'joined') {
+              resolve({ channel, message });
+              break;
+            }
+            await this._sleep(100);
+          }
+        });
+    });
+  }
+
+  push(channel, event, payload = {}) {
+    switch (event) {
+      case 'list_chains':
+        return this._pushReceive(channel, event, payload);
+      case 'remove_chain':
+        return this._pushReceive(channel, event, payload);
+      default:
+        return this._pushEvent(channel, event, payload);
+    }
+  }
+
+  _joined(name) {
+    if (this._channels[name] && this._channels[name].state === 'joined')
+      return true;
+    return false;
+  }
+
+  _pushEvent(name, event, payload = {}) {
+    return new Promise(async (resolve, reject) => {
+      this._event.once(name, event, data => {
+        resolve(data);
+      });
+      await this.join(name);
+      this.channel(name).push(event, payload);
+    });
+  }
+
+  _pushReceive(name, event, payload = {}) {
+    return new Promise(async resolve => {
+      await this.join(name);
+      this.channel(name)
+        .push(event, payload)
+        .receive('ok', resolve);
+    });
+  }
+
+  _sleep(ms) {
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
   }
 }

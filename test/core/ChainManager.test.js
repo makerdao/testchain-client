@@ -1,42 +1,35 @@
-import SocketService from '../../src/core/SocketService.js';
-import ApiService from '../../src/core/ApiService';
+import SocketService from '../../src/core/SocketService';
 import ChainManager from '../../src/core/ChainManager';
+import { getChainInfo } from '../../src/core/ChainRequest';
 
-describe('ChainManager', () => {
-  let socket, api, service, id, chain;
+let socket, api, service, id, chain;
 
-  const options = {
-    accounts: 3,
-    block_mine_time: 0,
-    clean_on_stop: false
-  };
+socket = new SocketService();
 
-  beforeEach(async () => {
-    socket = new SocketService();
-    api = new ApiService(socket);
-    service = new ChainManager(api);
+const options = {
+  accounts: 3,
+  block_mine_time: 0,
+  clean_on_stop: false
+};
 
-    await socket.init();
-    await api.init();
-    await service.init();
-  });
+beforeEach(async () => {
+  service = new ChainManager(socket);
 
-  test('service will create chain instance', async () => {
-    id = await service.createChain({ ...options });
-    const { details } = await service.requestChain(id);
-    expect(details.id).toEqual(id);
-  });
-
-  test('service will delete chain instance', async () => {});
-
-  test('service can send request get all existing chains', async () => {
-    await service.createChain({ ...options });
-    const { list } = await service.requestAllChains();
-    expect(list.length).toBeGreaterThanOrEqual(1);
-  });
-
-  // test('chain manager will create chain instance', async () => {
-  //   const chain = await service.createChain({ ...options });
-  //   console.log(chain);
-  // });
+  await socket.init();
+  await service.init();
 });
+
+test('service will create chain instance', async () => {
+  id = await service.createChain({ ...options });
+  const { details } = await getChainInfo(id);
+  expect(details.id).toEqual(id);
+});
+
+// test.only('service will stop chain instance', async () => {
+//   id = await service.createChain({ ...options });
+//   chain = service.chain(id).details();
+//   expect(chain.status).toBe('active');
+//   await service.chain(id).stop();
+//   chain = service.chain(id).details();
+//   console.log(chain);
+// });

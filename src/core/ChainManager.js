@@ -1,42 +1,38 @@
-import ChainObject from './ChainObject.js';
+import ChainObject from './ChainObject';
+import { listAllChains } from './ChainRequest';
 
 export default class ChainManager {
-  constructor(apiService) {
-    this._api = apiService;
+  constructor(socket) {
+    this._socket = socket;
     this._chains = {};
+    this._connected = false;
   }
 
   init() {
     return new Promise(async (resolve, reject) => {
-      const { list } = await this.requestAllChains();
+      const { list } = await listAllChains();
 
       list.forEach(async chainData => {
         const { id } = chainData;
-        this._chains[id] = new ChainObject(id, this._api);
-        await this.chain(id).init([chainData]);
+        this._chains[id] = new ChainObject(id, this._socket);
+        await this.chain(id).init();
       });
 
+      this._connected = true;
       resolve();
     });
   }
 
   createChain(config) {
+    console.log('sss');
     return new Promise(async resolve => {
-      const { id } = await this._api.pushAsync('start', config);
-      this._chains[id] = new ChainObject(id, this._api);
+      const { id } = await this._socket.push('api', 'start', config);
+      this._chains[id] = new ChainObject(id, this._socket);
 
-      const { list } = await this.requestAllChains();
-      const msg = await this.chain(id).init(list);
+      const { list } = await listAllChains();
+      await this.chain(id).init(list);
       resolve(id);
     });
-  }
-
-  requestAllChains() {
-    return this._api.request(`/chains/`);
-  }
-
-  requestChain(id) {
-    return this.chain(id).get();
   }
 
   chain(id) {
@@ -44,22 +40,14 @@ export default class ChainManager {
     throw new Error('ChainError: No chain exists');
   }
 
-  connected(id) {}
-
   removeChain(id) {
+    console.log('jbjb');
     this.chain(id).delete(() => {
       delete this._chains[id];
     });
   }
 
-  async clean() {
-    for (const chain of this._chains) {
-      const id = chain.id;
-      if (this.chain(id).active()) {
-        await this.chain(id).stop();
-      } else {
-        await this.chain(id).delete();
-      }
-    }
+  connected() {
+    return this._connected;
   }
 }

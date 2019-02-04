@@ -1,4 +1,4 @@
-import Client from '../src/Client.js';
+import Client from '../src/Client';
 
 let client;
 beforeEach(() => {
@@ -8,6 +8,5 @@ beforeEach(() => {
 test('client initializes correctly', async () => {
   await client.init();
   expect(client._socketService.connected()).toBe(true);
-  expect(client._apiService.connected()).toBe(true);
   expect(client._chainMgr.connected()).toBe(true);
 });

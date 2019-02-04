@@ -1,33 +1,35 @@
 import { find } from 'lodash';
+import { getChainInfo, listAllChains, deleteChain } from './ChainRequest';
 import EventService from './EventService';
 
 export default class ChainObject {
-  constructor(id, apiService) {
+  constructor(id, socket) {
     this.id = id;
-    this._api = apiService;
-    this._channel = null;
-    this._channelName = `chain:${id}`;
-    this._connected = false;
-    this._event = null;
+    this._socket = socket;
+    this.name = `chain:${id}`;
   }
 
   init(list) {
-    return new Promise(async (resolve, reject) => {
-      this.populate(list);
-
-      this._api.join(this._channelName, ({ message, channel }) => {
-        this._channel = channel;
-        this._event = new EventService(this._channel);
-        this._connected = true;
-        resolve(message);
-      });
+    return new Promise(async resolve => {
+      await this.populate();
+      resolve();
     });
   }
 
-  stop() {}
+  stop() {
+    return new Promise(async resolve => {
+      if (!this.status) {
+        resolve();
+      } else {
+        await this._socket.push(this.name, 'stop');
+        //await this.populate();
+        resolve();
+      }
+    });
+  }
 
   details() {
-    const { _api, ...data } = this;
+    const { _socket, ...data } = this;
     return data;
   }
 
@@ -35,39 +37,41 @@ export default class ChainObject {
     return this._channel;
   }
 
-  get() {
-    return this._api.request(`/chain/${this.id}`);
-  }
-
-  active() {
-    return !!this.active;
-  }
-
   delete(cb) {
     return new Promise(async resolve => {
-      await this._api.request(`/chain/${this.id}`, 'DELETE');
+      if (this.active) {
+        await this.stop();
+      }
+
+      if (this.exists) await deleteChain(this.id);
+
       cb();
+      resolve();
     });
   }
 
-  async populate(list) {
-    const chain = await this.get();
-    const { id, ...obj } = chain.details;
+  async populate() {
+    return new Promise(async resolve => {
+      const { list } = await listAllChains();
+      const chain = await getChainInfo(this.id);
+      const { id, ...obj } = chain.details;
 
-    for (const item in obj) {
-      this[item] = chain.details[item];
-    }
+      for (const item in obj) {
+        this[item] = chain.details[item];
+      }
 
-    const listObj = find(list, { id: this.id });
-    [
-      'block_mine_time',
-      'clean_on_stop',
-      'network_id',
-      'description',
-      'status',
-      'type'
-    ].forEach(item => {
-      this[item] = listObj[item];
+      const listObj = find(list, { id: this.id });
+      [
+        'block_mine_time',
+        'clean_on_stop',
+        'network_id',
+        'description',
+        'status',
+        'type'
+      ].forEach(item => {
+        this[item] = listObj[item];
+      });
+      resolve();
     });
   }
 }
