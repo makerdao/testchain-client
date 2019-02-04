@@ -25,9 +25,21 @@ export default class ChainObject {
     });
   }
 
+  start() {
+    return new Promise(async resolve => {
+      if (this.active) {
+        resolve();
+      } else {
+        await this._socket.push('api', 'start_existing', { id: this.id });
+        await this.populate();
+        resolve();
+      }
+    });
+  }
+
   stop() {
     return new Promise(async resolve => {
-      if (!this.status) {
+      if (!this.active) {
         resolve();
       } else {
         await this._socket.push(this.name, 'stop');
@@ -73,8 +85,8 @@ export default class ChainObject {
       ].forEach(item => {
         this[item] = listObj[item];
       });
-      this.active = this.status === 'active' ? true : false;
 
+      this.active = this.status === 'active' ? true : false;
       if (this.active) {
         const chain = await getChainInfo(this.id);
         const { id, ...obj } = chain.details;
