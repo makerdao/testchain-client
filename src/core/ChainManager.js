@@ -52,6 +52,17 @@ export default class ChainManager {
     });
   }
 
+  clean() {
+    return new Promise(async resolve => {
+      const { list } = await listAllChains();
+
+      for (const chain of list) {
+        await this.removeChain(chain.id);
+      }
+      resolve();
+    });
+  }
+
   connected() {
     return this._connected;
   }

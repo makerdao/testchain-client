@@ -19,6 +19,10 @@ beforeEach(async () => {
   id = await service.createChain({ ...options });
 });
 
+afterEach(async () => {
+  await service.clean();
+});
+
 test('service will create chain instance', async () => {
   chain = service.chain(id);
   expect(chain.id).toEqual(id);
@@ -64,5 +68,20 @@ test('service will delete chain instance when clean_on_stop is false', async () 
   expect(exists).toBe(true);
   await service.removeChain(id);
   exists = await service.exists(id);
+  expect(exists).toBe(false);
+});
+
+test('service will clean all chains', async () => {
+  const id1 = await service.createChain({ ...options, clean_on_stop: true });
+  const id2 = await service.createChain({ ...options });
+  const id3 = await service.createChain({ ...options });
+
+  await service.clean();
+
+  exists = await service.exists(id1);
+  expect(exists).toBe(false);
+  exists = await service.exists(id2);
+  expect(exists).toBe(false);
+  exists = await service.exists(id3);
   expect(exists).toBe(false);
 });
