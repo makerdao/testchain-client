@@ -10,14 +10,14 @@ export default class ChainObject {
     this.active = false;
   }
 
-  init(list) {
+  init(info = []) {
     return new Promise(async resolve => {
       await this.populate();
       if (this.active) {
         const chain = await getChainInfo(this.id);
         const { id, ...obj } = chain.details;
 
-        for (const item in obj) {
+        for (const item in info) {
           this[item] = chain.details[item];
         }
       }
@@ -74,6 +74,15 @@ export default class ChainObject {
         this[item] = listObj[item];
       });
       this.active = this.status === 'active' ? true : false;
+
+      if (this.active) {
+        const chain = await getChainInfo(this.id);
+        const { id, ...obj } = chain.details;
+
+        for (const item in obj) {
+          this[item] = chain.details[item];
+        }
+      }
       resolve();
     });
   }

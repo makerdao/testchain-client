@@ -25,11 +25,9 @@ export default class ChainManager {
 
   createChain(config) {
     return new Promise(async resolve => {
-      const { id } = await this._socket.push('api', 'start', config);
+      const { id, ...info } = await this._socket.push('api', 'start', config);
       this._chains[id] = new ChainObject(id, this._socket);
-
-      const { list } = await listAllChains();
-      await this.chain(id).init(list);
+      await this.chain(id).init(info);
       resolve(id);
     });
   }
