@@ -25,11 +25,9 @@ test('service will create chain instance', async () => {
   expect(details.id).toEqual(id);
 });
 
-// test.only('service will stop chain instance', async () => {
-//   id = await service.createChain({ ...options });
-//   chain = service.chain(id).details();
-//   expect(chain.status).toBe('active');
-//   await service.chain(id).stop();
-//   chain = service.chain(id).details();
-//   console.log(chain);
-// });
+test.only('service will stop chain instance', async () => {
+  id = await service.createChain({ ...options });
+  expect(service.chain(id).active).toBe(true);
+  await service.chain(id).stop();
+  expect(service.chain(id).active).toBe(false);
+});

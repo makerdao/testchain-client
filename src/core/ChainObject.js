@@ -7,11 +7,20 @@ export default class ChainObject {
     this.id = id;
     this._socket = socket;
     this.name = `chain:${id}`;
+    this.active = false;
   }
 
   init(list) {
     return new Promise(async resolve => {
       await this.populate();
+      if (this.active) {
+        const chain = await getChainInfo(this.id);
+        const { id, ...obj } = chain.details;
+
+        for (const item in obj) {
+          this[item] = chain.details[item];
+        }
+      }
       resolve();
     });
   }
@@ -22,7 +31,7 @@ export default class ChainObject {
         resolve();
       } else {
         await this._socket.push(this.name, 'stop');
-        //await this.populate();
+        await this.populate();
         resolve();
       }
     });
@@ -53,13 +62,6 @@ export default class ChainObject {
   async populate() {
     return new Promise(async resolve => {
       const { list } = await listAllChains();
-      const chain = await getChainInfo(this.id);
-      const { id, ...obj } = chain.details;
-
-      for (const item in obj) {
-        this[item] = chain.details[item];
-      }
-
       const listObj = find(list, { id: this.id });
       [
         'block_mine_time',
@@ -71,6 +73,7 @@ export default class ChainObject {
       ].forEach(item => {
         this[item] = listObj[item];
       });
+      this.active = this.status === 'active' ? true : false;
       resolve();
     });
   }

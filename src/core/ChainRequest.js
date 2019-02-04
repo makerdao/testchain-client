@@ -14,6 +14,7 @@ export const listAllChains = () => {
   return request(`/chains/`);
 };
 
+// if this chain is not active, the server will throw an error
 export const getChainInfo = id => {
   return request(`/chain/${id}`);
 };

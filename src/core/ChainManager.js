@@ -24,7 +24,6 @@ export default class ChainManager {
   }
 
   createChain(config) {
-    console.log('sss');
     return new Promise(async resolve => {
       const { id } = await this._socket.push('api', 'start', config);
       this._chains[id] = new ChainObject(id, this._socket);
@@ -41,7 +40,6 @@ export default class ChainManager {
   }
 
   removeChain(id) {
-    console.log('jbjb');
     this.chain(id).delete(() => {
       delete this._chains[id];
     });

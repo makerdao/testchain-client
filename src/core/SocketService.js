@@ -26,7 +26,7 @@ export default class SocketService {
       });
 
       this._socket.onMessage(msg => {
-        console.log(msg);
+        //console.log(msg);
       });
 
       this._socket.onError(e => {
