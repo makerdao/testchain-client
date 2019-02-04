@@ -43,7 +43,7 @@ export default class ChainObject {
         resolve();
       } else {
         await this._socket.push(this.name, 'stop');
-        await this.populate();
+        if (!this.clean_on_stop) await this.populate();
         resolve();
       }
     });
@@ -60,12 +60,8 @@ export default class ChainObject {
 
   delete(cb) {
     return new Promise(async resolve => {
-      if (this.active) {
-        await this.stop();
-      }
-
-      if (this.exists) await deleteChain(this.id);
-
+      await this.stop();
+      if (!this.clean_on_stop) await deleteChain(this.id);
       cb();
       resolve();
     });

@@ -47,7 +47,7 @@ export default class ChainManager {
   }
 
   removeChain(id) {
-    this.chain(id).delete(() => {
+    return this.chain(id).delete(() => {
       delete this._chains[id];
     });
   }

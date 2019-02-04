@@ -2,9 +2,8 @@ import SocketService from '../../src/core/SocketService';
 import ChainManager from '../../src/core/ChainManager';
 import { listAllChains } from '../../src/core/ChainRequest';
 
+jest.setTimeout(10000);
 let socket, service, id, chain, exists;
-
-socket = new SocketService();
 
 const options = {
   accounts: 3,
@@ -13,8 +12,8 @@ const options = {
 };
 
 beforeEach(async () => {
+  socket = new SocketService();
   service = new ChainManager(socket);
-
   await socket.init();
   await service.init();
   id = await service.createChain({ ...options });
@@ -47,6 +46,23 @@ test('service will check existence of chain', async () => {
   exists = await service.exists(id);
   expect(exists).toBe(true);
   id = new Array(20).join('1');
+  exists = await service.exists(id);
+  expect(exists).toBe(false);
+});
+
+test('service will delete chain instance when clean_on_stop is true', async () => {
+  id = await service.createChain({ ...options, clean_on_stop: true });
+  exists = await service.exists(id);
+  expect(exists).toBe(true);
+  await service.removeChain(id);
+  exists = await service.exists(id);
+  expect(exists).toBe(false);
+});
+
+test('service will delete chain instance when clean_on_stop is false', async () => {
+  exists = await service.exists(id);
+  expect(exists).toBe(true);
+  await service.removeChain(id);
   exists = await service.exists(id);
   expect(exists).toBe(false);
 });
