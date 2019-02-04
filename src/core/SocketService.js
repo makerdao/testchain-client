@@ -1,5 +1,8 @@
 import { Socket, Channel } from 'phoenix';
 import EventService from './EventService';
+import debug from 'debug';
+
+const log = debug('log:socket');
 
 export default class SocketService {
   constructor() {
@@ -26,7 +29,8 @@ export default class SocketService {
       });
 
       this._socket.onMessage(msg => {
-        //console.log(msg);
+        log(msg);
+        log('\n');
       });
 
       this._socket.onError(e => {
