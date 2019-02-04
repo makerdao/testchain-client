@@ -99,7 +99,7 @@ test('service will take a snapshot of the chain', async () => {
   expect(snapshot.description).toEqual(snapshotDescription);
 });
 
-test.only("service will revert a snapshot back to it's original state", async () => {
+test("service will revert a snapshot back to it's original state", async () => {
   const { http_port } = await service.chain(id).details();
 
   const snapshotDescription = 'BEFORE_MINE';
@@ -121,6 +121,4 @@ test.only("service will revert a snapshot back to it's original state", async ()
   response = await getBlockNumber(http_port);
   block = parseInt(response.result, 16);
   expect(block).toEqual(0);
-
-  // don't kn
 });
