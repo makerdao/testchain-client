@@ -1,4 +1,5 @@
 import ChainObject from './ChainObject';
+import { find } from 'lodash';
 import { listAllChains } from './ChainRequest';
 
 export default class ChainManager {
@@ -35,6 +36,14 @@ export default class ChainManager {
   chain(id) {
     if (!!this._chains[id]) return this._chains[id];
     throw new Error('ChainError: No chain exists');
+  }
+
+  exists(id) {
+    return new Promise(async resolve => {
+      const { list } = await listAllChains();
+      const res = find(list, { id: id });
+      resolve(!!res);
+    });
   }
 
   removeChain(id) {

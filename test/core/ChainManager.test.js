@@ -1,8 +1,8 @@
 import SocketService from '../../src/core/SocketService';
 import ChainManager from '../../src/core/ChainManager';
-import { getChainInfo } from '../../src/core/ChainRequest';
+import { listAllChains } from '../../src/core/ChainRequest';
 
-let socket, api, service, id, chain;
+let socket, service, id, chain, exists;
 
 socket = new SocketService();
 
@@ -34,11 +34,19 @@ test('service will stop chain instance', async () => {
   expect(service.chain(id).active).toBe(false);
 });
 
-test.only('service will restart chain instance', async () => {
+test('service will restart chain instance', async () => {
   await service.chain(id).stop();
   expect(service.chain(id).active).toBe(false);
   await service.chain(id).start();
   chain = service.chain(id);
   expect(chain.active).toBe(true);
   expect(chain.accounts.length).toBe(options.accounts + 1);
+});
+
+test('service will check existence of chain', async () => {
+  exists = await service.exists(id);
+  expect(exists).toBe(true);
+  id = new Array(20).join('1');
+  exists = await service.exists(id);
+  expect(exists).toBe(false);
 });
