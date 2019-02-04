@@ -1,26 +1,32 @@
 import fetch from 'node-fetch';
 
-const url = 'http://localhost:4000';
+const api_port = '4000';
+const url = 'http://localhost:';
 
-const request = (route, method = 'GET') => {
+const request = (route, method, port = api_port, body = {}) => {
   return new Promise(async (resolve, reject) => {
-    const result = await fetch(url + route, { method });
+    let result;
+    if (method === 'GET') {
+      result = await fetch(url + port + route, { method });
+    } else {
+      result = await fetch(url + port + route, { method, body });
+    }
     const { status, ...data } = await result.json();
-    status === 0 ? resolve(data) : reject(data);
+    !status ? resolve(data) : reject(data);
   });
 };
 
 export const listAllChains = () => {
-  return request(`/chains/`);
+  return request(`/chains/`, 'GET');
 };
 
 export const listAllSnapshots = (chainType = 'ganache') => {
-  return request(`/chain/snapshots/${chainType}`);
+  return request(`/chain/snapshots/${chainType}`, 'GET');
 };
 
 // if this chain is not active, the server will throw an error
 export const getChainInfo = id => {
-  return request(`/chain/${id}`);
+  return request(`/chain/${id}`, 'GET');
 };
 
 export const deleteChain = id => {
@@ -28,5 +34,23 @@ export const deleteChain = id => {
 };
 
 export const downloadSnapshot = id => {
-  return request(`/chain/snapshot/${id}`);
+  return request(`/chain/snapshot/${id}`, 'GET');
+};
+
+export const getBlockNumber = port => {
+  return request(
+    '/',
+    'POST',
+    port,
+    '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+  );
+};
+
+export const mineBlock = port => {
+  return request(
+    '/',
+    'POST',
+    port,
+    '{"jsonrpc":"2.0","method":"evm_mine","params":[],"id":1}'
+  );
 };

@@ -62,7 +62,18 @@ export default class ChainObject {
       });
       const { id, ...data } = snapshot;
       this.snapshots[id] = { ...data, chain: this.id };
+      await this._socket._sleep(500);
       resolve(snapshot.id);
+    });
+  }
+
+  revertSnapshot(id) {
+    return new Promise(async resolve => {
+      await this._socket.push(this.name, 'revert_snapshot', {
+        snapshot: id
+      });
+      delete this.snapshots[id];
+      resolve();
     });
   }
 
@@ -97,6 +108,8 @@ export default class ChainObject {
       const { list } = await listAllChains();
       const listObj = find(list, { id: this.id });
       [
+        'http_port',
+        'ws_port',
         'block_mine_time',
         'clean_on_stop',
         'network_id',

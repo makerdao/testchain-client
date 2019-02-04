@@ -1,9 +1,14 @@
 import SocketService from '../../src/core/SocketService';
 import ChainManager from '../../src/core/ChainManager';
-import { listAllChains, listAllSnapshots } from '../../src/core/ChainRequest';
+import {
+  listAllChains,
+  listAllSnapshots,
+  getBlockNumber,
+  mineBlock
+} from '../../src/core/ChainRequest';
 
 jest.setTimeout(10000);
-let socket, service, id, chain, exists;
+let socket, service, id, chain, exists, response, block;
 
 const options = {
   accounts: 3,
@@ -92,4 +97,30 @@ test('service will take a snapshot of the chain', async () => {
   const snapshot = service.chain(id).snapshot(snapshotId);
 
   expect(snapshot.description).toEqual(snapshotDescription);
+});
+
+test.only("service will revert a snapshot back to it's original state", async () => {
+  const { http_port } = await service.chain(id).details();
+
+  const snapshotDescription = 'BEFORE_MINE';
+  const snapshotId = await service.chain(id).takeSnapshot(snapshotDescription);
+
+  await service.chain(id).start();
+
+  response = await getBlockNumber(http_port);
+  block = parseInt(response.result, 16);
+  expect(block).toEqual(0);
+
+  await mineBlock(http_port);
+  response = await getBlockNumber(http_port);
+  block = parseInt(response.result, 16);
+  expect(block).toEqual(1);
+
+  await service.chain(id).revertSnapshot(snapshotId);
+
+  response = await getBlockNumber(http_port);
+  block = parseInt(response.result, 16);
+  expect(block).toEqual(0);
+
+  // don't kn
 });
