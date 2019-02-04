@@ -1,6 +1,6 @@
 import SocketService from '../../src/core/SocketService';
 import ChainManager from '../../src/core/ChainManager';
-import { listAllChains } from '../../src/core/ChainRequest';
+import { listAllChains, listAllSnapshots } from '../../src/core/ChainRequest';
 
 jest.setTimeout(10000);
 let socket, service, id, chain, exists;
@@ -84,4 +84,12 @@ test('service will clean all chains', async () => {
   expect(exists).toBe(false);
   exists = await service.exists(id3);
   expect(exists).toBe(false);
+});
+
+test('service will take a snapshot of the chain', async () => {
+  const snapshotDescription = 'SNAPSHOT_1';
+  const snapshotId = await service.chain(id).takeSnapshot(snapshotDescription);
+  const snapshot = service.chain(id).snapshot(snapshotId);
+
+  expect(snapshot.description).toEqual(snapshotDescription);
 });

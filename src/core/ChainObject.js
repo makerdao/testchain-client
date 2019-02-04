@@ -1,5 +1,10 @@
 import { find } from 'lodash';
-import { getChainInfo, listAllChains, deleteChain } from './ChainRequest';
+import {
+  getChainInfo,
+  listAllChains,
+  listAllSnapshots,
+  deleteChain
+} from './ChainRequest';
 import EventService from './EventService';
 
 export default class ChainObject {
@@ -8,6 +13,7 @@ export default class ChainObject {
     this._socket = socket;
     this.name = `chain:${id}`;
     this.active = false;
+    this.snapshots = {};
   }
 
   init(info = []) {
@@ -49,6 +55,17 @@ export default class ChainObject {
     });
   }
 
+  takeSnapshot(description) {
+    return new Promise(async resolve => {
+      const snapshot = await this._socket.push(this.name, 'take_snapshot', {
+        description
+      });
+      const { id, ...data } = snapshot;
+      this.snapshots[id] = { ...data, chain: this.id };
+      resolve(snapshot.id);
+    });
+  }
+
   details() {
     const { _socket, ...data } = this;
     return data;
@@ -56,6 +73,14 @@ export default class ChainObject {
 
   channel() {
     return this._channel;
+  }
+
+  snapshot(id) {
+    if (!!this.snapshots[id]) {
+      return this.snapshots[id];
+    } else {
+      throw new Error(`Snapshot ${id} Does Not Exist`);
+    }
   }
 
   delete(cb) {
