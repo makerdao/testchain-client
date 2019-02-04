@@ -103,7 +103,7 @@ export default class ChainObject {
     });
   }
 
-  async populate() {
+  populate() {
     return new Promise(async resolve => {
       const { list } = await listAllChains();
       const listObj = find(list, { id: this.id });

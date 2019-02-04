@@ -100,6 +100,13 @@ test('service will take a snapshot of the chain', async () => {
 });
 
 test("service will revert a snapshot back to it's original state", async () => {
+  /*
+   * Test Failing:
+   * Will receive a FetchError ECONNRESET on the POST requests to the server.
+   * These only fail due to the occurring takeSnapshot() which seem to cause
+   * the http endpoint to disconnect/fail.
+   */
+
   const { http_port } = await service.chain(id).details();
 
   const snapshotDescription = 'BEFORE_MINE';
