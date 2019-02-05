@@ -56,12 +56,15 @@ export default class ChainObject {
 
   takeSnapshot(description) {
     return new Promise(async resolve => {
-      const snapshot = await this._socket.push(this.name, 'take_snapshot', {
-        description
-      });
+      const { chain, snapshot } = await this._socket.push(
+        this.name,
+        'take_snapshot',
+        {
+          description
+        }
+      );
       const { id, ...data } = snapshot;
       this.snapshots[id] = { ...data, chain: this.id };
-      await this._socket._sleep(500);
       resolve(snapshot.id);
     });
   }

@@ -34,13 +34,39 @@ export default class EventService {
 
   once(channel, event, cb) {
     event = this._cleanEventName(event);
-    const randomEventId = Math.random()
+    const randomEventId = this._randomId();
+
+    if (event === 'snapshot_taken' || event === 'snapshot_reverted') {
+      this._registerEvent(
+        channel,
+        `once:${randomEventId}`,
+        event,
+        snapshotData => {
+          const startedId = this._randomId();
+          this._registerEvent(
+            channel,
+            `once:${startedId}`,
+            'started',
+            chainData => {
+              this._unregisterEvent(channel, `once:${randomEventId}`, event);
+              this._unregisterEvent(channel, `once:${startedId}`, event);
+
+              cb({ chain: chainData, snapshot: snapshotData });
+            }
+          );
+        }
+      );
+    } else {
+      this._registerEvent(channel, `once:${randomEventId}`, event, data => {
+        this._unregisterEvent(channel, `once:${randomEventId}`, event);
+        cb(data);
+      });
+    }
+  }
+
+  _randomId() {
+    return Math.random()
       .toString(36)
       .substr(2, 5);
-
-    this._registerEvent(channel, `once:${randomEventId}`, event, data => {
-      this._unregisterEvent(channel, `once:${randomEventId}`, event);
-      cb(data);
-    });
   }
 }
