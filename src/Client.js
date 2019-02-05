@@ -8,4 +8,8 @@ export default class Client {
   async init() {
     await this._chainMgr.init();
   }
+
+  chainMgr() {
+    return this._chainMgr;
+  }
 }
