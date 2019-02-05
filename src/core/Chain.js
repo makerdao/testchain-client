@@ -117,7 +117,8 @@ export default class ChainObject {
         'network_id',
         'description',
         'status',
-        'type'
+        'type',
+        'snapshot_id'
       ].forEach(item => {
         this[item] = listObj[item];
       });
