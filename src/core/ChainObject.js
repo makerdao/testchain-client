@@ -4,7 +4,7 @@ import {
   listAllChains,
   listAllSnapshots,
   deleteChain
-} from './ChainRequest';
+} from './api';
 
 export default class ChainObject {
   constructor(id, socket) {

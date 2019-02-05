@@ -1,7 +1,7 @@
 import SocketService from './SocketService.js';
 import ChainObject from './ChainObject';
 import { find } from 'lodash';
-import { listAllChains } from './ChainRequest';
+import { listAllChains } from './api';
 
 export default class ChainManager {
   constructor() {
