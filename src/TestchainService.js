@@ -8,13 +8,13 @@ const logSocket = debug('log:socket');
 const logDelete = debug('log:delete');
 
 const API_CHANNEL = 'api';
-const API_URL = 'ws://127.1:4000/socket';
-// const API_URL = 'ws://18.185.172.121:4000/socket';
+// const API_URL = 'ws://127.1:4000/socket';
+const API_URL = 'ws://18.185.172.121:4000/socket';
 const API_TIMEOUT = 5000;
 // const HTTP_URL = 'http://testchain-backendgateway.local:4000';
 // const HTTP_URL = 'https://127.1:4000';
-const HTTP_URL = 'http://localhost:4000';
-// const HTTP_URL = 'http://18.185.172.121:4000';
+// const HTTP_URL = 'http://localhost:4000';
+const HTTP_URL = 'http://18.185.172.121:4000';
 
 export default class TestchainService {
   constructor() {
