@@ -8,7 +8,7 @@ import {
 } from '../../src/core/ChainRequest';
 
 jest.setTimeout(10000);
-let socket, service, id, chain, exists, response, block;
+let socket, service, chain, response, block;
 
 const options = {
   accounts: 3,
@@ -52,28 +52,24 @@ test('service will restart chain instance', async () => {
 });
 
 test('service will check existence of chain', async () => {
-  exists = await service.exists(id);
-  expect(exists).toBe(true);
-  id = new Array(20).join('1');
-  exists = await service.exists(id);
-  expect(exists).toBe(false);
+  const id = await service.createChain({ ...options });
+  expect(await service.exists(id)).toBeTruthy();
+  const badId = new Array(20).join('1');
+  expect(await service.exists(badId)).toBeFalsy();
 });
 
 test('service will delete chain instance when clean_on_stop is true', async () => {
-  id = await service.createChain({ ...options, clean_on_stop: true });
-  exists = await service.exists(id);
-  expect(exists).toBe(true);
+  const id = await service.createChain({ ...options, clean_on_stop: true });
+  expect(await service.exists(id)).toBeTruthy();
   await service.removeChain(id);
-  exists = await service.exists(id);
-  expect(exists).toBe(false);
+  expect(await service.exists(id)).toBeFalsy();
 });
 
 test('service will delete chain instance when clean_on_stop is false', async () => {
-  exists = await service.exists(id);
-  expect(exists).toBe(true);
+  const id = await service.createChain({ ...options });
+  expect(await service.exists(id)).toBeTruthy();
   await service.removeChain(id);
-  exists = await service.exists(id);
-  expect(exists).toBe(false);
+  expect(await service.exists(id)).toBeFalsy();
 });
 
 test('service will clean all chains', async () => {
@@ -83,15 +79,13 @@ test('service will clean all chains', async () => {
 
   await service.clean();
 
-  exists = await service.exists(id1);
-  expect(exists).toBe(false);
-  exists = await service.exists(id2);
-  expect(exists).toBe(false);
-  exists = await service.exists(id3);
-  expect(exists).toBe(false);
+  expect(await service.exists(id1)).toBeFalsy();
+  expect(await service.exists(id2)).toBeFalsy();
+  expect(await service.exists(id3)).toBeFalsy();
 });
 
 test('service will take a snapshot of the chain', async () => {
+  const id = await service.createChain({ ...options });
   const snapshotDescription = 'SNAPSHOT_1';
   const snapshotId = await service.chain(id).takeSnapshot(snapshotDescription);
   const snapshot = service.chain(id).snapshot(snapshotId);
