@@ -1,4 +1,3 @@
-import SocketService from '../../src/core/SocketService';
 import ChainManager from '../../src/core/ChainManager';
 import {
   listAllChains,
@@ -17,9 +16,7 @@ const options = {
 };
 
 beforeEach(async () => {
-  socket = new SocketService();
-  service = new ChainManager(socket);
-  await socket.init();
+  service = new ChainManager();
   await service.init();
 });
 

@@ -1,16 +1,18 @@
+import SocketService from './SocketService.js';
 import ChainObject from './ChainObject';
 import { find } from 'lodash';
 import { listAllChains } from './ChainRequest';
 
 export default class ChainManager {
-  constructor(socket) {
-    this._socket = socket;
+  constructor() {
+    this._socket = new SocketService();
     this._chains = {};
     this._connected = false;
   }
 
   init() {
     return new Promise(async (resolve, reject) => {
+      await this._socket.init();
       const { list } = await listAllChains();
 
       list.forEach(async chainData => {
