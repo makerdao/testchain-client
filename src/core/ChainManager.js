@@ -1,5 +1,5 @@
 import SocketService from './SocketService.js';
-import ChainObject from './ChainObject';
+import Chain from './Chain';
 import { find } from 'lodash';
 import { listAllChains } from './api';
 
