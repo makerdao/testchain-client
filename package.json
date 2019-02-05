@@ -35,7 +35,7 @@
     "whatwg-fetch": "^3.0.0"
   },
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --config ./test/config/jest.config.json",
     "precommit": "lint-staged",
     "build": "./scripts/build.sh",
     "build:watch": "sane ./scripts/build.sh src --wait=10"

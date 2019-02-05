@@ -17,7 +17,7 @@ export default class ChainManager {
 
       list.forEach(async chainData => {
         const { id } = chainData;
-        this._chains[id] = new ChainObject(id, this._socket);
+        this._chains[id] = new Chain(id, this._socket);
         await this.chain(id).init();
       });
 
@@ -29,7 +29,7 @@ export default class ChainManager {
   createChain(config) {
     return new Promise(async resolve => {
       const { id, ...info } = await this._socket.push('api', 'start', config);
-      this._chains[id] = new ChainObject(id, this._socket);
+      this._chains[id] = new Chain(id, this._socket);
       await this.chain(id).init(info);
       resolve(id);
     });

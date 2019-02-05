@@ -6,7 +6,6 @@ import {
   mineBlock
 } from '../../src/core/api';
 
-jest.setTimeout(10000);
 let socket, service, chain, response, block;
 
 const options = {
