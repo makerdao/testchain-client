@@ -69,18 +69,13 @@ export default class SocketService {
       if (this._joined(name)) {
         resolve();
       }
-      this.channel(name)
-        .join()
-        .receive('ok', async ({ message }) => {
-          const channel = this.channel(name);
-          for (let i = 0; i < 20; i++) {
-            if (channel.state === 'joined') {
-              resolve({ channel, message });
-              break;
-            }
-            await this._sleep(100);
-          }
-        });
+      const ref = this.channel(name).on('phx_reply', ({ status }) => {
+        if (status === 'ok') {
+          this.channel(name).off('phx_reply', ref);
+          resolve();
+        }
+      });
+      this.channel(name).join();
     });
   }
 
