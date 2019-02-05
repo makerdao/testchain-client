@@ -5,7 +5,6 @@ import {
   listAllSnapshots,
   deleteChain
 } from './ChainRequest';
-import EventService from './EventService';
 
 export default class ChainObject {
   constructor(id, socket) {
