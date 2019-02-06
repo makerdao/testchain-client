@@ -413,7 +413,7 @@ export default class TestchainService {
     return new Promise(async resolve => {
       const res = await fetch(`${this.HTTP_URL}/chains/`);
       const json = await res.json();
-      resolve(json.list);
+      resolve(json.data);
     });
   }
 
