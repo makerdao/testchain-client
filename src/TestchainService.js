@@ -28,22 +28,22 @@ export default class TestchainService {
 
   async initialize() {
     await this.connectApp();
-    const chains = await this.fetchChains();
+    const allChains = await this.fetchChains();
 
-    for (let chain of chains) {
-      const chainData = await this.fetchChain(chain.id);
+    for (let chain of allChains) {
       const options = {
-        accounts: chain.accounts,
-        block_mine_time: chain.block_mine_time,
-        clean_on_stop: chain.clean_on_stop
+        accounts: chain.chain_details.accounts,
+        block_mine_time: chain.config.block_mine_time,
+        clean_on_stop: chain.config.clean_on_stop
       };
 
       this._chainList[chain.id] = {
         channel: this._socket.channel(`chain:${chain.id}`),
         options: options,
-        ...chainData.details,
+        ...chain.chain_details,
         connected: false,
         active: chain.status === 'active' ? true : false,
+        status: chain.status,
         eventRefs: {}
       };
 
@@ -52,7 +52,8 @@ export default class TestchainService {
     }
 
     const snapshots = await this.fetchSnapshots();
-    snapshots.map(snapshot => (this._snapshots[snapshot.id] = snapshot));
+    if (snapshots)
+      snapshots.map(snapshot => (this._snapshots[snapshot.id] = snapshot));
   }
 
   /*
@@ -72,7 +73,7 @@ export default class TestchainService {
         resolve(this._socket.isConnected());
       });
 
-      this._socket.onError(e => {
+      this._socket.onError(() => {
         reject('SOCKET_ERROR');
       });
       this._socket.onMessage(msg => {
@@ -121,9 +122,10 @@ export default class TestchainService {
     return new Promise((resolve, reject) => {
       if (!this._apiConnected) reject('Not connected to a channel');
 
-      let chainId = null;
+      let chainId = null; //eslint-disable-line
       this._apiOnce('started', async data => {
-        const id = chainId;
+        console.log('apiOnce started success', data);
+        const { id } = data;
         this._chainList[id] = {
           channel: this._socket.channel(`chain:${id}`),
           options,
@@ -142,7 +144,19 @@ export default class TestchainService {
             2
           )}\n`
         );
-        resolve({ id: id, ...this._chainList[id] });
+        //check for deployment step, if exists, we resolve on 'ready' event, if not, we resolve in started
+        if (options.step_id) {
+          this._chainOnce(data.id, 'deployed', async data => {
+            console.log('data from deployed', data);
+            this._chainList[id].contracts = data;
+          });
+          this._chainOnce(data.id, 'ready', async data => {
+            console.log('data from ready', data);
+            resolve({ id: id, ...this._chainList[id] });
+          });
+        } else {
+          resolve({ id: id, ...this._chainList[id] });
+        }
       });
 
       this._apiChannel
@@ -150,10 +164,10 @@ export default class TestchainService {
         .receive('ok', async ({ id }) => {
           chainId = id;
         })
-        .receive('error', async error => {
+        .receive('error', async () => {
           reject('ChainCreationError: chain process crashed');
         })
-        .receive('timeout', e => {
+        .receive('timeout', () => {
           reject('ChainCreationError: timeout');
         });
     });
@@ -186,10 +200,16 @@ export default class TestchainService {
   _registerDefaultEventListeners(id) {
     return new Promise(resolve => {
       const eventNames = {
+        starting: 'starting',
         started: 'started',
+        deploying: 'deploying',
+        deployed: 'deployed',
+        deployment_failed: 'deployment_failed',
+        ready: 'ready',
         error: 'error',
         stopped: 'stopped',
         status_changed: 'status_changed',
+        terminated: 'terminated',
         snapshot_taken: 'snapshot_taken',
         snapshot_reverted: 'snapshot_reverted'
       };
@@ -269,11 +289,26 @@ export default class TestchainService {
   restartChain(id) {
     if (this._chainList[id].active) return true;
 
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
+      console.log('restartChain promise');
+      this._chainOnce(id, 'starting', data => {
+        console.log('started ok', data);
+        resolve(true);
+      });
       this._chainOnce(id, 'started', data => {
+        console.log('started ok', data);
+        resolve(true);
+      });
+      this._chainOnce(id, 'ready', data => {
+        console.log('ready ok', data);
+        resolve(true);
+      });
+      this._chainOnce(id, 'error', data => {
+        console.log('ready ok', data);
         resolve(true);
       });
       this._apiChannel.push('start_existing', { id }).receive('ok', () => {
+        console.log('start_existing ok');
         this._chainList[id].active = true;
       });
     });
@@ -283,7 +318,7 @@ export default class TestchainService {
     const exists = await this.chainExists(id);
     return new Promise((resolve, reject) => {
       if (!exists) reject(`No chain with ID ${id}`);
-      this._chainOnce(id, 'stopped', async data => {
+      this._chainOnce(id, 'terminated', async () => {
         this._chainList[id].active = false;
         if (this.isCleanedOnStop(id)) {
           await this._leaveChain(id);
@@ -304,16 +339,19 @@ export default class TestchainService {
     const { chainId, description } = options;
     // TODO move this hack into a private method so it can be easily removed when we have chain/snapshot link available in ex_testchain
     const label = `{"snap":"${chainId}","desc":"${description}"}`;
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       this._chainOnce(chainId, 'snapshot_taken', data => {
+        console.log('snapshot taken, data', data);
         const { id: snapId } = data;
         this._snapshots[snapId] = {
           ...data,
           chainId
         };
-        this._chainOnce(chainId, 'started', data => {
-          resolve(snapId);
-        });
+        resolve(snapId);
+        // this._chainOnce(chainId, 'started', data => {
+        //   console.log('chain started after snapshot');
+        //   resolve(snapId);
+        // });
       });
       this._chainList[chainId].channel.push('take_snapshot', {
         description: label
@@ -330,7 +368,7 @@ export default class TestchainService {
       if (!chainId) reject('No chain associated with this snapshot.');
       this._chainOnce(chainId, 'snapshot_reverted', data => {
         const reverted_snapshot = data;
-        this._chainOnce(chainId, 'started', data => {
+        this._chainOnce(chainId, 'started', () => {
           resolve(reverted_snapshot);
         });
       });
@@ -339,6 +377,7 @@ export default class TestchainService {
         .push('revert_snapshot', {
           snapshot: snapshotId
         })
+        .receive('ok', x => console.log('RESTORE OK', x))
         .receive('error', console.error)
         .receive('timeout', () =>
           console.log('Timeout loading list of snapshots')
@@ -371,25 +410,28 @@ export default class TestchainService {
   }
 
   fetchChains() {
-    return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${this.HTTP_URL}/chains`);
-      const { list } = await res.json();
-      resolve(list);
+    return new Promise(async resolve => {
+      const res = await fetch(`${this.HTTP_URL}/chains/`);
+      const json = await res.json();
+      resolve(json.data);
     });
   }
 
   fetchSnapshots() {
     const chainType = 'ganache';
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${this.HTTP_URL}/chain/snapshots/${chainType}`);
-      const { list, status } = await res.json();
+      const res = await fetch(`${this.HTTP_URL}/snapshots/${chainType}`);
+      const json = await res.json();
+      console.log('json is', json);
+      const { data, status } = json;
+      if (status === 1) reject('Error fetching snapshot');
       // TODO move this hack into a private method so it can be easily removed when we have chain/snapshot link available in ex_testchain
-      list.map(snapshot => {
+      data.map(snapshot => {
         const json = JSON.parse(snapshot.description);
         snapshot.description = json.desc;
         snapshot.chainId = json.snap;
       });
-      status === 0 ? resolve(list) : reject('Error fetching snapshot');
+      resolve(data);
     });
   }
 
@@ -445,12 +487,13 @@ export default class TestchainService {
   }
 
   getChainInfo(id) {
-    const { channel, eventRefs, ...info } = this._chainList[id];
+    const { ...info } = this._chainList[id];
     return info;
   }
 
   isChainActive(id) {
     const chain = this.getChain(id);
+    // console.log('ischainactive with chain', chain); //is good
     return chain ? chain.active : false;
   }
 
