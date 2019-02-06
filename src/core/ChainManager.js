@@ -1,4 +1,4 @@
-import SocketService from './SocketService.js';
+import SocketService from './SocketService';
 import Api from './Api';
 import Chain from './Chain';
 import { find } from 'lodash';
@@ -16,9 +16,8 @@ export default class ChainManager {
     return new Promise(async (resolve, reject) => {
       this._socketUrl = socketUrl;
       await this._socket.init(this._socketUrl);
-      const { list } = await this._api.listAllChains();
-
-      list.forEach(async chainData => {
+      const { data } = await this._api.listAllChains();
+      data.forEach(async chainData => {
         const { id } = chainData;
         this._chains[id] = new Chain(id, this._socket, this._api);
         await this.chain(id).init();
@@ -29,13 +28,11 @@ export default class ChainManager {
     });
   }
 
-  createChain(config) {
-    return new Promise(async resolve => {
-      const { id, ...info } = await this._socket.push('api', 'start', config);
-      this._chains[id] = new Chain(id, this._socket, this._api);
-      await this.chain(id).init(info);
-      resolve(id);
-    });
+  async createChain(config) {
+    const { id, ...info } = await this._socket.push('api', 'start', config);
+    this._chains[id] = new Chain(id, this._socket, this._api);
+    await this.chain(id).init(info);
+    return id;
   }
 
   chain(id) {
@@ -59,8 +56,8 @@ export default class ChainManager {
 
   clean() {
     return new Promise(async resolve => {
-      const { list } = await this._api.listAllChains();
-      for (const chain of list) {
+      const { data } = await this._api.listAllChains();
+      for (const chain of data) {
         await this.removeChain(chain.id);
       }
       resolve();

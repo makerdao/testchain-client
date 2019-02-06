@@ -34,34 +34,42 @@ export default class EventService {
 
   once(channel, event, cb) {
     event = this._cleanEventName(event);
-    const randomEventId = this._randomId();
-
     if (event === 'snapshot_taken' || event === 'snapshot_reverted') {
-      this._registerEvent(
-        channel,
-        `once:${randomEventId}`,
-        event,
-        snapshotData => {
-          const startedId = this._randomId();
-          this._registerEvent(
-            channel,
-            `once:${startedId}`,
-            'started',
-            chainData => {
-              this._unregisterEvent(channel, `once:${randomEventId}`, event);
-              this._unregisterEvent(channel, `once:${startedId}`, event);
-
-              cb({ chain: chainData, snapshot: snapshotData });
-            }
-          );
-        }
-      );
+      this._onceSnapshot(channel, event, cb);
     } else {
-      this._registerEvent(channel, `once:${randomEventId}`, event, data => {
-        this._unregisterEvent(channel, `once:${randomEventId}`, event);
-        cb(data);
-      });
+      this._onceChain(channel, event, cb);
     }
+  }
+
+  _onceChain(channel, event, cb) {
+    const randomEventId = this._randomId();
+    this._registerEvent(channel, `once:${randomEventId}`, event, data => {
+      this._unregisterEvent(channel, `once:${randomEventId}`, event);
+      cb(data);
+    });
+  }
+
+  _onceSnapshot(channel, event, cb) {
+    const randomEventId = this._randomId();
+    this._registerEvent(
+      channel,
+      `once:${randomEventId}`,
+      event,
+      snapshotData => {
+        const startedId = this._randomId();
+        this._registerEvent(
+          channel,
+          `once:${startedId}`,
+          'started',
+          chainData => {
+            this._unregisterEvent(channel, `once:${randomEventId}`, event);
+            this._unregisterEvent(channel, `once:${startedId}`, event);
+
+            cb({ chain: chainData, snapshot: snapshotData });
+          }
+        );
+      }
+    );
   }
 
   _randomId() {

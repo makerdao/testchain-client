@@ -18,9 +18,10 @@ afterEach(async () => {
   await service.clean();
 });
 
-test('service will create chain instance', async () => {
+test.only('service will create chain instance', async () => {
   const id = await service.createChain({ ...options });
   chain = service.chain(id);
+  console.log(chain);
   expect(chain.id).toEqual(id);
   expect(chain.name).toEqual(`chain:${id}`);
   expect(chain.active).toBe(true);

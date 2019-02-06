@@ -53,7 +53,7 @@ test('service will join channel', async () => {
   expect(service.channel(name).state === 'joined');
 });
 
-test.only('service will push to channel', async () => {
+test('service will push to channel', async () => {
   service.channel('api');
   await service.join('api');
   const { chains } = await service.push('api', 'list_chains', { ...options });

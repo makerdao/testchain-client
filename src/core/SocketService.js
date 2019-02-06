@@ -12,7 +12,7 @@ export default class SocketService {
     this._channels = {};
   }
 
-  init(url) {
+  init(url = 'ws://127.1:4000/socket') {
     this._url = url;
     return this.connect();
   }
@@ -79,6 +79,12 @@ export default class SocketService {
     });
   }
 
+  _joined(name) {
+    if (this._channels[name] && this._channels[name].state === 'joined')
+      return true;
+    return false;
+  }
+
   push(channel, event, payload = {}) {
     switch (event) {
       case 'list_chains':
@@ -88,12 +94,6 @@ export default class SocketService {
       default:
         return this._pushEvent(channel, event, payload);
     }
-  }
-
-  _joined(name) {
-    if (this._channels[name] && this._channels[name].state === 'joined')
-      return true;
-    return false;
   }
 
   _pushEvent(name, event, payload = {}) {

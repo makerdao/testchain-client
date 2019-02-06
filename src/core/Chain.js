@@ -6,23 +6,12 @@ export default class Chain {
     this._socket = socket;
     this._api = api;
     this.name = `chain:${id}`;
-    this.active = false;
+    this.active = async () => false;
     this.snapshots = {};
   }
 
-  init(info = []) {
-    return new Promise(async resolve => {
-      await this.populate();
-      if (this.active) {
-        const chain = await this._api.getChainInfo(this.id);
-        const { id, ...obj } = chain.details;
-
-        for (const item in info) {
-          this[item] = chain.details[item];
-        }
-      }
-      resolve();
-    });
+  async init() {
+    await this.populate();
   }
 
   start() {
@@ -75,7 +64,7 @@ export default class Chain {
   }
 
   details() {
-    const { _socket, ...data } = this;
+    const { _socket, _api, snapshots, ...data } = this;
     return data;
   }
 
@@ -102,32 +91,22 @@ export default class Chain {
 
   populate() {
     return new Promise(async resolve => {
-      const { list } = await this._api.listAllChains();
-      const listObj = find(list, { id: this.id });
-      [
-        'http_port',
-        'ws_port',
-        'block_mine_time',
-        'clean_on_stop',
-        'network_id',
-        'description',
-        'status',
-        'type',
-        'snapshot_id'
-      ].forEach(item => {
-        this[item] = listObj[item];
-      });
-
-      this.active = this.status === 'active' ? true : false;
-      if (this.active) {
-        const chain = await this._api.getChainInfo(this.id);
-        const { id, ...obj } = chain.details;
-
-        for (const item in obj) {
-          this[item] = chain.details[item];
-        }
-      }
+      const { details } = await this._api.getChainInfo(this.id);
+      const { config, chain_details, ...other } = details;
+      this['info'] = { ...other };
+      this['config'] = { ...config };
+      this['user'] = { ...chain_details };
+      this['active'] = async () => {
+        await this._updateStatus();
+        return this.info.status === 'ready' ? true : false;
+      };
       resolve();
     });
+  }
+
+  async _updateStatus() {
+    const { details } = await this._api.getChainInfo(this.id);
+    const { config, chain_details, ...other } = details;
+    this['info'] = other;
   }
 }
