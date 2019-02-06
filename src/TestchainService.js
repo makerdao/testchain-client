@@ -28,22 +28,22 @@ export default class TestchainService {
 
   async initialize() {
     await this.connectApp();
-    const chains = await this.fetchChains();
+    const allChains = await this.fetchChains();
 
-    for (let chain of chains) {
-      const chainData = await this.fetchChain(chain.id);
+    for (let chain of allChains) {
       const options = {
-        accounts: chain.accounts,
-        block_mine_time: chain.block_mine_time,
-        clean_on_stop: chain.clean_on_stop
+        accounts: chain.chain_details.accounts,
+        block_mine_time: chain.config.block_mine_time,
+        clean_on_stop: chain.config.clean_on_stop
       };
 
       this._chainList[chain.id] = {
         channel: this._socket.channel(`chain:${chain.id}`),
         options: options,
-        ...chainData.details,
+        ...chain.chain_details,
         connected: false,
         active: chain.status === 'active' ? true : false,
+        status: chain.status,
         eventRefs: {}
       };
 
