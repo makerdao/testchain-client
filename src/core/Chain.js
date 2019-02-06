@@ -1,15 +1,10 @@
 import { find } from 'lodash';
-import {
-  getChainInfo,
-  listAllChains,
-  listAllSnapshots,
-  deleteChain
-} from './api';
 
-export default class ChainObject {
-  constructor(id, socket) {
+export default class Chain {
+  constructor(id, socket, api) {
     this.id = id;
     this._socket = socket;
+    this._api = api;
     this.name = `chain:${id}`;
     this.active = false;
     this.snapshots = {};
@@ -19,7 +14,7 @@ export default class ChainObject {
     return new Promise(async resolve => {
       await this.populate();
       if (this.active) {
-        const chain = await getChainInfo(this.id);
+        const chain = await this._api.getChainInfo(this.id);
         const { id, ...obj } = chain.details;
 
         for (const item in info) {
@@ -99,7 +94,7 @@ export default class ChainObject {
   delete(cb) {
     return new Promise(async resolve => {
       await this.stop();
-      if (!this.clean_on_stop) await deleteChain(this.id);
+      if (!this.clean_on_stop) await this._api.deleteChain(this.id);
       cb();
       resolve();
     });
@@ -107,7 +102,7 @@ export default class ChainObject {
 
   populate() {
     return new Promise(async resolve => {
-      const { list } = await listAllChains();
+      const { list } = await this._api.listAllChains();
       const listObj = find(list, { id: this.id });
       [
         'http_port',
@@ -125,7 +120,7 @@ export default class ChainObject {
 
       this.active = this.status === 'active' ? true : false;
       if (this.active) {
-        const chain = await getChainInfo(this.id);
+        const chain = await this._api.getChainInfo(this.id);
         const { id, ...obj } = chain.details;
 
         for (const item in obj) {

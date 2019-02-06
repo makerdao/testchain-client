@@ -1,9 +1,15 @@
 import ChainManager from './core/ChainManager';
-import { listAllChains, listAllSnapshots } from './core/api';
+import Api from './core/Api';
 
 export default class Client {
-  constructor() {
-    this._chainMgr = new ChainManager();
+  constructor(
+    serverUrl = 'http://localhost',
+    serverPort = '4000',
+    apiUrl = 'ws://127.1:4000/socket'
+  ) {
+    this._api = new Api(serverUrl, serverPort);
+    // this._snapshotMgr = new SnapshotManager();
+    this._chainMgr = new ChainManager(this._api, /*this._snapshotMgr*/ apiUrl);
   }
 
   async init() {
@@ -14,12 +20,16 @@ export default class Client {
     return this._chainMgr;
   }
 
+  api() {
+    return this._api;
+  }
+
   listAllChains() {
-    return listAllChains();
+    return this.api().listAllChains();
   }
 
   listAllSnapshots() {
-    return listAllSnapshots();
+    return this.api().listAllSnapshots();
   }
 
   chains() {

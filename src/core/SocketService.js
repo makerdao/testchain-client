@@ -1,4 +1,4 @@
-import { Socket, Channel } from 'phoenix';
+import { Socket } from 'phoenix';
 import EventService from './EventService';
 import debug from 'debug';
 
@@ -12,7 +12,7 @@ export default class SocketService {
     this._channels = {};
   }
 
-  init(url = 'ws://127.1:4000/socket') {
+  init(url) {
     this._url = url;
     return this.connect();
   }

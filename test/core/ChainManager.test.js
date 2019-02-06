@@ -1,12 +1,7 @@
 import ChainManager from '../../src/core/ChainManager';
-import {
-  listAllChains,
-  listAllSnapshots,
-  getBlockNumber,
-  mineBlock
-} from '../../src/core/api';
+import Api from '../../src/core/Api';
 
-let socket, service, chain, response, block;
+let service, chain, response, block;
 
 const options = {
   accounts: 3,
@@ -93,25 +88,27 @@ test('service will take a snapshot of the chain', async () => {
 
 test("service will revert a snapshot back to it's original state", async () => {
   const id = await service.createChain({ ...options });
-  const { http_port } = await service.chain(id).details();
+  const { http_port, rpc_url } = await service.chain(id).details();
 
   const snapshotDescription = 'BEFORE_MINE';
   const snapshotId = await service.chain(id).takeSnapshot(snapshotDescription);
 
   await service.chain(id).start();
 
-  response = await getBlockNumber(http_port);
+  const api = new Api();
+  const url = rpc_url.substring(0, rpc_url.length - 4);
+  response = await api.getBlockNumber(url, http_port);
   block = parseInt(response.result, 16);
   expect(block).toEqual(0);
 
-  await mineBlock(http_port);
-  response = await getBlockNumber(http_port);
+  await api.mineBlock(url, http_port);
+  response = await api.getBlockNumber(url, http_port);
   block = parseInt(response.result, 16);
   expect(block).toEqual(1);
 
   await service.chain(id).revertSnapshot(snapshotId);
 
-  response = await getBlockNumber(http_port);
+  response = await api.getBlockNumber(url, http_port);
   block = parseInt(response.result, 16);
   expect(block).toEqual(0);
 });

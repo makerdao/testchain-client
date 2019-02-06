@@ -14,7 +14,7 @@ const options = {
 
 beforeEach(async () => {
   service = new SocketService();
-  await service.init();
+  await service.init('ws://127.1:4000/socket');
 });
 
 test('service will initialize correctly', async () => {
@@ -53,7 +53,7 @@ test('service will join channel', async () => {
   expect(service.channel(name).state === 'joined');
 });
 
-test('service will push to channel', async () => {
+test.only('service will push to channel', async () => {
   service.channel('api');
   await service.join('api');
   const { chains } = await service.push('api', 'list_chains', { ...options });
