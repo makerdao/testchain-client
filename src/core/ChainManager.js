@@ -64,6 +64,10 @@ export default class ChainManager {
     });
   }
 
+  chains() {
+    return this._chains;
+  }
+
   connected() {
     return this._connected;
   }
