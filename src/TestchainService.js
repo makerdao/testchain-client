@@ -289,7 +289,7 @@ export default class TestchainService {
   restartChain(id) {
     if (this._chainList[id].active) return true;
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       console.log('restartChain promise');
       this._chainOnce(id, 'starting', data => {
         console.log('started ok', data);
@@ -339,7 +339,7 @@ export default class TestchainService {
     const { chainId, description } = options;
     // TODO move this hack into a private method so it can be easily removed when we have chain/snapshot link available in ex_testchain
     const label = `{"snap":"${chainId}","desc":"${description}"}`;
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this._chainOnce(chainId, 'snapshot_taken', data => {
         console.log('snapshot taken, data', data);
         const { id: snapId } = data;
@@ -410,7 +410,7 @@ export default class TestchainService {
   }
 
   fetchChains() {
-    return new Promise(async (resolve) => {
+    return new Promise(async resolve => {
       const res = await fetch(`${this.HTTP_URL}/chains/`);
       const json = await res.json();
       resolve(json.data);
