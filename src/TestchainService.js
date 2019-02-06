@@ -8,12 +8,13 @@ const logSocket = debug('log:socket');
 const logDelete = debug('log:delete');
 
 const API_CHANNEL = 'api';
-const API_URL = 'ws://127.1:4000/socket';
 const API_TIMEOUT = 5000;
-const HTTP_URL = 'http://localhost:4000';
 
 export default class TestchainService {
-  constructor() {
+  constructor({
+    httpUrl = 'http://localhost:4000',
+    apiUrl = 'ws://127.1:4000/socket'
+  }) {
     this._socket = null;
     this._socketConnected = false;
     this._apiChannel = null;
@@ -21,6 +22,8 @@ export default class TestchainService {
     this._apiConnected = false;
     this._chainList = {};
     this._snapshots = [];
+    this.HTTP_URL = httpUrl;
+    this.API_URL = apiUrl;
   }
 
   async initialize() {
@@ -57,7 +60,7 @@ export default class TestchainService {
    * socket url and if successful will then attempt to join
    * it's api channel.
    */
-  connectApp(url = API_URL) {
+  connectApp(url = this.API_URL) {
     return new Promise((resolve, reject) => {
       this._socket = new Socket(url, {
         transport: WebSocket
@@ -360,7 +363,7 @@ export default class TestchainService {
    */
   fetchChain(id) {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}/chain/${id}`);
+      const res = await fetch(`${this.HTTP_URL}/chain/${id}`);
       const obj = await res.json();
 
       obj.status === 0 ? resolve(obj) : reject('Chain Does Not Exist');
@@ -369,7 +372,7 @@ export default class TestchainService {
 
   fetchChains() {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}/chains`);
+      const res = await fetch(`${this.HTTP_URL}/chains`);
       const { list } = await res.json();
       resolve(list);
     });
@@ -378,7 +381,7 @@ export default class TestchainService {
   fetchSnapshots() {
     const chainType = 'ganache';
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}/chain/snapshots/${chainType}`);
+      const res = await fetch(`${this.HTTP_URL}/chain/snapshots/${chainType}`);
       const { list, status } = await res.json();
       // TODO move this hack into a private method so it can be easily removed when we have chain/snapshot link available in ex_testchain
       list.map(snapshot => {
@@ -392,7 +395,7 @@ export default class TestchainService {
 
   fetchDelete(id) {
     return new Promise(async (resolve, reject) => {
-      const res = await fetch(`${HTTP_URL}/chain/${id}`, {
+      const res = await fetch(`${this.HTTP_URL}/chain/${id}`, {
         method: 'DELETE'
       });
       const msg = await res.json();
