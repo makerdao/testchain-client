@@ -17,27 +17,20 @@ export default class Chain {
     await this.populate();
   }
 
-  start() {
-    return new Promise(async resolve => {
-      if (this.active) {
-        resolve();
-      } else {
-        await this._socket.push('api', 'start_existing', { id: this.id });
-        await this.populate();
-        resolve();
-      }
-    });
+  // TODO remove sleep() when events fix has been made
+  async start() {
+    await this._socket._sleep(2000);
+    if (!(await this.active())) {
+      await this._socket.push('api', 'start_existing', { id: this.id });
+      await this.populate();
+    }
   }
 
+  // TODO remove sleep() when events fix has been made
   async stop() {
     if (await this.active()) {
       await this._socket.push(this.name, 'stop');
       if (!this._willCleanOnStop()) {
-        // TODO: Remove this sleep. Only here as the event 'terminated'
-        // which we use to resolve the 'stop' push does not update the data
-        // from the _updateInfo request to indicate that it hasn't been stopped.
-        // By sleeping on this for 2 seconds, it the request to the chain info
-        // should reflect that the chain has been stopped
         await this._socket._sleep(2000);
         await this._updateInfo();
       } else {

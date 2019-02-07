@@ -96,15 +96,17 @@ describe('Initialising a chain', () => {
 });
 
 describe('Stopping a chain', () => {
-  test('stop() will stop an an active chain', async () => {
+  beforeEach(async () => {
     await service.init();
+  });
+
+  test('stop() will stop an active chain', async () => {
     expect(await service.active()).toBeTruthy();
     await service.stop();
     expect(await service.active()).toBeFalsy();
   });
 
   test('stop() will not call socket.push() unless chain is active', async () => {
-    await service.init();
     service.active = jest.fn(async () => false);
     service._socket.push = jest.fn();
     await service.stop();
@@ -112,7 +114,6 @@ describe('Stopping a chain', () => {
   });
 
   test('stop() will call socket.push() when chain is active', async () => {
-    await service.init();
     service.active = jest.fn(async () => true);
     service._socket.push = jest.fn();
     await service.stop();
@@ -120,9 +121,7 @@ describe('Stopping a chain', () => {
   });
 
   test('stop() will call _updateInfo() when chain is active and cleanOnStop is false', async () => {
-    await service.init();
     expect(await service.active()).toBeTruthy();
-
     service._willCleanOnStop = jest.fn(() => false);
     service._updateInfo = jest.fn();
     await service.stop();
@@ -131,13 +130,10 @@ describe('Stopping a chain', () => {
   });
 
   test('stop() will call constructor() when chain is active and cleanOnStop is true', async () => {
-    await service.init();
     expect(await service.active()).toBeTruthy();
-
     service._willCleanOnStop = jest.fn(() => true);
     service.constructor = jest.fn();
     await service.stop();
-
     expect(service._willCleanOnStop).toHaveBeenCalled();
     expect(service.constructor).toHaveBeenCalled();
   });
@@ -145,14 +141,25 @@ describe('Stopping a chain', () => {
   test('stop() will reset the class when chain is active and cleanOnStop is true', async () => {
     await service.init();
     expect(await service.active()).toBeTruthy();
-
     service._willCleanOnStop = jest.fn(() => true);
     await service.stop();
-
     expect(await service.active()).toBeFalsy();
     expect(service.snapshots).toEqual({});
     expect(service.info).toEqual({});
     expect(service.config).toEqual({});
     expect(service.user).toEqual({});
+  });
+});
+
+describe('Starting a chain', async () => {
+  beforeEach(async () => {
+    await service.init();
+    await service.stop();
+  });
+
+  test('start() will start an inactive chain', async () => {
+    expect(await service.active()).toBeFalsy();
+    await service.start();
+    expect(await service.active()).toBeTruthy();
   });
 });
