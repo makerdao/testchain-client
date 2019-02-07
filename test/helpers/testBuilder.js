@@ -7,7 +7,7 @@ import Chain from '../../src/core/Chain';
 const options = {
   accounts: 3,
   block_mine_time: 0,
-  clean_on_stop: true
+  clean_on_stop: false
 };
 
 const buildChainTestInstance = async () => {

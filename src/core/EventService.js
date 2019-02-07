@@ -20,7 +20,7 @@ export default class EventService {
       case 'start':
         return 'started';
       case 'stop':
-        return 'stopped';
+        return 'terminated';
       case 'start_existing':
         return 'started';
       case 'take_snapshot':

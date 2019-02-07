@@ -8,6 +8,9 @@ export default class Chain {
     this.name = `chain:${id}`;
     this.active = async () => false;
     this.snapshots = {};
+    this.info = {};
+    this.config = {};
+    this.user = {};
   }
 
   async init() {
@@ -26,16 +29,25 @@ export default class Chain {
     });
   }
 
-  stop() {
-    return new Promise(async resolve => {
-      if (!this.active) {
-        resolve();
+  async stop() {
+    const isActive = await this.active();
+    if (!isActive) {
+      return;
+    } else {
+      await this._socket.push(this.name, 'stop');
+      if (!this.clean_on_stop) {
+        // TODO: Remove this sleep. Only here as the event 'terminated'
+        // which we use to resolve the 'stop' push does not update the data
+        // from the _updateInfo request to indicate that it hasn't been stopped.
+        // By sleeping on this for 2 seconds, it the request to the chain info
+        // should reflect that the chain has been stopped
+        await this._socket._sleep(2000);
+        await this._updateInfo();
       } else {
-        await this._socket.push(this.name, 'stop');
-        if (!this.clean_on_stop) await this.populate();
-        resolve();
+        this.constuctor(this.id, this._socket, this._api);
       }
-    });
+      return;
+    }
   }
 
   takeSnapshot(description) {
@@ -93,20 +105,22 @@ export default class Chain {
     return new Promise(async resolve => {
       const { details } = await this._api.getChainInfo(this.id);
       const { config, chain_details, ...other } = details;
-      this['info'] = { ...other };
-      this['config'] = { ...config };
-      this['user'] = { ...chain_details };
-      this['active'] = async () => {
-        await this._updateStatus();
+      this.info = { ...other };
+      this.config = { ...config };
+      this.user = { ...chain_details };
+
+      this.active = async () => {
+        await this._updateInfo();
         return this.info.status === 'ready' ? true : false;
       };
+
       resolve();
     });
   }
 
-  async _updateStatus() {
+  async _updateInfo() {
     const { details } = await this._api.getChainInfo(this.id);
     const { config, chain_details, ...other } = details;
-    this['info'] = other;
+    this.info = other;
   }
 }
