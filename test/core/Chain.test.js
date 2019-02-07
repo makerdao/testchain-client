@@ -18,8 +18,17 @@ describe('Creating a chain', () => {
     expect(service._api.constructor).toEqual(Api);
     expect(service.id).toEqual(id);
     expect(service.name).toEqual(`chain:${id}`);
-    expect(service.snapshots).toEqual({});
     expect(await service.active()).toBeFalsy();
+    expect(service.snapshots).toEqual({});
+    expect(service.info).toEqual({});
+    expect(service.config).toEqual({});
+    expect(service.user).toEqual({});
+  });
+
+  test('active() should only return false as chain is not initialised yet', async () => {
+    service._updateInfo = jest.fn();
+    expect(await service.active()).toBeFalsy();
+    expect(service._updateInfo).not.toHaveBeenCalled();
   });
 });
 
@@ -77,6 +86,13 @@ describe('Initialising a chain', () => {
     await service.init();
     expect(service.populate).toHaveBeenCalled();
   });
+
+  test('active() will call updateInfo and return true if chain is active', async () => {
+    await service.init();
+    service._updateInfo = jest.fn();
+    expect(await service.active()).toBeTruthy();
+    expect(service._updateInfo).toHaveBeenCalled();
+  });
 });
 
 describe('Stopping a chain', () => {
@@ -87,14 +103,56 @@ describe('Stopping a chain', () => {
     expect(await service.active()).toBeFalsy();
   });
 
-  test("stop() will not attempt to push 'stop' event unless chain is active", async () => {
+  test('stop() will not call socket.push() unless chain is active', async () => {
     await service.init();
-    service.active = jest.fn(async () => {
-      return false;
-    });
+    service.active = jest.fn(async () => false);
     service._socket.push = jest.fn();
     await service.stop();
-    expect(service.active).toHaveBeenCalled();
     expect(service._socket.push).not.toHaveBeenCalled();
+  });
+
+  test('stop() will call socket.push() when chain is active', async () => {
+    await service.init();
+    service.active = jest.fn(async () => true);
+    service._socket.push = jest.fn();
+    await service.stop();
+    expect(service._socket.push).toHaveBeenCalled();
+  });
+
+  test('stop() will call _updateInfo() when chain is active and cleanOnStop is false', async () => {
+    await service.init();
+    expect(await service.active()).toBeTruthy();
+
+    service._willCleanOnStop = jest.fn(() => false);
+    service._updateInfo = jest.fn();
+    await service.stop();
+    expect(service._willCleanOnStop).toHaveBeenCalled();
+    expect(service._updateInfo).toHaveBeenCalled();
+  });
+
+  test('stop() will call constructor() when chain is active and cleanOnStop is true', async () => {
+    await service.init();
+    expect(await service.active()).toBeTruthy();
+
+    service._willCleanOnStop = jest.fn(() => true);
+    service.constructor = jest.fn();
+    await service.stop();
+
+    expect(service._willCleanOnStop).toHaveBeenCalled();
+    expect(service.constructor).toHaveBeenCalled();
+  });
+
+  test('stop() will reset the class when chain is active and cleanOnStop is true', async () => {
+    await service.init();
+    expect(await service.active()).toBeTruthy();
+
+    service._willCleanOnStop = jest.fn(() => true);
+    await service.stop();
+
+    expect(await service.active()).toBeFalsy();
+    expect(service.snapshots).toEqual({});
+    expect(service.info).toEqual({});
+    expect(service.config).toEqual({});
+    expect(service.user).toEqual({});
   });
 });

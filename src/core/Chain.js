@@ -30,12 +30,9 @@ export default class Chain {
   }
 
   async stop() {
-    const isActive = await this.active();
-    if (!isActive) {
-      return;
-    } else {
+    if (await this.active()) {
       await this._socket.push(this.name, 'stop');
-      if (!this.clean_on_stop) {
+      if (!this._willCleanOnStop()) {
         // TODO: Remove this sleep. Only here as the event 'terminated'
         // which we use to resolve the 'stop' push does not update the data
         // from the _updateInfo request to indicate that it hasn't been stopped.
@@ -44,9 +41,8 @@ export default class Chain {
         await this._socket._sleep(2000);
         await this._updateInfo();
       } else {
-        this.constuctor(this.id, this._socket, this._api);
+        this.constructor(this.id, this._socket, this._api);
       }
-      return;
     }
   }
 
@@ -122,5 +118,9 @@ export default class Chain {
     const { details } = await this._api.getChainInfo(this.id);
     const { config, chain_details, ...other } = details;
     this.info = other;
+  }
+
+  async _willCleanOnStop() {
+    return this.config && this.config.clean_on_stop;
   }
 }
