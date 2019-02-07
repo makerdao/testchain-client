@@ -162,4 +162,18 @@ describe('Starting a chain', async () => {
     await service.start();
     expect(await service.active()).toBeTruthy();
   });
+
+  test('start() will call socket.push() if chain is inactive', async () => {
+    service.active = jest.fn(async () => false);
+    service._socket.push = jest.fn();
+    await service.start();
+    expect(service._socket.push).toHaveBeenCalled();
+  });
+
+  test('start() will not call socket.push() if chain is active', async () => {
+    service.active = jest.fn(async () => true);
+    service._socket.push = jest.fn();
+    await service.start();
+    expect(service._socket.push).not.toHaveBeenCalled();
+  });
 });

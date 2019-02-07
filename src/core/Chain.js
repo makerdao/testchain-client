@@ -90,21 +90,17 @@ export default class Chain {
     });
   }
 
-  populate() {
-    return new Promise(async resolve => {
-      const { details } = await this._api.getChainInfo(this.id);
-      const { config, chain_details, ...other } = details;
-      this.info = { ...other };
-      this.config = { ...config };
-      this.user = { ...chain_details };
+  async populate() {
+    const { details } = await this._api.getChainInfo(this.id);
+    const { config, chain_details, ...other } = details;
+    this.info = { ...other };
+    this.config = { ...config };
+    this.user = { ...chain_details };
 
-      this.active = async () => {
-        await this._updateInfo();
-        return this.info.status === 'ready' ? true : false;
-      };
-
-      resolve();
-    });
+    this.active = async () => {
+      await this._updateInfo();
+      return this.info.status === 'ready' ? true : false;
+    };
   }
 
   async _updateInfo() {
