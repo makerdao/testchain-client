@@ -5,7 +5,6 @@ beforeEach(() => {
   client = new Client();
 });
 
-test('client initializes correctly', async () => {
-  await client.init();
-  expect(client._chainMgr.connected()).toBe(true);
+test('client ', async () => {
+  console.log(client);
 });

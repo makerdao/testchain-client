@@ -1,10 +1,10 @@
-import { Socket } from 'phoenix';
+import { Socket as Websocket } from 'phoenix';
 import EventService from './EventService';
 import debug from 'debug';
 
 const log = debug('log:socket');
 
-export default class SocketService {
+export default class Socket {
   constructor() {
     this._url = null;
     this._socket = null;
@@ -19,7 +19,7 @@ export default class SocketService {
 
   connect() {
     return new Promise((resolve, reject) => {
-      this._socket = new Socket(this._url, {
+      this._socket = new Websocket(this._url, {
         transport: WebSocket
       });
 

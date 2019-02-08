@@ -1,4 +1,4 @@
-import SocketService from '../../src/core/SocketService.js';
+import Socket from '../../src/core/Socket.js';
 import { isEqual } from 'lodash';
 import debug from 'debug';
 
@@ -13,7 +13,7 @@ const options = {
 };
 
 beforeEach(async () => {
-  service = new SocketService();
+  service = new Socket();
   await service.init('ws://127.1:4000/socket');
 });
 
