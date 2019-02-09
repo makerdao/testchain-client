@@ -6,5 +6,7 @@ beforeEach(() => {
 });
 
 test('client ', async () => {
-  console.log(client);
-});
+  await client.init();
+  await client.start();
+  await client.socket()._sleep(1000000000);
+}, 100000000);

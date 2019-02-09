@@ -1,6 +1,4 @@
-import Client from '../../src/Client';
-import ChainManager from '../../src/core/ChainManager';
-import SocketService from '../../src/core/SocketService';
+import SocketHandler from '../../src/core/SocketHandler';
 import Api from '../../src/core/Api';
 import Chain from '../../src/core/Chain';
 
@@ -10,20 +8,16 @@ const options = {
   clean_on_stop: false
 };
 
-const buildChainTestInstance = async () => {
-  const socket = new SocketService();
+const buildChannelHandlerTestInstance = async () => {
+  const socket = new SocketHandler();
   await socket.init();
-  const api = new Api();
-  const { id } = await socket.push('api', 'start', { ...options });
-  const chain = new Chain(id, socket, api);
-  return { chain, id };
 };
 
 export const buildTestInstance = name => {
   name = name.toLowerCase();
   switch (name) {
-    case 'chain':
-      return buildChainTestInstance();
+    case 'channelhandler':
+      return buildChannelHandlerTestInstance();
     default:
       throw new Error(`Could Not Find Test Instance For ${name}`);
   }
