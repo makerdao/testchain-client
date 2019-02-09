@@ -14,48 +14,34 @@ const options = {
 
 beforeEach(async () => {
   service = new Socket();
-  await service.init('ws://127.1:4000/socket');
 });
 
-test('service will initialize correctly', async () => {
-  expect(service.connected()).toBe(true);
-  expect(!!service._event).toBe(true);
-});
+test.only('mock1', async () => {
+  const promise = service.resolveOnEvent('socket_open');
+  service.init();
+  await promise;
+  console.log('sss');
 
-test('service will fail to initialize with incorrect url', async () => {
-  expect.assertions(2);
-  const incorrectUrl = 'ws://a.a.a.a:4000/socket';
-
-  try {
-    await service.init(incorrectUrl);
-  } catch (e) {
-    expect(e).toEqual('Socket Failed To Connect');
-  }
-  expect(service.connected()).toBe(false);
-});
-
-test('service will disconnect', async () => {
-  expect(service.connected()).toBe(true);
-  await service.disconnect();
-  expect(service.connected()).toBe(false);
+  await service._sleep(5000);
 });
 
 test('service will create channel and add it to list', async () => {
+  service.init();
   expect(service._channels[name]).toBe(undefined);
   const channel = service.channel(name);
   expect(isEqual(channel, service._channels[name])).toBe(true);
   expect(channel.topic).toEqual(name);
 });
 
-test('service will join channel', async () => {
-  service.channel(name);
-  await service.join(name);
-  expect(service.channel(name).state === 'joined');
-});
+// test('service will join channel', async () => {
+//   service.channel(name);
+//   await service.join(name);
+//   expect(service.channel(name).state === 'joined');
+// });
 
-test('service will push to channel', async () => {
-  service.channel('api');
-  await service.join('api');
-  const { chains } = await service.push('api', 'list_chains', { ...options });
-  expect(Array.isArray(chains)).toBe(true);
-});
+// test('service will push to channel', async () => {
+//   service.channel('api');
+//   await service.join('api');
+//   const { chains } = await service.push('api', 'list_chains', { ...options });
+//   expect(Array.isArray(chains)).toBe(true);
+// });
