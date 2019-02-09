@@ -1,5 +1,5 @@
 import Api from './core/Api';
-import Socket from './core/Socket';
+import SocketHandler from './core/SocketHandler';
 
 export default class Client {
   constructor(
@@ -8,7 +8,7 @@ export default class Client {
     apiUrl = 'ws://127.1:4000/socket'
   ) {
     this._api = new Api(serverUrl, serverPort);
-    this._socket = new Socket(apiUrl);
+    this._socket = new SocketHandler(apiUrl);
   }
 
   api() {

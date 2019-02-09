@@ -1,13 +1,12 @@
-import { Socket as Websocket } from 'phoenix';
+import { Socket } from 'phoenix';
 import { Observable } from 'rxjs';
-import EventService from './EventService';
 import debug from 'debug';
 
 const log = debug('log:socket');
 
-export default class Socket {
+export default class SocketManager {
   constructor(url = 'ws://127.1:4000/socket') {
-    this._socket = new Websocket(url, {
+    this._socket = new Socket(url, {
       transport: WebSocket
     });
 

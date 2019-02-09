@@ -1,4 +1,4 @@
-import Socket from '../../src/core/Socket.js';
+import SocketHandler from '../../src/core/SocketHandler.js';
 import { isEqual } from 'lodash';
 import debug from 'debug';
 
@@ -13,7 +13,7 @@ const options = {
 };
 
 beforeEach(async () => {
-  service = new Socket();
+  service = new SocketHandler();
 });
 
 test.only('mock1', async () => {
