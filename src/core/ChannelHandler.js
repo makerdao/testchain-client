@@ -1,11 +1,13 @@
 import { Observable } from 'rxjs';
 import debug from 'debug';
 
-const createLogger = label => debug(`log:${label}`);
+const createLogger = label => debug(`log-${label}`);
 
 const events = [
   'phx_reply',
   'status_changed',
+  'error',
+  'failed',
   'starting',
   'started',
   'deploying',
@@ -20,13 +22,13 @@ const events = [
 export default class ChannelHandler {
   constructor(name, socket) {
     this._name = name;
-    this._socket = socket;
-    this._channel = this._socket.channel(this._name);
+    this._channel = socket.channel(this._name);
     this._stream = this._buildChannelStream(events);
     this._log = createLogger(this._name);
     this._logger = this._stream.subscribe(value =>
       this._log(JSON.stringify(value, null, 4))
     );
+    this.init();
   }
 
   _buildChannelStream(eventsList) {
@@ -39,7 +41,7 @@ export default class ChannelHandler {
     });
   }
 
-  _once(eventName) {
+  once(eventName) {
     return new Promise(resolve => {
       const observer = this._stream.subscribe(({ event, payload }) => {
         if (event === eventName) {
@@ -50,31 +52,21 @@ export default class ChannelHandler {
     });
   }
 
-  async init() {
+  init() {
     this._channel.join();
-    return await this._once('phx_reply');
   }
 
-  // join(name) {
-  //   return new Promise((resolve, reject) => {
-  //     if (this._joined(name)) {
-  //       resolve();
-  //     }
-  //     const ref = this.channel(name).on('phx_reply', ({ status }) => {
-  //       if (status === 'ok') {
-  //         this.channel(name).off('phx_reply', ref);
-  //         resolve();
-  //       }
-  //     });
-  //     this.channel(name).join();
-  //   });
-  // }
+  push(event, payload = {}) {
+    this._channel.push(event, payload);
+  }
 
-  // _joined(name) {
-  //   if (this._channels[name] && this._channels[name].state === 'joined')
-  //     return true;
-  //   return false;
-  // }
+  stream() {
+    return this._stream;
+  }
+
+  joined() {
+    return this._channel.state === 'joined' ? true : false;
+  }
 
   // push(channel, event, payload = {}) {
   //   switch (event) {

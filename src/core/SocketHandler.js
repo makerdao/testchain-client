@@ -46,24 +46,18 @@ export default class SocketManager {
   async init() {
     this._socket.connect();
     await this._once('socket_open');
-    await this.channel('api');
   }
 
-  async channel(name) {
+  channel(name) {
+    name = name === 'api' ? 'api' : `chain:${name}`;
     if (!this._channels[name]) {
       this._channels[name] = new ChannelHandler(name, this._socket);
-      await this._channels[name].init();
     }
     return this._channels[name];
   }
 
-  async push(name, event, payload) {
-    const o = await this.channel(name);
-    o._channel.push(event, payload);
-  }
-
-  channels() {
-    return this._channels;
+  connected() {
+    return this._socket.isConnected();
   }
 
   _sleep(ms) {

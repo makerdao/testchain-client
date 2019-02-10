@@ -24,11 +24,11 @@ export default class Api {
   }
 
   listAllSnapshots(chainType = 'ganache') {
-    return this.request(`chain/snapshots/${chainType}`, 'GET');
+    return this.request(`snapshots/${chainType}`, 'GET');
   }
 
   // if this chain is not active, the server will throw an error
-  getChainInfo(id) {
+  getChain(id) {
     return this.request(`chain/${id}`, 'GET');
   }
 
@@ -37,7 +37,7 @@ export default class Api {
   }
 
   downloadSnapshot(id) {
-    return this.request(`chain/snapshot/${id}`, 'GET');
+    return this.request(`snapshot/${id}`, 'GET');
   }
 
   getBlockNumber(url, port) {
