@@ -35,7 +35,6 @@ export default class ChannelHandler {
 
   _buildChannelStream(eventsList) {
     return new Observable(subscriber => {
-
       const setChannelEvent = event => {
         this._channel.on(event, data => {
           switch (event) {
@@ -60,7 +59,8 @@ export default class ChannelHandler {
     });
   }
 
-  once(predicate) { // name 'once' may be ambiguous
+  once(predicate) {
+    // name 'once' may be ambiguous
     return new Promise((resolve, reject) => {
       const observer = this._stream.subscribe(
         ({ event, payload }) => {

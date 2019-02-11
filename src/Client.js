@@ -102,7 +102,7 @@ export default class Client {
         objPromise[event] = this.once(id, event);
       }
     }
-    for(const event of Object.keys(objPromise)) {
+    for (const event of Object.keys(objPromise)) {
       const { payload } = await objPromise[event];
       objPromise[event] = payload;
     }
