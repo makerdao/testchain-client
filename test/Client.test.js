@@ -48,7 +48,7 @@ test('client will create a chain instance with deployments', async () => {
 
   const chainEventData = await client.create({ ...options, step_id: 1 });
   console.log(chainEventData);
-}, (3 * 60 * 1000));
+}, (3 * 60 * 1000)); // this test does take 2.5 - 3 minutes
 
 test('client will stop a chain', async () => {
   await client.init();
