@@ -13,7 +13,7 @@ export default class Client {
 
   async init() {
     await this._socket.init();
-    await this.once('api', (event) => event === 'phx_reply');
+    await this.once('api', event => event === 'phx_reply');
   }
 
   api() {
@@ -43,12 +43,20 @@ export default class Client {
   async create(options) {
     this.channel('api').push('start', { ...options });
 
-    const { payload: { response: { id } } } = await this.once('api', event => event === 'phx_reply');
+    const {
+      payload: {
+        response: { id }
+      }
+    } = await this.once('api', event => event === 'phx_reply');
     const p1 = this.once(id, event => event === 'started');
     const p2 = this.once(id, event => event === 'deploying');
     const p3 = this.once(id, event => event === 'deployed');
     const p4 = this.once(id, event => event === 'ready');
-    const p5 = this.once(id, (event, payload) => (event === 'status_changed' && payload.data === 'active'));
+    const p5 = this.once(
+      id,
+      (event, payload) =>
+        event === 'status_changed' && payload.data === 'active'
+    );
 
     let chainEventData;
     if (!options.step_id) {

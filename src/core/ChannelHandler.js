@@ -34,10 +34,9 @@ export default class ChannelHandler {
 
   _buildChannelStream(eventsList) {
     return new Observable(subscriber => {
-
-      const setChannelEvent = (event) => {
+      const setChannelEvent = event => {
         this._channel.on(event, data => {
-          switch(event) {
+          switch (event) {
             case 'deployment_failed':
               subscriber.error({ event, payload: data });
               break;
@@ -59,7 +58,6 @@ export default class ChannelHandler {
     });
   }
 
-
   once(predicate = () => true) {
     assert(
       typeof predicate === 'function',
@@ -75,7 +73,7 @@ export default class ChannelHandler {
           );
 
           if (predicate(event, payload)) {
-          observer.unsubscribe();
+            observer.unsubscribe();
             resolve({ event, payload });
           }
         },
