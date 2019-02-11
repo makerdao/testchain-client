@@ -18,13 +18,17 @@ client.init().then(() => {
 
 The `Client` is divided into two modes of communication with the [testchain-backendgateway](https://github.com/makerdao/testchain-backendgateway), a REST api for retrieving chain and snapshot data, and a websocket api for performing chain functions.
 
-### `stream()` and `once()`
+### RxJS usage
 
-These are the two main functions of the client and are used largely in conjunction with the other websocket functions. Using [RxJS](https://rxjs-dev.firebaseapp.com/), each channel, (effectively each chain), listens for a set of events (which can be found at the bottom of the document). The object that allows this is called an [`Observable`](https://rxjs-dev.firebaseapp.com/api/index/class/Observable) which is a set of these events over a period of time.
+Using [RxJS](https://rxjs-dev.firebaseapp.com/), each channel, (effectively each chain), listens for a set of events (which can be found at the bottom of the document). The object that allows this is called an [`Observable`](https://rxjs-dev.firebaseapp.com/api/index/class/Observable) which is a set of these events over a period of time.
+
+##### Event constants
+
+The event constants we use in the system can be found [here](https://github.com/makerdao/testchain-client/blob/89136da8472acfa1e62c6e448cf6cff117f897a4/src/core/ChainEvent.js). These are to be used in conjunction with `once()` and `sequenceEvents()`
 
 ##### `stream()`
 
-The Client's `stream()` function returns the `Observable` which we can then subscribe to and monitor the data stream coming from each chain.
+The Client's `stream()` function returns the `Observable` which we can then subscribe to and monitor the data stream coming from each channel.
 
 ``` javascript
 const chainStream = client.stream(id); // Specify the chain by it's id
@@ -39,10 +43,10 @@ const obs = chainStream.subscribe(
 .
 obs.unsubscribe();
 ```
-In the above example, the RxJS Observable is assigned to our `chainStream` constant. We use `subscribe` to pass two callbacks which are executed dependent on incoming events.
+In the above example, the RxJS Observable is assigned to our `chainStream` constant. `subscribe` takes two functions as arguments and are executed on an effective infinite loop for each incoming event fired from the backend on each channel.
 
-The first, is where all incoming data is passed and where a user should expect to find the chain events and returning data. The client has bootstrapped the `event` name to each returned object to make it easier for the user to specify a target event. The second callback is the error event which is used in the event that a chain fires an error event (TODO).
-We can easily unsubscribe from these events later.
+The first, is where all incoming data is passed and where a user should expect to find the chain events and returning data. The client has bootstrapped the `event` name to each returned payoad object to make it easier for the user to specify a target event. The second callback is the error event which is used in the event that a chain fires an error event (TODO).
+We can easily subscribe and unsubscribe from these events whenever we want.
 
 ##### `once()`
 
@@ -50,9 +54,30 @@ The `once()` function builds around this subscription model and wraps a promise 
 
 ```javascript
 client.create({ ...args });
-const chain = await client.once('api', 'started');
+const chain = await client.once('api', Event.CHAIN_STARTED);
 ```
-The above awaits on a promise which resolves on the `started` event firing on the `api` channel with that payload data.
+The above awaits on a promise which resolves on the `Event.CHAIN_STARTED` event firing on the `api` channel with that payload data.
+
+`once()` can also accept a predicate function callback instead of an event string. This function takes both the incoming event and payload information on that channel and must return a boolean based on this information;
+
+```javascript
+await client.once(id, (event, payload) => {
+    return (event === ... && payload.data === ...);
+});
+```
+
+##### `sequenceEvents()`
+
+This is a useful function for extracting data from multiple events which are to be fired. Will return a promise which when resolved will produce an object of the fired events and their results. Will only resolve when all events have been caught.
+
+```javascript
+client.channel('api').push('start', options);
+const eventStreamData = await this.sequenceEvents(id, [
+        Event.CHAIN_STARTED,
+        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_READY
+      ]);
+```
 
 ---
 
