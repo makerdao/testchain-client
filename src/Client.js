@@ -94,6 +94,9 @@ export default class Client {
   }
 
   async sequenceEvents(id, eventNames) {
+    // - Takes an array of event constants
+    // - Creates an object of promises, keyed by their names
+    // - Waits for them all to resolve
     const objPromise = {};
     for (const event of eventNames) {
       if (typeof event === 'function') {
