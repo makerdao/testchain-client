@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs';
 import debug from 'debug';
+import assert from 'assert';
 
 const createLogger = label => debug(`log-${label}`);
 
@@ -41,12 +42,16 @@ export default class ChannelHandler {
     });
   }
 
-  once(eventName) {
+  once(predicate = () => true) {
+    assert(typeof predicate === 'function', 'argument must be a function callback');
+
     return new Promise(resolve => {
       const observer = this._stream.subscribe(({ event, payload }) => {
-        if (event === eventName) {
+        assert(typeof predicate(event, payload) === 'boolean', 'function callback must return a boolean');
+
+        if (predicate(event, payload)) {
           observer.unsubscribe();
-          resolve(payload);
+          resolve({ event, payload });
         }
       });
     });
