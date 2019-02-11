@@ -1,6 +1,6 @@
 import Api from './core/Api';
 import SocketHandler from './core/SocketHandler';
-
+import { Event } from './core/ChainEvent';
 export default class Client {
   constructor(
     apiUrl = 'http://localhost',
@@ -13,7 +13,7 @@ export default class Client {
 
   async init() {
     await this._socket.init();
-    await this.once('api', event => event === 'phx_reply');
+    await this.once('api', Event.API_JOIN);
   }
 
   api() {
@@ -36,8 +36,8 @@ export default class Client {
     return this.channel(id).stream();
   }
 
-  once(name, predicate = () => true) {
-    return this.channel(name).once(predicate);
+  once(name, event) {
+    return this.channel(name).once(event);
   }
 
   async create(options) {
@@ -47,24 +47,23 @@ export default class Client {
       payload: {
         response: { id }
       }
-    } = await this.once('api', event => event === 'phx_reply');
-    const p1 = this.once(id, event => event === 'started');
-    const p2 = this.once(id, event => event === 'deploying');
-    const p3 = this.once(id, event => event === 'deployed');
-    const p4 = this.once(id, event => event === 'ready');
-    const p5 = this.once(
-      id,
-      (event, payload) =>
-        event === 'status_changed' && payload.data === 'active'
-    );
+    } = await this.once('api', Event.CHAIN_CREATED);
 
-    let chainEventData;
-    if (!options.step_id) {
-      chainEventData = await Promise.all([p1, p4, p5]);
+    if (options.step_id) {
+      return await this.sequenceEvents(id, [
+        Event.CHAIN_STARTED,
+        Event.CHAIN_DEPLOYING,
+        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_DEPLOYED,
+        Event.CHAIN_READY
+      ]);
     } else {
-      chainEventData = await Promise.all([p1, p2, p3, p4, p5]);
+      return await this.sequenceEvents(id, [
+        Event.CHAIN_STARTED,
+        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_READY
+      ]);
     }
-    return chainEventData;
   }
 
   stop(id) {
@@ -92,5 +91,21 @@ export default class Client {
 
   restoreSnapshot(id, snapshot) {
     this.channel(id).push('revert_snapshot', { snapshot });
+  }
+
+  async sequenceEvents(id, eventNames) {
+    const objPromise = {};
+    for (const event of eventNames) {
+      if (typeof event === 'function') {
+        objPromise[Event.CHAIN_STATUS_CHANGED] = this.once(id, event);
+      } else {
+        objPromise[event] = this.once(id, event);
+      }
+    }
+    for(const event of Object.keys(objPromise)) {
+      const { payload } = await objPromise[event];
+      objPromise[event] = payload;
+    }
+    return objPromise;
   }
 }

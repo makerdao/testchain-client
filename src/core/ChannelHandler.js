@@ -6,6 +6,7 @@ const createLogger = label => debug(`log-${label}`);
 
 const events = [
   'phx_reply',
+  'phx_error',
   'status_changed',
   'error',
   'failed',
@@ -34,6 +35,7 @@ export default class ChannelHandler {
 
   _buildChannelStream(eventsList) {
     return new Observable(subscriber => {
+
       const setChannelEvent = event => {
         this._channel.on(event, data => {
           switch (event) {
@@ -58,18 +60,23 @@ export default class ChannelHandler {
     });
   }
 
-  once(predicate = () => true) {
-    assert(
-      typeof predicate === 'function',
-      'argument must be a function callback'
-    );
-
-    return new Promise(resolve => {
+  once(predicate) { // name 'once' may be ambiguous
+    return new Promise((resolve, reject) => {
       const observer = this._stream.subscribe(
         ({ event, payload }) => {
           assert(
+            typeof predicate === 'string' || typeof predicate === 'function',
+            'once() argument must be either an event string or a predicate function'
+          );
+
+          if (typeof predicate === 'string') {
+            const _event = predicate;
+            predicate = event => _event === event;
+          }
+
+          assert(
             typeof predicate(event, payload) === 'boolean',
-            'function callback must return a boolean'
+            'predicate did not produce a boolean'
           );
 
           if (predicate(event, payload)) {
@@ -78,7 +85,7 @@ export default class ChannelHandler {
           }
         },
         ({ event, payload }) => {
-          throw new Error(JSON.stringify({ event, payload }, null, 4));
+          reject(JSON.stringify({ event, payload }, null, 4));
         }
       );
     });
