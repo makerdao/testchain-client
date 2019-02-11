@@ -6,13 +6,13 @@
 import Client from 'Testchain-Client';
 
 const client = new Client(
-	'http://127.0.0.1',			// <API_URL>
-    '4000',						// <API_PORT>
+    'http://127.0.0.1',			// <API_URL>
+    '4000',				// <API_PORT>
     'ws://127.0.0.1:4000'		// <WEBSOCKET_ENDPOINT>
 );
 
 client.init().then(() => {
-	console.log('Client initialised');
+    console.log('Client initialised');
 });
 ```
 
@@ -29,10 +29,10 @@ The Client's `stream()` function returns the `Observable` which we can then subs
 ``` javascript
 const chainStream = client.stream(id); // Specify the chain by it's id
 const obs = chainStream.subscribe(
-	({ event, payload }) => {  	// next()
-    	// do something
+    ({ event, payload }) => {
+        // do something
     },
-    (err) => throw ...,			// err()
+    (err) => throw ...,	
 );
 .
 .
