@@ -13,7 +13,7 @@ export default class Client {
 
   async init() {
     await this._socket.init();
-    await this.once('api', 'phx_reply');
+    await this.once('api', (event) => event === 'phx_reply');
   }
 
   api() {
@@ -36,12 +36,27 @@ export default class Client {
     return this.channel(id).stream();
   }
 
-  once(name, event) {
-    return this.channel(name).once(event);
+  once(name, predicate = () => true) {
+    return this.channel(name).once(predicate);
   }
 
-  create(options) {
+  async create(options) {
     this.channel('api').push('start', { ...options });
+
+    const { payload: { response: { id } } } = await this.once('api', event => event === 'phx_reply');
+    const p1 = this.once(id, event => event === 'started');
+    const p2 = this.once(id, event => event === 'deploying');
+    const p3 = this.once(id, event => event === 'deployed');
+    const p4 = this.once(id, event => event === 'ready');
+    const p5 = this.once(id, (event, payload) => (event === 'status_changed' && payload.data === 'active'));
+
+    let chainEventData;
+    if (!options.step_id) {
+      chainEventData = await Promise.all([p1, p4, p5]);
+    } else {
+      chainEventData = await Promise.all([p1, p2, p3, p4, p5]);
+    }
+    return chainEventData;
   }
 
   stop(id) {
@@ -55,8 +70,8 @@ export default class Client {
   async delete(id) {
     const { details } = await this.api().getChain(id);
 
-    await this.stop(id);
-
+    this.stop(id);
+    await this.once(id, 'stopped');
     if (!details.config.clean_on_stop) {
       this.api().deleteChain(id);
     }

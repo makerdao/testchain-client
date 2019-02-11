@@ -34,26 +34,55 @@ export default class ChannelHandler {
 
   _buildChannelStream(eventsList) {
     return new Observable(subscriber => {
-      eventsList.forEach(event => {
+
+      const setChannelEvent = (event) => {
         this._channel.on(event, data => {
-          subscriber.next({ event: event, payload: data });
+          switch(event) {
+            case 'deployment_failed':
+              subscriber.error({ event, payload: data });
+              break;
+            case 'error':
+              subscriber.error({ event, payload: data });
+              break;
+            case 'failed':
+              subscriber.error({ event, payload: data });
+              break;
+            default:
+              subscriber.next({ event, payload: data });
+          }
         });
+      };
+
+      eventsList.forEach(event => {
+        setChannelEvent(event);
       });
     });
   }
 
+
   once(predicate = () => true) {
-    assert(typeof predicate === 'function', 'argument must be a function callback');
+    assert(
+      typeof predicate === 'function',
+      'argument must be a function callback'
+    );
 
     return new Promise(resolve => {
-      const observer = this._stream.subscribe(({ event, payload }) => {
-        assert(typeof predicate(event, payload) === 'boolean', 'function callback must return a boolean');
+      const observer = this._stream.subscribe(
+        ({ event, payload }) => {
+          assert(
+            typeof predicate(event, payload) === 'boolean',
+            'function callback must return a boolean'
+          );
 
-        if (predicate(event, payload)) {
+          if (predicate(event, payload)) {
           observer.unsubscribe();
-          resolve({ event, payload });
+            resolve({ event, payload });
+          }
+        },
+        ({ event, payload }) => {
+          throw new Error(JSON.stringify({ event, payload }, null, 4));
         }
-      });
+      );
     });
   }
 
@@ -72,34 +101,4 @@ export default class ChannelHandler {
   joined() {
     return this._channel.state === 'joined' ? true : false;
   }
-
-  // push(channel, event, payload = {}) {
-  //   switch (event) {
-  //     case 'list_chains':
-  //       return this._pushReceive(channel, event, payload);
-  //     case 'remove_chain':
-  //       return this._pushReceive(channel, event, payload);
-  //     default:
-  //       return this._pushEvent(channel, event, payload);
-  //   }
-  // }
-
-  // _pushEvent(name, event, payload = {}) {
-  //   return new Promise(async (resolve, reject) => {
-  //     this._event.once(name, event, data => {
-  //       resolve(data);
-  //     });
-  //     await this.join(name);
-  //     this.channel(name).push(event, payload);
-  //   });
-  // }
-
-  // _pushReceive(name, event, payload = {}) {
-  //   return new Promise(async resolve => {
-  //     await this.join(name);
-  //     this.channel(name)
-  //       .push(event, payload)
-  //       .receive('ok', resolve);
-  //   });
-  // }
 }
