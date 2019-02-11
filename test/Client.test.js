@@ -1,6 +1,7 @@
 import Client from '../src/Client';
 import SocketHandler from '../src/core/SocketHandler';
 import Api from '../src/core/Api';
+import { Event } from '../src/core/ChainEvent';
 
 import { find, isEqual } from 'lodash';
 
@@ -31,15 +32,83 @@ test('client will initialise socket connection', async () => {
 test.only('client will create a normal chain instance', async () => {
   await client.init();
 
-  const chainEventData = await client.create({ ...options });
-  console.log(chainEventData);
+  const eventData = await client.create({ ...options });
+  expect(Object.keys(eventData)).toEqual([
+    Event.CHAIN_STARTED,
+    Event.CHAIN_STATUS_CHANGED,
+    Event.CHAIN_READY
+  ]);
+
+  const { started } = eventData;
+  const { id } = started;
+
+  const { details: { status, chain_details, chain_status } } = await client.api().getChain(id);
+  expect(isEqual(chain_details, started)).toBeTruthy();
+  expect(chain_status).toEqual('none');
+  expect(status).toEqual('ready');
 }, (10 * 1000));
 
-test.only('client will create a chain instance with deployments', async () => {
+test('client will create a chain instance with deployments', async () => {
   await client.init();
 
-  const chainEventData = await client.create({ ...options, step_id: 1 });
-  console.log(chainEventData);
+  const eventData = await client.create({ ...options, step_id: 1 });
+  expect(Object.keys(eventData)).toEqual([
+    Event.CHAIN_STARTED,
+    Event.CHAIN_DEPLOYING,
+    Event.CHAIN_STATUS_CHANGED,
+    Event.CHAIN_DEPLOYED,
+    Event.CHAIN_READY
+  ]);
+
+  const { started } = eventData;
+  const { id } = started;
+  const { details: { status, chain_details, chain_status, deploy_step, deploy_hash, deploy_data } } = await client.api().getChain(id);
+
+  const { deployed } = eventData;
+  expect(Object.keys(deployed)).toEqual([
+    'PROXY_ACTIONS',
+    'MCD_VAT',
+    'MCD_JOIN_REP',
+    'MCD_SPOT',
+    'MCD_DAI',
+    'MCD_MOM_LIB',
+    'CDP_MANAGER',
+    'MCD_PIT',
+    'MCD_FLOP',
+    'VAL_REP',
+    'MCD_DEPLOY',
+    'MCD_FLAP',
+    'PIP_REP',
+    'MCD_FLIP_REP',
+    'VOTE_PROXY_FACTORY',
+    'PROXY_REGISTRY',
+    'PROXY_FACTORY',
+    'MCD_MOVE_DAI',
+    'MCD_GOV',
+    'REP',
+    'MCD_JOIN_DAI',
+    'PIP_ETH',
+    'MCD_ADM',
+    'MCD_MOM',
+    'MCD_FLIP_ETH',
+    'MCD_MOVE_ETH',
+    'MCD_CAT',
+    'MCD_POT',
+    'VAL_ETH',
+    'MCD_VOW',
+    'MCD_JOIN_ETH',
+    'MCD_DRIP',
+    'MCD_MOVE_REP',
+    'MCD_GOV_GUARD',
+    'MCD_DAI_GUARD'
+  ]);
+
+  expect(isEqual(deployed, deploy_data)).toBeTruthy();
+  expect(deploy_hash).toBeDefined();
+  expect(deploy_step.description).toEqual('Step 1 - General deployment');
+  expect(isEqual(chain_details, started)).toBeTruthy();
+  expect(chain_status).toEqual('active');
+  expect(status).toEqual('ready');
 }, (3 * 60 * 1000)); // this test does take 2.5 - 3 minutes
 
 // test('client will stop a chain', async () => {
