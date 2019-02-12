@@ -29,13 +29,13 @@ test('client will initialise socket connection', async () => {
   expect(client.channel('api').joined()).toBeTruthy();
 });
 
-test.only('client will create a normal chain instance', async () => {
+test('client will create a normal chain instance', async () => {
   await client.init();
 
   const eventData = await client.create({ ...options });
   expect(Object.keys(eventData)).toEqual([
     Event.CHAIN_STARTED,
-    Event.CHAIN_STATUS_CHANGED,
+    Event.CHAIN_STATUS_ACTIVE,
     Event.CHAIN_READY
   ]);
 
@@ -55,14 +55,21 @@ test('client will create a chain instance with deployments', async () => {
   expect(Object.keys(eventData)).toEqual([
     Event.CHAIN_STARTED,
     Event.CHAIN_DEPLOYING,
-    Event.CHAIN_STATUS_CHANGED,
+    Event.CHAIN_STATUS_ACTIVE,
     Event.CHAIN_DEPLOYED,
     Event.CHAIN_READY
   ]);
 
   const { started } = eventData;
   const { id } = started;
-  const { details: { status, chain_details, chain_status, deploy_step, deploy_hash, deploy_data } } = await client.api().getChain(id);
+  const { details: {
+    status,
+    chain_details,
+    chain_status,
+    deploy_step,
+    deploy_hash,
+    deploy_data
+  } } = await client.api().getChain(id);
 
   const { deployed } = eventData;
   expect(Object.keys(deployed)).toEqual([
@@ -111,35 +118,22 @@ test('client will create a chain instance with deployments', async () => {
   expect(status).toEqual('ready');
 }, (3 * 60 * 1000)); // this test does take 2.5 - 3 minutes
 
-// test('client will stop a chain', async () => {
-//   await client.init();
-//   client.create({ ...options });
-//   const { response } = await client.once('api', 'phx_reply');
-//   const { id } = response;
-//   await client.once(id, 'started');
+test.only('client will stop a chain instance', async () => {
+  await client.init();
+  const { started } = await client.create({ ...options });
+  const { id } = started;
 
-//   const chainBeforeStop = await client.api().getChain(id);
-//   expect(chainBeforeStop.details.status).toEqual('ready');
-
-//   client.stop(id);
-//   const x = () => {
-//     return new Promise(async resolve => {
-//       const res = await client.once(id, 'status_changed');
-//       if (res.data === 'terminated') {
-//         resolve();
-//       }
-//       await x();
-//     });
-//   };
-
-//   await x();
-
-//   console.log(await client.api().getChain(id));
-
-//   const chainAfterStop = await client.api().getChain(id);
-//   console.log(chainAfterStop);
-//   expect(chainAfterStop.details.status).toEqual('terminated');
-// }, 10000);
+  const eventData = await client.stop(id);
+  console.log(eventData);
+  expect(Object.keys(eventData)).toEqual([
+    Event.OK,
+    Event.CHAIN_STATUS_TERMINATING,
+    Event.CHAIN_TERMINATED
+  ]);
+  const { details } = await client.api().getChain(id);
+  console.log(details);
+  expect(details.status).toEqual('terminated');
+});
 
 // test('client will restart a stopped chain', async () => {
 //   await client.init();

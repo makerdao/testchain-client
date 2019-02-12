@@ -36,6 +36,10 @@ export default class Client {
     return this.channel(id).stream();
   }
 
+  on(id, event, cb) {
+    return this.channel(name).on(event, cb);
+  }
+
   once(name, event) {
     return this.channel(name).once(event);
   }
@@ -66,8 +70,15 @@ export default class Client {
     }
   }
 
-  stop(id) {
+  async stop(id) {
     this.channel(id).push('stop');
+    const results = await this.sequenceEvents(id, [
+      Event.OK,
+      Event.CHAIN_STATUS_TERMINATING,
+      Event.CHAIN_TERMINATED
+    ]);
+    await this.socket()._sleep(3000); // FIXME: server needs delay to update
+    return results;
   }
 
   restart(id) {
@@ -78,7 +89,7 @@ export default class Client {
     const { details } = await this.api().getChain(id);
 
     this.stop(id);
-    await this.once(id, 'stopped');
+    await this.once(id, 'terminated');
     if (!details.config.clean_on_stop) {
       this.api().deleteChain(id);
     }

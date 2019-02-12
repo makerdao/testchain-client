@@ -1,6 +1,5 @@
 import { Observable } from 'rxjs';
 import debug from 'debug';
-import assert from 'assert';
 
 const createLogger = label => debug(`log-${label}`);
 
@@ -8,6 +7,7 @@ const events = [
   'phx_reply',
   'phx_error',
   'status_changed',
+  'stopped',
   'error',
   'failed',
   'starting',
@@ -36,19 +36,25 @@ export default class ChannelHandler {
   _buildChannelStream(eventsList) {
     return new Observable(subscriber => {
       const setChannelEvent = event => {
-        this._channel.on(event, data => {
+        this._channel.on(event, payload => {
           switch (event) {
             case 'deployment_failed':
-              subscriber.error({ event, payload: data });
+              subscriber.error({ event, payload });
               break;
             case 'error':
-              subscriber.error({ event, payload: data });
+              subscriber.error({ event, payload });
               break;
             case 'failed':
-              subscriber.error({ event, payload: data });
+              subscriber.error({ event, payload });
+              break;
+            case 'status_changed':
+              subscriber.next({
+                event: `status_changed_${payload.data}`,
+                payload
+              });
               break;
             default:
-              subscriber.next({ event, payload: data });
+              subscriber.next({ event, payload });
           }
         });
       };
@@ -59,27 +65,18 @@ export default class ChannelHandler {
     });
   }
 
-  once(predicate) {
-    // name 'once' may be ambiguous
+  on(event, cb) {
+    const ref = this._channel.on(event, data => {
+      const off = () => this._channel.off(event, ref);
+      cb(data, off);
+    });
+  }
+
+  once(_event) {
     return new Promise((resolve, reject) => {
       const observer = this._stream.subscribe(
         ({ event, payload }) => {
-          assert(
-            typeof predicate === 'string' || typeof predicate === 'function',
-            'once() argument must be either an event string or a predicate function'
-          );
-
-          if (typeof predicate === 'string') {
-            const _event = predicate;
-            predicate = event => _event === event;
-          }
-
-          assert(
-            typeof predicate(event, payload) === 'boolean',
-            'predicate did not produce a boolean'
-          );
-
-          if (predicate(event, payload)) {
+          if (event === _event) {
             observer.unsubscribe();
             resolve({ event, payload });
           }
