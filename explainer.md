@@ -58,7 +58,7 @@ const chain = await client.once('api', Event.CHAIN_STARTED);
 ```
 The above awaits on a promise which resolves on the `Event.CHAIN_STARTED` event firing on the `api` channel with that payload data.
 
-`once()` can also accept a predicate function callback instead of an event string. This function takes both the incoming event and payload information on that channel and must return a boolean based on this information;
+`once()` can also accept a predicate function instead of an event string. This function takes both the incoming event and payload information on that channel and must return a boolean based on this information;
 
 ```javascript
 await client.once(id, (event, payload) => {
