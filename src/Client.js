@@ -82,8 +82,14 @@ export default class Client {
     return results;
   }
 
-  restart(id) {
+  async restart(id) {
     this.channel('api').push('start_existing', { id });
+
+    return await this.sequenceEvents(id, [
+      Event.CHAIN_STARTED,
+      Event.CHAIN_READY,
+      Event.CHAIN_STATUS_ACTIVE
+    ]);
   }
 
   async delete(id) {

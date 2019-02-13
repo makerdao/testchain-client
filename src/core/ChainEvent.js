@@ -9,6 +9,5 @@ export const Event = {
   CHAIN_STATUS_TERMINATING: 'status_changed_terminating',
   CHAIN_DEPLOYED: 'deployed',
   CHAIN_READY: 'ready',
-
   CHAIN_TERMINATED: 'terminated'
 };

@@ -42,9 +42,9 @@ test('client will create a normal chain instance', async () => {
   const { started } = eventData;
   const { id } = started;
 
-  const { details: { status, chain_details, /*chain_status*/ } } = await client.api().getChain(id);
+  const { details: { status, chain_details, chain_status } } = await client.api().getChain(id);
   expect(isEqual(chain_details, started)).toBeTruthy();
-  //expect(chain_status).toEqual('active'); FIXME: Chain details not returning with expected information
+  expect(chain_status).toEqual('none'); // FIXME: 'none' is a bit confusing here, was expecting 'active'
   expect(status).toEqual('ready');
 }, (10 * 1000));
 
@@ -120,7 +120,7 @@ test('client will create a chain instance with deployments', async () => {
   // expect(status).toEqual('ready'); FIXME: Chain details not returning with expected information
 }, (3 * 60 * 1000)); // this test does take 2.5 - 3 minutes
 
-test.only('client will stop a chain instance', async () => {
+test('client will stop a chain instance', async () => {
   await client.init();
   const { started } = await client.create({ ...options });
   const { id } = started;
@@ -132,25 +132,52 @@ test.only('client will stop a chain instance', async () => {
     Event.CHAIN_TERMINATED
   ]);
 
-  // const { details: { status, chain_status } } = await client.api().getChain(id);
-  // expect(chain_status).toEqual('terminated'); FIXME: Chain details not returning with expected information
-  // expect(status).toEqual('terminated'); FIXME: Chain details not returning with expected information
-});
+  const { details: { status, chain_status } } = await client.api().getChain(id);
+  expect(chain_status).toEqual('terminated'); // FIXME: Chain details not returning with expected information
+  expect(status).toEqual('terminated'); // FIXME: Chain details not returning with expected information
+}, 10000);
 
-// test('client will restart a stopped chain', async () => {
-//   await client.init();
-//   const { id } = await client.create({ ...options });
+test('client will restart a stopped chain', async () => {
+  await client.init();
+  const { started: { id } } = await client.create({ ...options });
+  
+  await client.stop(id);
+  const { details: { status: status1, chain_status: chain_status1 }} = await client.api().getChain(id);
+  expect(status1).toEqual('terminated');
+  expect(chain_status1).toEqual('terminated');
 
-//   await client.stop(id);
+  const eventData = await client.restart(id);
+  expect(Object.keys(eventData)).toEqual([
+    Event.CHAIN_STARTED,
+    Event.CHAIN_READY,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
 
-//   const chainBeforeRestart = await client.api().getChain(id);
-//   expect(chainBeforeRestart.details.status).toEqual('terminated');
+  const { details: { status: status2, chain_status: chain_status2 }} = await client.api().getChain(id);
+  expect(status2).toEqual('ready');
+  expect(chain_status2).toEqual('none'); // FIXME: 'none' is a bit confusing here, was expecting 'active'
+}, 10000);
 
-//   await client.restart(id);
+test('client will restart a stopped chain which has deployments', async () => {
+  await client.init();
+  const { started: { id } } = await client.create({ ...options, step_id: 1 });
 
-//   const chainAfterRestart = await client.api().getChain(id);
-//   expect(chainAfterRestart.details.status).toEqual('ready');
-// });
+  await client.stop(id);
+  const { details: { status: status1, chain_status: chain_status1 }} = await client.api().getChain(id);
+  expect(status1).toEqual('terminated');
+  expect(chain_status1).toEqual('terminated');
+
+  const eventData = await client.restart(id);
+  expect(Object.keys(eventData)).toEqual([
+    Event.CHAIN_STARTED,
+    Event.CHAIN_READY,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
+
+  const { details: { status: status2, chain_status: chain_status2 }} = await client.api().getChain(id);
+  expect(status2).toEqual('ready');
+  expect(chain_status2).toEqual('none'); // FIXME: 'none' is a bit confusing here, was expecting 'active'
+}, (4 * 60 * 1000));
 
 // test('client can delete a chain', async () => {
 //   await client.init();
