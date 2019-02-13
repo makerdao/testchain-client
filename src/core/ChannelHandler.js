@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import Observable from 'zen-observable';
 import debug from 'debug';
 
 const createLogger = label => debug(`log-${label}`);
@@ -34,27 +34,27 @@ export default class ChannelHandler {
   }
 
   _buildChannelStream(eventsList) {
-    return new Observable(subscriber => {
+    return new Observable(stream => {
       const setChannelEvent = event => {
         this._channel.on(event, payload => {
           switch (event) {
             case 'deployment_failed':
-              subscriber.error({ event, payload });
+              stream.error({ event, payload });
               break;
             case 'error':
-              subscriber.error({ event, payload });
+              stream.error({ event, payload });
               break;
             case 'failed':
-              subscriber.error({ event, payload });
+              stream.error({ event, payload });
               break;
             case 'status_changed':
-              subscriber.next({
+              stream.next({
                 event: `status_changed_${payload.data}`,
                 payload
               });
               break;
             default:
-              subscriber.next({ event, payload });
+              stream.next({ event, payload });
           }
         });
       };
