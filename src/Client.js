@@ -112,21 +112,11 @@ export default class Client {
   }
 
   async sequenceEvents(id, eventNames) {
-    // - Takes an array of event constants
-    // - Creates an object of promises, keyed by their names
-    // - Waits for them all to resolve
-    const objPromise = {};
-    for (const event of eventNames) {
-      if (typeof event === 'function') {
-        objPromise[Event.CHAIN_STATUS_CHANGED] = this.once(id, event);
-      } else {
-        objPromise[event] = this.once(id, event);
-      }
-    }
-    for (const event of Object.keys(objPromise)) {
-      const { payload } = await objPromise[event];
-      objPromise[event] = payload;
-    }
-    return objPromise;
+    const res = await Promise.all(eventNames.map(ev => this.once(id, ev)));
+    const obj = res.reduce((acc, { event, payload }) => {
+      acc[event] = payload;
+      return acc;
+    }, {});
+    return obj;
   }
 }
