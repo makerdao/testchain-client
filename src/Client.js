@@ -77,7 +77,8 @@ export default class Client {
       Event.CHAIN_STATUS_TERMINATING,
       Event.CHAIN_TERMINATED
     ]);
-    await this.socket()._sleep(3000); // FIXME: server needs delay to update
+
+    await this.socket()._sleep(3000); // FIXME: backend needs pause to update before requests can be made
     return results;
   }
 
