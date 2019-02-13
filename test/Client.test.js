@@ -16,6 +16,14 @@ beforeEach(() => {
   client = new Client();
 });
 
+afterEach(async () => {
+  const { data: list } = await client.api().listAllChains();
+  for (const chain of list) {
+    const { id } = chain;
+    await client.delete(id);
+  }
+}, (30 * 1000));
+
 test('client will be created correctly', () => {
   expect(client.socket() instanceof SocketHandler).toBeTruthy();
   expect(client.api() instanceof Api).toBeTruthy();
@@ -179,18 +187,22 @@ test('client will restart a stopped chain which has deployments', async () => {
   expect(chain_status2).toEqual('none'); // FIXME: 'none' is a bit confusing here, was expecting 'active'
 }, (4 * 60 * 1000));
 
-// test('client can delete a chain', async () => {
-//   await client.init();
-//   const { id } = await client.create({ ...options });
+test('client will delete a chain', async () => {
+  await client.init();
+  const { started: { id: id1 } } = await client.create({ ...options });
+  const { started: { id: id2 } } = await client.create({ ...options, clean_on_stop: true });
 
-//   const { data: list1 } = await client.api().listAllChains();
-//   expect(find(list1, { id })).toBeDefined();
+  const { data: list1 } = await client.api().listAllChains();
+  expect(find(list1, { id: id1 })).toBeDefined();
+  expect(find(list1, { id: id2 })).toBeDefined();
 
-//   await client.delete(id);
+  await client.delete(id1);
+  await client.delete(id2);
 
-//   const { data: list2 } = await client.api().listAllChains();
-//   expect(find(list2, { id })).not.toBeDefined();
-// });
+  const { data: list2 } = await client.api().listAllChains();
+  expect(find(list2, { id: id1 })).not.toBeDefined();
+  expect(find(list2, { id: id2 })).not.toBeDefined();
+}, (20 * 1000));
 
 // test('client can take a snapshot', async () => {
 //   await client.init();

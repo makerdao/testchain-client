@@ -95,12 +95,13 @@ export default class Client {
   async delete(id) {
     const { details } = await this.api().getChain(id);
 
-    this.stop(id);
-    await this.once(id, 'terminated');
+    if (details.status !== 'terminated') {
+      await this.stop(id);
+    }
     if (!details.config.clean_on_stop) {
       this.api().deleteChain(id);
     }
-    await this.socket()._sleep(2000); // FIXME: Have to wait for server to update
+    await this.socket()._sleep(2000); // FIXME: backend needs pause to update before requests can be made
   }
 
   takeSnapshot(id, description = '') {
