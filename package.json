@@ -13,8 +13,8 @@
     "phoenix": "^1.4.0",
     "phoenix_html": "^2.12.0",
     "ramda": "^0.26.1",
-    "rxjs": "^6.4.0",
-    "web3-utils": "^1.0.0-beta.36"
+    "web3-utils": "^1.0.0-beta.36",
+    "zen-observable": "^0.8.13"
   },
   "devDependencies": {
     "@makerdao/dai": "^0.10.0",
