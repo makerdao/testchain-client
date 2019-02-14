@@ -16,13 +16,13 @@ beforeEach(() => {
   client = new Client();
 });
 
-afterEach(async () => {
-  const { data: list } = await client.api().listAllChains();
-  for (const chain of list) {
-    const { id } = chain;
-    await client.delete(id);
-  }
-}, (30 * 1000));
+// afterEach(async () => {
+//   const { data: list } = await client.api().listAllChains();
+//   for (const chain of list) {
+//     const { id } = chain;
+//     await client.delete(id);
+//   }
+// }, (30 * 1000));
 
 test('client will be created correctly', () => {
   expect(client.socket() instanceof SocketHandler).toBeTruthy();
@@ -204,20 +204,30 @@ test('client will delete a chain', async () => {
   expect(find(list2, { id: id2 })).not.toBeDefined();
 }, (20 * 1000));
 
-// test('client can take a snapshot', async () => {
-//   await client.init();
-//   const { id } = await client.create({ ...options });
+test('client can take a snapshot', async () => {
+  await client.init();
+  const { started: { id } } = await client.create({ ...options });
 
-//   const snapshotDescription = 'SNAPSHOT';
-//   const { description, id: snapId } = await client.takeSnapshot(
-//     id,
-//     snapshotDescription
-//   );
-//   expect(snapshotDescription).toEqual(description);
+  const snapshotDescription = 'SNAPSHOT';
+  const eventData = await client.takeSnapshot(
+    id,
+    snapshotDescription
+  );
 
-//   const { data: list } = await client.api().listAllSnapshots();
-//   expect(find(list, { id: snapId })).toBeDefined();
-// });
+  expect(Object.keys(eventData)).toEqual([
+    Event.CHAIN_STATUS_TAKING_SNAP,
+    Event.SNAPSHOT_TAKEN,
+    Event.CHAIN_STATUS_SNAP_TAKEN,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
+  const { snapshot_taken } = eventData;
+  const { id: snapId } = snapshot_taken;
+  const { data: list } = await client.api().listAllSnapshots();
+
+  const snapshot_list = find(list, { id: snapId });
+  expect(isEqual(snapshot_list, snapshot_taken));
+  expect(snapshot_list.description).toEqual(snapshotDescription);
+}, (20 * 1000));
 
 // test('client can restore a snapshot', async () => {
 //   await client.init();

@@ -104,8 +104,15 @@ export default class Client {
     await this.socket()._sleep(2000); // FIXME: backend needs pause to update before requests can be made
   }
 
-  takeSnapshot(id, description = '') {
+  async takeSnapshot(id, description = '') {
     this.channel(id).push('take_snapshot', { description });
+
+    return await this.sequenceEvents(id, [
+      Event.CHAIN_STATUS_TAKING_SNAP,
+      Event.SNAPSHOT_TAKEN,
+      Event.CHAIN_STATUS_SNAP_TAKEN,
+      Event.CHAIN_STATUS_ACTIVE
+    ]);
   }
 
   restoreSnapshot(id, snapshot) {
