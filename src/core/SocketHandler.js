@@ -1,5 +1,5 @@
 import { Socket } from 'phoenix';
-import { Observable } from 'rxjs';
+import Observable from 'zen-observable';
 import ChannelHandler from './ChannelHandler';
 import debug from 'debug';
 
