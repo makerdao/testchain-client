@@ -2,9 +2,10 @@ import Client from '../src/Client';
 import SocketHandler from '../src/core/SocketHandler';
 import Api from '../src/core/Api';
 import { Event } from '../src/core/ChainEvent';
-
+import debug from 'debug';
 import { find, isEqual } from 'lodash';
 
+const log = debug('log-test');
 const options = {
   accounts: 3,
   block_mine_time: 0,
@@ -222,7 +223,14 @@ test('client can take a snapshot', async () => {
 }, (20 * 1000));
 
 test.only('client can restore a snapshot', async () => {
+  log('#############################');
+  log('##### INITIALISING CHAIN ####');
+  log('#############################');
   await client.init();
+
+  log('#############################');
+  log('###### CREATING CHAIN  ######');
+  log('#############################');
   const { started: { id, rpc_url } } = await client.create({ ...options });
   const arr = rpc_url.split(':');
   const url = 'http://localhost';
@@ -236,6 +244,9 @@ test.only('client can restore a snapshot', async () => {
   };
 
   expect(await block()).toEqual(0);
+  log('#############################');
+  log('###### TAKING SNAPSHOT ######');
+  log('#############################');
   const { id: snapshotId } = await client.takeSnapshot(id);
 
   await client.socket()._sleep(2000);
@@ -243,7 +254,11 @@ test.only('client can restore a snapshot', async () => {
   expect(await block()).toEqual(1);
   await client.socket()._sleep(2000);
 
-  const res = await client.restoreSnapshot(id, snapshotId);
-  await client.socket()._sleep(5000);
+  log('#############################');
+  log('#### REVERTING SNAPSHOT #####');
+  log('#############################');
+
+  await client.restoreSnapshot(id, snapshotId);
+  await client.socket()._sleep(10000);
   expect(await block()).toEqual(0);
 }, 120000);
