@@ -72,14 +72,11 @@ export default class Client {
 
   async stop(id) {
     this.channel(id).push('stop');
-    const results = await this.sequenceEvents(id, [
+    return await this.sequenceEvents(id, [
       Event.OK,
       Event.CHAIN_STATUS_TERMINATING,
       Event.CHAIN_TERMINATED
     ]);
-
-    await this.socket()._sleep(3000); // FIXME: backend needs pause to update before requests can be made
-    return results;
   }
 
   async restart(id) {
@@ -101,6 +98,7 @@ export default class Client {
     if (!details.config.clean_on_stop) {
       this.api().deleteChain(id);
     }
+
     await this.socket()._sleep(2000); // FIXME: backend needs pause to update before requests can be made
   }
 
