@@ -12,5 +12,6 @@ export const Event = {
   CHAIN_DEPLOYED: 'deployed',
   CHAIN_READY: 'ready',
   CHAIN_TERMINATED: 'terminated',
+  CHAIN_DELETED: 'phx_reply',
   SNAPSHOT_TAKEN: 'snapshot_taken'
 };

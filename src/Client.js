@@ -36,7 +36,7 @@ export default class Client {
     return this.channel(id).stream();
   }
 
-  on(id, event, cb) {
+  on(name, event, cb) {
     return this.channel(name).on(event, cb);
   }
 
@@ -91,15 +91,23 @@ export default class Client {
 
   async delete(id) {
     const { details } = await this.api().getChain(id);
-
     if (details.status !== 'terminated') {
       await this.stop(id);
     }
+
     if (!details.config.clean_on_stop) {
-      this.api().deleteChain(id);
+      this.channel('api').push('remove_chain', { id });
     }
 
-    await this.socket()._sleep(2000); // FIXME: backend needs pause to update before requests can be made
+    return new Promise(resolve => {
+      this.on('api', Event.CHAIN_DELETED, (payload, off) => {
+        const { response } = payload;
+        if (response.message && response.message === 'Chain removed') {
+          off();
+          resolve();
+        }
+      });
+    });
   }
 
   async takeSnapshot(id, description = '') {

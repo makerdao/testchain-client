@@ -19,10 +19,6 @@ export default class SocketManager {
       this._socket.onMessage(msg => {
         subscriber.next(msg);
       });
-
-      //this._socket.onError(e => {
-      // FIXME: responding with onOpen message;
-      //});
     });
 
     this._logger = this._stream.subscribe(value =>
