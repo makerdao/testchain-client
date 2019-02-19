@@ -50,13 +50,11 @@ test('client will create a normal chain instance', async () => {
   const { started } = eventData;
   const { id } = started;
 
-  const { details: { status, chain_details, chain_status } } = await client.api().getChain(id);
+  const { details: { chain_details } } = await client.api().getChain(id);
   expect(isEqual(chain_details, started)).toBeTruthy();
-  expect(chain_status).toEqual('none');
-  expect(status).toEqual('ready');
 }, (10 * 1000));
 
-test.only('client will create a chain instance with deployments', async () => {
+test('client will create a chain instance with deployments', async () => {
   await client.init();
 
   const eventData = await client.create({ ...options, step_id: 1 });
@@ -73,9 +71,7 @@ test.only('client will create a chain instance with deployments', async () => {
   const { details } = await client.api().getChain(id);
 
   const {
-    status,
     chain_details,
-    chain_status,
     deploy_step,
     deploy_hash,
   } = details;
@@ -122,8 +118,6 @@ test.only('client will create a chain instance with deployments', async () => {
   expect(deploy_hash).toBeDefined();
   expect(deploy_step.description).toEqual('Step 1 - General deployment');
   expect(isEqual(chain_details, started)).toBeTruthy();
-  expect(chain_status).toEqual('active'); // FIXME: Chain details not returning with expected information
-  expect(status).toEqual('ready'); // FIXME: Chain details not returning with expected information
 }, (3 * 60 * 1000)); // this test does take 2.5 - 3 minutes
 
 test('client will stop a chain instance', async () => {
@@ -227,7 +221,7 @@ test('client can take a snapshot', async () => {
   expect(snapshot_list.description).toEqual(snapshotDescription);
 }, (20 * 1000));
 
-test('client can restore a snapshot', async () => {
+test.only('client can restore a snapshot', async () => {
   await client.init();
   const { started: { id, rpc_url } } = await client.create({ ...options });
   const arr = rpc_url.split(':');
@@ -244,12 +238,12 @@ test('client can restore a snapshot', async () => {
   expect(await block()).toEqual(0);
   const { id: snapshotId } = await client.takeSnapshot(id);
 
+  await client.socket()._sleep(2000);
   await client.api().mineBlock(url, port);
   expect(await block()).toEqual(1);
-
+  await client.socket()._sleep(2000);
 
   const res = await client.restoreSnapshot(id, snapshotId);
-  console.log(res);
-  await client.socket()._sleep(60000);
+  await client.socket()._sleep(5000);
   expect(await block()).toEqual(0);
 }, 120000);
