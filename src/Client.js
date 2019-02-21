@@ -121,8 +121,16 @@ export default class Client {
     ]);
   }
 
-  restoreSnapshot(id, snapshot) {
+  async restoreSnapshot(id, snapshot) {
     this.channel(id).push('revert_snapshot', { snapshot });
+
+    return await this.sequenceEvents(id, [
+      Event.OK,
+      Event.CHAIN_STATUS_REVERTING_SNAP,
+      Event.SNAPSHOT_REVERTED,
+      Event.CHAIN_STATUS_SNAP_REVERTED,
+      Event.CHAIN_STATUS_ACTIVE
+    ]);
   }
 
   async sequenceEvents(id, eventNames) {

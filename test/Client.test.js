@@ -17,13 +17,13 @@ beforeEach(() => {
   client = new Client();
 });
 
-// afterEach(async () => {
-//   const { data: list } = await client.api().listAllChains();
-//   for (const chain of list) {
-//     const { id } = chain;
-//     await client.delete(id);
-//   }
-// }, (30 * 1000));
+afterEach(async () => {
+  const { data: list } = await client.api().listAllChains();
+  for (const chain of list) {
+    const { id } = chain;
+    await client.delete(id);
+  }
+});
 
 test('client will be created correctly', () => {
   expect(client.socket() instanceof SocketHandler).toBeTruthy();
@@ -119,7 +119,7 @@ test('client will create a chain instance with deployments', async () => {
   expect(deploy_hash).toBeDefined();
   expect(deploy_step.description).toEqual('Step 1 - General deployment');
   expect(isEqual(chain_details, started)).toBeTruthy();
-}, (3 * 60 * 1000)); // this test does take 2.5 - 3 minutes
+}, (4 * 60 * 1000)); // this test does take 2.5 - 3 minutes
 
 test('client will stop a chain instance', async () => {
   await client.init();
@@ -222,15 +222,9 @@ test('client can take a snapshot', async () => {
   expect(snapshot_list.description).toEqual(snapshotDescription);
 }, (20 * 1000));
 
-test.only('client can restore a snapshot', async () => {
-  log('#############################');
-  log('##### INITIALISING CHAIN ####');
-  log('#############################');
+test('client can restore a snapshot', async () => {
   await client.init();
 
-  log('#############################');
-  log('###### CREATING CHAIN  ######');
-  log('#############################');
   const { started: { id, rpc_url } } = await client.create({ ...options });
   const arr = rpc_url.split(':');
   const url = 'http://localhost';
@@ -244,21 +238,19 @@ test.only('client can restore a snapshot', async () => {
   };
 
   expect(await block()).toEqual(0);
-  log('#############################');
-  log('###### TAKING SNAPSHOT ######');
-  log('#############################');
-  const { id: snapshotId } = await client.takeSnapshot(id);
+  const { snapshot_taken: { id: snapshotId } } = await client.takeSnapshot(id, 'SNAPSHOT');
 
-  await client.socket()._sleep(2000);
   await client.api().mineBlock(url, port);
   expect(await block()).toEqual(1);
-  await client.socket()._sleep(2000);
 
-  log('#############################');
-  log('#### REVERTING SNAPSHOT #####');
-  log('#############################');
+  const eventData = await client.restoreSnapshot(id, snapshotId);
 
-  await client.restoreSnapshot(id, snapshotId);
-  await client.socket()._sleep(10000);
+  expect(Object.keys(eventData)).toEqual([
+    Event.OK,
+    Event.CHAIN_STATUS_REVERTING_SNAP,
+    Event.SNAPSHOT_REVERTED,
+    Event.CHAIN_STATUS_SNAP_REVERTED,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
   expect(await block()).toEqual(0);
-}, 120000);
+});
