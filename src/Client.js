@@ -43,49 +43,33 @@ export default class Client {
     return this.channel(name).once(event);
   }
 
+  async sequenceEvents(id, eventNames) {
+    const res = await Promise.all(eventNames.map(ev => this.once(id, ev)));
+    const obj = res.reduce((acc, { event, payload }) => {
+      acc[event] = payload;
+      return acc;
+    }, {});
+    return obj;
+  }
+
   create(options) {
     this.channel('api').push('start', { ...options });
-
-    // const {
-    //   payload: {
-    //     response: { id }
-    //   }
-    // } = await this.once('api', Event.CHAIN_CREATED);
-
-    // if (options.step_id) {
-    //   return await this.sequenceEvents(id, [
-    //     Event.CHAIN_STARTED,
-    //     Event.CHAIN_DEPLOYING,
-    //     Event.CHAIN_STATUS_ACTIVE,
-    //     Event.CHAIN_DEPLOYED,
-    //     Event.CHAIN_READY
-    //   ]);
-    // } else {
-    //   return await this.sequenceEvents(id, [
-    //     Event.CHAIN_STARTED,
-    //     Event.CHAIN_STATUS_ACTIVE,
-    //     Event.CHAIN_READY
-    //   ]);
-    // }
   }
 
   stop(id) {
     this.channel(id).push('stop');
-    // return await this.sequenceEvents(id, [
-    //   Event.OK,
-    //   Event.CHAIN_STATUS_TERMINATING,
-    //   Event.CHAIN_TERMINATED
-    // ]);
   }
 
   restart(id) {
     this.channel('api').push('start_existing', { id });
+  }
 
-    // return await this.sequenceEvents(id, [
-    //   Event.CHAIN_STARTED,
-    //   Event.CHAIN_READY,
-    //   Event.CHAIN_STATUS_ACTIVE
-    // ]);
+  takeSnapshot(id, description = '') {
+    this.channel(id).push('take_snapshot', { description });
+  }
+
+  restoreSnapshot(id, snapshot) {
+    this.channel(id).push('revert_snapshot', { snapshot });
   }
 
   async delete(id) {
@@ -107,37 +91,5 @@ export default class Client {
         }
       });
     });
-  }
-
-  takeSnapshot(id, description = '') {
-    this.channel(id).push('take_snapshot', { description });
-
-    // return await this.sequenceEvents(id, [
-    //   Event.CHAIN_STATUS_TAKING_SNAP,
-    //   Event.SNAPSHOT_TAKEN,
-    //   Event.CHAIN_STATUS_SNAP_TAKEN,
-    //   Event.CHAIN_STATUS_ACTIVE
-    // ]);
-  }
-
-  restoreSnapshot(id, snapshot) {
-    this.channel(id).push('revert_snapshot', { snapshot });
-
-    // return await this.sequenceEvents(id, [
-    //   Event.OK,
-    //   Event.CHAIN_STATUS_REVERTING_SNAP,
-    //   Event.SNAPSHOT_REVERTED,
-    //   Event.CHAIN_STATUS_SNAP_REVERTED,
-    //   Event.CHAIN_STATUS_ACTIVE
-    // ]);
-  }
-
-  async sequenceEvents(id, eventNames) {
-    const res = await Promise.all(eventNames.map(ev => this.once(id, ev)));
-    const obj = res.reduce((acc, { event, payload }) => {
-      acc[event] = payload;
-      return acc;
-    }, {});
-    return obj;
   }
 }
