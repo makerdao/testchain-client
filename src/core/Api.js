@@ -1,18 +1,17 @@
 import fetch from 'node-fetch';
 
 export default class Api {
-  constructor(serverUrl = 'http://localhost', serverPort = '4000') {
+  constructor(serverUrl) {
     this._url = serverUrl;
-    this._port = serverPort;
   }
 
-  request(route, method, url = this._url, port = this._port, body = {}) {
+  request(route, method, url = this._url, body = {}) {
     return new Promise(async (resolve, reject) => {
       let result;
       if (method === 'GET') {
-        result = await fetch(`${url}:${port}/${route}`, { method });
+        result = await fetch(`${url}/${route}`, { method });
       } else {
-        result = await fetch(`${url}:${port}/${route}`, { method, body });
+        result = await fetch(`${url}/${route}`, { method, body });
       }
       const { status, ...data } = await result.json();
       !status ? resolve(data) : reject(data);
@@ -40,22 +39,20 @@ export default class Api {
     return this.request(`snapshot/${id}`, 'GET');
   }
 
-  getBlockNumber(url, port) {
+  getBlockNumber(url) {
     return this.request(
       '',
       'POST',
       url,
-      port,
       '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
     );
   }
 
-  mineBlock(url, port) {
+  mineBlock(url) {
     return this.request(
       '',
       'POST',
       url,
-      port,
       '{"jsonrpc":"2.0","method":"evm_mine","params":[],"id":1}'
     );
   }

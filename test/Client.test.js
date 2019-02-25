@@ -227,20 +227,19 @@ test('client can restore a snapshot', async () => {
 
   const { started: { id, rpc_url } } = await client.create({ ...options });
   const arr = rpc_url.split(':');
-  const url = 'http://localhost';
-  const port = arr[2];
+  const url = `http://localhost:${arr[2]}`;
 
   const block = async () => {
     const { result: blockNumber } = await client
       .api()
-      .getBlockNumber(url, port);
+      .getBlockNumber(url);
     return parseInt(blockNumber, 16);
   };
 
   expect(await block()).toEqual(0);
   const { snapshot_taken: { id: snapshotId } } = await client.takeSnapshot(id, 'SNAPSHOT');
 
-  await client.api().mineBlock(url, port);
+  await client.api().mineBlock(url);
   expect(await block()).toEqual(1);
 
   const eventData = await client.restoreSnapshot(id, snapshotId);

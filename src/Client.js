@@ -3,11 +3,10 @@ import SocketHandler from './core/SocketHandler';
 import { Event } from './core/ChainEvent';
 export default class Client {
   constructor(
-    apiUrl = 'http://localhost',
-    apiPort = '4000',
+    apiUrl = 'http://localhost:4000',
     socketUrl = 'ws://127.1:4000/socket'
   ) {
-    this._api = new Api(apiUrl, apiPort);
+    this._api = new Api(apiUrl);
     this._socket = new SocketHandler(socketUrl);
   }
 
