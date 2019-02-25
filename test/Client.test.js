@@ -156,7 +156,7 @@ test('client will restart a stopped chain', async () => {
 
   const { details: { status: status2, chain_status: chain_status2 }} = await client.api().getChain(id);
   expect(status2).toEqual('ready');
-  expect(chain_status2).toEqual('none'); // FIXME: 'none' is a bit confusing here, was expecting 'active'
+  expect(chain_status2).toEqual('none');
 }, 10000);
 
 test('client will restart a stopped chain which has deployments', async () => {
@@ -177,7 +177,7 @@ test('client will restart a stopped chain which has deployments', async () => {
 
   const { details: { status: status2, chain_status: chain_status2 }} = await client.api().getChain(id);
   expect(status2).toEqual('ready');
-  expect(chain_status2).toEqual('none'); // FIXME: 'none' is a bit confusing here, was expecting 'active'
+  expect(chain_status2).toEqual('none');
 }, (4 * 60 * 1000));
 
 test('client will delete a chain', async () => {
