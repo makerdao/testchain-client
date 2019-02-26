@@ -122,7 +122,7 @@ const options = {
 }
 ```
 
-We then can simply create the chain instance:
+**To create the chain instance:**
 
 ``` javascript
 client.create(options)
@@ -138,7 +138,7 @@ explained in the next section
 
 ``` javascript
 client.create({ ...options });
-client.once('api', Event.OK).then(console.log); 
+client.once('api', Event.CHAIN_CREATED).then(console.log); 
 
 // prints
 
@@ -156,25 +156,25 @@ client.once('api', Event.OK).then(console.log);
 
 Once the `id` is extracted, the other functions are easily used.
 
-To stop a running chain: 
+**To stop a running chain:** 
 
 ``` javascript
 client.stop(id)
 ```
 
-To restart a stopped chain:
+**To restart a stopped chain:**
 
 ``` javascript
 client.restart(id)
 ```
 
-To take a snapshot of the current chains state:
+**To take a snapshot of the current chains state:**
 
 ``` javascript
 client.takeSnapshot(id, description)
 ```
 
-To restore a snapshot of a previous chain state:
+**To restore a snapshot of a previous chain state:**
 
 ``` javascript
 client.restoreSnapshot(id, snapshot)
@@ -184,12 +184,166 @@ The `snapshot` parameter refers to the id of the snapshot we wish to restore. If
 the chain which initally created the snapshot no longer exists, this will create
 a new chain instance using the snapshot. (TODO)
 
-To remove a chain instance permanently:
+**To remove a chain instance permanently:***
 
 ``` javascript
 client.delete(id)
 ```
 This returns a promise and will stop a chain instance first before deleting it
+
+##### Events
+
+As noted in the import of the `client`, we also imported the Event object, which
+is a constants object listing all events which can be listened to after
+performing websocket api functions.
+
+The source file for all event constants is located under
+`src/core/ChainEvent.js`. Many of these constants refer to the same string event
+but by abstracting them to be more human-readable, gives better clarity.
+
+The client uses the
+[zen-observable](https://www.npmjs.com/package/zen-observable) library to
+transform each chain channel into an `observable** object. An observable object
+is described as an asynchronous data stream and can be subscribed to at any time. We
+use this object and the event constants to observe the any websocket channel's behaviour and
+extract information as it comes from this stream.
+
+**`stream()`***
+
+To subscribe to a chain's data stream, we call the `stream()` function which
+returns the observable object for that channel.
+
+``` javascript
+const chainStream = client.stream(id); // Specify the chain by it's id
+const obs = chainStream.subscribe(
+    ({ event, payload }) => {
+        // do something
+    },
+    (err) => throw ...,	
+);
+.
+.
+.
+obs.unsubscribe();
+```
+
+In the above example, the Observable is assigned to our `chainStream` constant.
+`subscribe()` takes two functions as arguments and are executed on an effective
+infinite loop for each incoming event fired from the backend on each channel.
+The first, is where all incoming data is passed and where a user should expect
+to find the chain events and returning data. The client has bootstrapped the
+`event` name to each returned payload object to make it easier for the user to
+specify a target event. The second function parameter is the error event which
+is used in the event that a chain fires an error event. We can easily subscribe 
+and unsubscribe from these events whenever we want.
+
+**`once()`**
+
+The `once()` function builds around this subscription model and wraps a promise
+based on the next incoming event, returning the payload. This is especially
+useful around functions like `create()` and `takeSnapshot()` which return data
+based on their events.
+
+``` javascript
+client.create(options);
+client.once('api', Event.CHAIN_STARTED).then(console.log);
+
+// prints
+
+{ 
+    event: 'started',
+    payload: { 
+        ws_url: 'ws://ex-testchain.local:8552',
+        rpc_url: 'http://ex-testchain.local:8552',
+        network_id: 999,
+        id: '12449877630527910658',
+        gas_limit: 9000000000000,
+        coinbase: '0xf84174a9fb743c6df671bc391acab4a5bcafeefe',
+        accounts: [ ... ] 
+    } 
+}
+
+```
+
+The above awaits on a promise which resolves on the Event.CHAIN_STARTED event
+firing on the api channel with that payload data.
+
+**`sequenceEvents()`**
+
+Where we wish to observe and wait on multiple events to be fired, we can use
+`sequenceEvents()`. This will return a promise which when resolved produces an
+object of the fired events and the returned payloads.
+
+``` javascript
+client.create(options);
+this.sequenceEvents(id, 
+    [
+        Event.CHAIN_STARTED,
+        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_READY
+    ]).then(console.log);
+
+// prints
+
+{ 
+    started: { 
+        ws_url: 'ws://ex-testchain.local:8571',
+        rpc_url: 'http://ex-testchain.local:8571',
+        network_id: 999,
+        id: '11957893023697223559',
+        gas_limit: 9000000000000,
+        coinbase: '0x3a92149876fb55d685a15caea45979526a4b2242',
+        accounts: [ ... ] 
+    },
+    status_changed_active: { 
+        data: 'active' 
+    },
+    ready: { 
+        ws_url: 'ws://ex-testchain.local:8571',
+        rpc_url: 'http://ex-testchain.local:8571',
+        network_id: 999,
+        id: '11957893023697223559',
+        gas_limit: 9000000000000,
+        coinbase: '0x3a92149876fb55d685a15caea45979526a4b2242',
+        accounts: [ ... ] 
+    }
+}
+```
+
+**`on()`**
+
+`on()` is similar to `once()` in that it will look to target an individual event
+coming from a specific chain channel. The difference however is that `on()`
+gives the user finer control in terms of what event and payload they wish to
+listen for. `once()` will resolve it's promise with the next event on the stream
+that matches it's event parameter.
+
+The `on()` function takes three parameters, the chain id we wish to listen on,
+the event we wish to listen for on that chain channel, and a callback which
+fires on that event firing. 
+
+That callback contains the payload for that event and a function `off()` which
+is used to unsubscribe from the `on()` when satisfied.
+
+***Example***
+
+A good example of this is in the `delete()` function where a promise is
+returned. We use the `on()` function to resolve said promise when the correct
+payload is returned signifying that it has been deleted.
+
+``` javascript
+return new Promise(resolve => {
+    this.on('api', Event.CHAIN_DELETED, (payload, off) => {
+        const { response } = payload;
+        if (response.message && response.message === 'Chain removed') {
+            delete this._socket._channels[id];
+            off();
+            resolve();
+        }
+    });
+});
+```
+
 
 
 ### License
