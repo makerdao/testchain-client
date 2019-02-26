@@ -9,7 +9,7 @@ Testchain Client
 
 #### Testchain-backendgateway
 
-The client is to be used in tandem with the [testchain-backendgateway](https://github.com/makerdao/testchain-backendgateway) which is a docker container containing the all testchain functionality. Requires [docker](https://docs.docker.com/install/#server) and [docker-compose](https://docs.docker.com/compose/install/)
+The client is to be used in tandem with the [testchain-backendgateway](https://github.com/makerdao/testchain-backendgateway) which is a docker container containing all testchain functionality. Requires [docker](https://docs.docker.com/install/#server) and [docker-compose](https://docs.docker.com/compose/install/)
 
 ```bash
 git clone https://github.com/makerdao/testchain-backendgateway.git
@@ -80,9 +80,9 @@ connection. All functions are asynchronous.
 - `listAllSnapshots(chainType)` - returns a list of all snapshots for each
   chaintype, `ganache` or `geth`
   
-- `getChain(id)` - finds the chain with id equal to id and returns it's details
+- `getChain(id)` - finds the chain with id and returns it's details
   including it's passed configuration data, it's account information and other
-  miscellaneous data.
+  chain information.
 
 - `downloadSnapshot(id)` - downloads the snapshot data to file.
 
@@ -91,7 +91,7 @@ connection. All functions are asynchronous.
   purposes.
   
 - `mineBlock(url)` - if the chainType is `ganache`, a useful json-rpc command is
-  included called `evm_mine** which is used to increment the blocknumber. This
+  included called `evm_mine` which is used to increment the blocknumber. This
   too is also usefule for debugging purposes.
   
 ***Example***
@@ -103,13 +103,11 @@ await client.api().getChain(id)
 
 ### WEBSOCKET API
 
-This section is in reference to the functions which are used to perform chain
-functions. This is done over a websocket connections and we will examine in the
-next section how to intercept and monitor events coming from these
+This section lists the chain functions the client provides to interact with the websocket api. This is done over a websocket connections and we will examine in the next section how to intercept and monitor events coming from these
 connections.
 
 As previously mentioned, when the `client` is initialised, it automatically
-opens the `'api'** channel. We use this channel to create our chains instances by
+opens the `'api' channel. We use this channel to create our chains instances by
 passing an options object as a parameter.
 
 ***Example***
@@ -131,7 +129,7 @@ client.create(options)
 In order to interact with the created chain instance we must first extract the
 chain's `id`. When we create a chain instance, we are also creating a websocket
 channel specific to that chain. Using that `id`, which we use as a parameter to
-other functions, we can find/create that channel.
+other functions, we can then find/create that channel.
 
 To extract the `id` we make use of some of the event functionality that is
 explained in the next section
@@ -181,10 +179,10 @@ client.restoreSnapshot(id, snapshot)
 ```
 
 The `snapshot` parameter refers to the id of the snapshot we wish to restore. If
-the chain which initally created the snapshot no longer exists, this will create
+the chain which initially created the snapshot no longer exists, this will create
 a new chain instance using the snapshot. (TODO)
 
-**To remove a chain instance permanently:***
+**To remove a chain instance permanently:**
 
 ``` javascript
 client.delete(id)
@@ -193,17 +191,16 @@ This returns a promise and will stop a chain instance first before deleting it
 
 ### Events
 
-As noted in the import of the `client`, we also imported the Event object, which
-is a constants object listing all events which can be listened to after
-performing websocket api functions.
+As noted in the import of the `client`, we also imported the Event object.
+This lists all events which can be listened to after performing websocket api functions.
 
-The source file for all event constants is located under
+The source file for all of these events is located under
 `src/core/ChainEvent.js`. Many of these constants refer to the same string event
 but by abstracting them to be more human-readable, gives better clarity.
 
 The client uses the
 [zen-observable](https://www.npmjs.com/package/zen-observable) library to
-transform each chain channel into an `observable** object. An observable object
+transform each chain channel into an `observable` object. An observable object
 is described as an asynchronous data stream and can be subscribed to at any time. We
 use this object and the event constants to observe the any websocket channel's behaviour and
 extract information as it comes from this stream.
@@ -241,8 +238,7 @@ and unsubscribe from these events whenever we want.
 
 The `once()` function builds around this subscription model and wraps a promise
 based on the next incoming event, returning the payload. This is especially
-useful around functions like `create()` and `takeSnapshot()` which return data
-based on their events.
+useful around functions like `create()` and `takeSnapshot()` which return data after being executed.
 
 ``` javascript
 client.create(options);
@@ -265,7 +261,7 @@ client.once('api', Event.CHAIN_STARTED).then(console.log);
 
 ```
 
-The above awaits on a promise which resolves on the Event.CHAIN_STARTED event
+The above awaits on a promise which resolves on the `Event.CHAIN_STARTED` event
 firing on the api channel with that payload data.
 
 **`sequenceEvents()`**
