@@ -86,6 +86,7 @@ export default class Client {
       this.on('api', Event.CHAIN_DELETED, (payload, off) => {
         const { response } = payload;
         if (response.message && response.message === 'Chain removed') {
+          delete this._socket._channels[id];
           off();
           resolve();
         }
