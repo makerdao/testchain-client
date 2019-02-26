@@ -5,9 +5,9 @@ Testchain Client
 [![GitHub License][license]][license-url]
 [![NPM][npm]][npm-url]
 
-### Installation
+## Installation
 
-##### Testchain-backendgateway
+#### Testchain-backendgateway
 
 The client is to be used in tandem with the [testchain-backendgateway](https://github.com/makerdao/testchain-backendgateway) which is a docker container containing the all testchain functionality. Requires [docker](https://docs.docker.com/install/#server) and [docker-compose](https://docs.docker.com/compose/install/)
 
@@ -21,7 +21,7 @@ docker-compose up   # -d, will detach process
 
 The data folder which docker will work out of is `/tmp` which will store chain and snapshot data under `/tmp/chains` and `/tmp/snapshots` respectively.
 
-##### Testchain-client
+#### Testchain-client
 
 The client can be installed locally as follows:
 
@@ -39,7 +39,7 @@ If you want to install the library directly from npm:
 yarn add @makerdao/testchain-client
 ```
 
-### Usage
+## Usage
 
 To include the library:
 
@@ -69,7 +69,7 @@ The user must use the `init()` function on the client in order to setup the
 endpoint connections correctly. It also automatically opens the `'api'` channel on the
 websocket connection.
 
-##### REST API
+### REST API
 
 The rest api is accessed by calling functions on `client.api()` and is not to be
 confused with the aformentioned `'api'` channel used by the websocket
@@ -101,7 +101,7 @@ await client.api().getChain(id)
 ```
 
 
-##### WEBSOCKET API
+### WEBSOCKET API
 
 This section is in reference to the functions which are used to perform chain
 functions. This is done over a websocket connections and we will examine in the
@@ -191,7 +191,7 @@ client.delete(id)
 ```
 This returns a promise and will stop a chain instance first before deleting it
 
-##### Events
+### Events
 
 As noted in the import of the `client`, we also imported the Event object, which
 is a constants object listing all events which can be listened to after
@@ -344,7 +344,18 @@ return new Promise(resolve => {
 });
 ```
 
+## Development
 
+In order to observe the stream visually, the client uses
+[debug.js](https://github.com/visionmedia/debug) to extend logging functionality
+to the console. 
+
+When testing, prepend the cli arg with an environement variable `DEBUG=log*`
+which will print out all socket and channel events information.
+
+
+- `log-*` will print all channel events only
+- `log:*` will print all socket events only
 
 ### License
 
