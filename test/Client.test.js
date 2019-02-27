@@ -13,6 +13,71 @@ const options = {
 };
 
 let client;
+
+const _create = async (options) => {
+  client.create(options);
+  const {
+      payload: {
+        response: { id }
+      }
+    } = await client.once('api', Event.CHAIN_CREATED);
+
+    if (options.step_id) {
+      return client.sequenceEvents(id, [
+        Event.CHAIN_STARTED,
+        Event.CHAIN_DEPLOYING,
+        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_DEPLOYED,
+        Event.CHAIN_READY
+      ]);
+    } else {
+      return client.sequenceEvents(id, [
+        Event.CHAIN_STARTED,
+        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_READY
+      ]);
+    }
+};
+
+const _stop = ( id ) => {
+  client.stop(id);
+  return client.sequenceEvents(id, [
+    Event.OK,
+    Event.CHAIN_STATUS_TERMINATING,
+    Event.CHAIN_TERMINATED
+  ]);
+};
+
+const _restart = ( id ) => {
+  client.restart(id);
+  return client.sequenceEvents(id, [
+    Event.CHAIN_STARTED,
+    Event.CHAIN_READY,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
+};
+
+const _takeSnapshot = (id, description) => {
+  client.takeSnapshot(id, description);
+  return client.sequenceEvents(id, [
+    Event.CHAIN_STATUS_TAKING_SNAP,
+    Event.SNAPSHOT_TAKEN,
+    Event.CHAIN_STATUS_SNAP_TAKEN,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
+};
+
+const _restoreSnapshot = (id, snapshot) => {
+  client.restoreSnapshot(id, snapshot);
+  return client.sequenceEvents(id, [
+    Event.OK,
+    Event.CHAIN_STATUS_REVERTING_SNAP,
+    Event.SNAPSHOT_REVERTED,
+    Event.CHAIN_STATUS_SNAP_REVERTED,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
+};
+
 beforeEach(() => {
   client = new Client();
 });
@@ -41,7 +106,7 @@ test('client will initialise socket connection', async () => {
 test('client will create a normal chain instance', async () => {
   await client.init();
 
-  const eventData = await client.create({ ...options });
+  const eventData = await _create({ ...options });
   expect(Object.keys(eventData)).toEqual([
     Event.CHAIN_STARTED,
     Event.CHAIN_STATUS_ACTIVE,
@@ -58,7 +123,7 @@ test('client will create a normal chain instance', async () => {
 test('client will create a chain instance with deployments', async () => {
   await client.init();
 
-  const eventData = await client.create({ ...options, step_id: 1 });
+  const eventData = await _create({ ...options, step_id: 1 });
   expect(Object.keys(eventData)).toEqual([
     Event.CHAIN_STARTED,
     Event.CHAIN_DEPLOYING,
@@ -123,10 +188,10 @@ test('client will create a chain instance with deployments', async () => {
 
 test('client will stop a chain instance', async () => {
   await client.init();
-  const { started } = await client.create({ ...options });
+  const { started } = await _create({ ...options });
   const { id } = started;
 
-  const eventData = await client.stop(id);
+  const eventData = await _stop(id);
   expect(Object.keys(eventData)).toEqual([
     Event.OK,
     Event.CHAIN_STATUS_TERMINATING,
@@ -140,14 +205,14 @@ test('client will stop a chain instance', async () => {
 
 test('client will restart a stopped chain', async () => {
   await client.init();
-  const { started: { id } } = await client.create({ ...options });
+  const { started: { id } } = await _create({ ...options });
   
-  await client.stop(id);
+  await _stop(id);
   const { details: { status: status1, chain_status: chain_status1 }} = await client.api().getChain(id);
   expect(status1).toEqual('terminated');
   expect(chain_status1).toEqual('terminated');
 
-  const eventData = await client.restart(id);
+  const eventData = await _restart(id);
   expect(Object.keys(eventData)).toEqual([
     Event.CHAIN_STARTED,
     Event.CHAIN_READY,
@@ -159,31 +224,10 @@ test('client will restart a stopped chain', async () => {
   expect(chain_status2).toEqual('none');
 }, 10000);
 
-test('client will restart a stopped chain which has deployments', async () => {
-  await client.init();
-  const { started: { id } } = await client.create({ ...options, step_id: 1 });
-
-  await client.stop(id);
-  const { details: { status: status1, chain_status: chain_status1 }} = await client.api().getChain(id);
-  expect(status1).toEqual('terminated');
-  expect(chain_status1).toEqual('terminated');
-
-  const eventData = await client.restart(id);
-  expect(Object.keys(eventData)).toEqual([
-    Event.CHAIN_STARTED,
-    Event.CHAIN_READY,
-    Event.CHAIN_STATUS_ACTIVE
-  ]);
-
-  const { details: { status: status2, chain_status: chain_status2 }} = await client.api().getChain(id);
-  expect(status2).toEqual('ready');
-  expect(chain_status2).toEqual('none');
-}, (4 * 60 * 1000));
-
 test('client will delete a chain', async () => {
   await client.init();
-  const { started: { id: id1 } } = await client.create({ ...options });
-  const { started: { id: id2 } } = await client.create({ ...options, clean_on_stop: true });
+  const { started: { id: id1 } } = await _create({ ...options });
+  const { started: { id: id2 } } = await _create({ ...options, clean_on_stop: true });
 
   const { data: list1 } = await client.api().listAllChains();
   expect(find(list1, { id: id1 })).toBeDefined();
@@ -199,10 +243,10 @@ test('client will delete a chain', async () => {
 
 test('client can take a snapshot', async () => {
   await client.init();
-  const { started: { id } } = await client.create({ ...options });
+  const { started: { id } } = await _create({ ...options });
 
   const snapshotDescription = 'SNAPSHOT';
-  const eventData = await client.takeSnapshot(
+  const eventData = await _takeSnapshot(
     id,
     snapshotDescription
   );
@@ -225,7 +269,7 @@ test('client can take a snapshot', async () => {
 test('client can restore a snapshot', async () => {
   await client.init();
 
-  const { started: { id, rpc_url } } = await client.create({ ...options });
+  const { started: { id, rpc_url } } = await _create({ ...options });
   const arr = rpc_url.split(':');
   const url = `http://localhost:${arr[2]}`;
 
@@ -237,12 +281,12 @@ test('client can restore a snapshot', async () => {
   };
 
   expect(await block()).toEqual(0);
-  const { snapshot_taken: { id: snapshotId } } = await client.takeSnapshot(id, 'SNAPSHOT');
+  const { snapshot_taken: { id: snapshotId } } = await _takeSnapshot(id, 'SNAPSHOT');
 
   await client.api().mineBlock(url);
   expect(await block()).toEqual(1);
 
-  const eventData = await client.restoreSnapshot(id, snapshotId);
+  const eventData = await _restoreSnapshot(id, snapshotId);
 
   expect(Object.keys(eventData)).toEqual([
     Event.OK,
