@@ -48,7 +48,11 @@ export default class SocketManager {
   channel(name) {
     name = name === 'api' ? 'api' : `chain:${name}`;
     if (!this._channels[name]) {
-      this._channels[name] = new ChannelHandler(name, this._socket, this._globalLogger);
+      this._channels[name] = new ChannelHandler(
+        name,
+        this._socket,
+        this._globalLogger
+      );
     }
     return this._channels[name];
   }
