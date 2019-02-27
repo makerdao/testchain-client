@@ -3,8 +3,6 @@ import Observable from 'zen-observable';
 import ChannelHandler from './ChannelHandler';
 import debug from 'debug';
 
-const log = debug('log:socket');
-
 export default class SocketManager {
   constructor(url = 'ws://127.1:4000/socket') {
     this._socket = new Socket(url, {
@@ -21,8 +19,11 @@ export default class SocketManager {
       });
     });
 
+    this._globalLogger = debug('log');
+    this._socketLog = this._globalLogger.extend('socket');
+
     this._logger = this._stream.subscribe(value =>
-      log(JSON.stringify(value, null, 4))
+      this._socketLog(JSON.stringify(value, null, 4))
     );
 
     this._channels = {};
@@ -47,7 +48,7 @@ export default class SocketManager {
   channel(name) {
     name = name === 'api' ? 'api' : `chain:${name}`;
     if (!this._channels[name]) {
-      this._channels[name] = new ChannelHandler(name, this._socket);
+      this._channels[name] = new ChannelHandler(name, this._socket, this._globalLogger);
     }
     return this._channels[name];
   }

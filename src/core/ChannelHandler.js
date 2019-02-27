@@ -1,7 +1,4 @@
 import Observable from 'zen-observable';
-import debug from 'debug';
-
-const createLogger = label => debug(`log-${label}`);
 
 const events = [
   'phx_reply',
@@ -22,11 +19,11 @@ const events = [
 ];
 
 export default class ChannelHandler {
-  constructor(name, socket) {
+  constructor(name, socket, globalLogger) {
     this._name = name;
     this._channel = socket.channel(this._name);
     this._stream = this._buildChannelStream(events);
-    this._log = createLogger(this._name);
+    this._log = globalLogger.extend(`${this._name}`);
     this._logger = this._stream.subscribe(value =>
       this._log(JSON.stringify(value, null, 4))
     );
