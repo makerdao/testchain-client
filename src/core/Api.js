@@ -39,13 +39,14 @@ export default class Api {
     return this.request(`snapshot/${id}`, 'GET');
   }
 
-  getBlockNumber(url) {
-    return this.request(
+  async getBlockNumber(url) {
+    const { result: blockNumber } = await this.request(
       '',
       'POST',
       url,
       '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
     );
+    return parseInt(blockNumber, 16);
   }
 
   mineBlock(url) {

@@ -1,6 +1,8 @@
 import Api from './core/Api';
 import SocketHandler from './core/SocketHandler';
 import { Event } from './core/ChainEvent';
+import { find } from 'lodash';
+
 export default class Client {
   constructor(
     apiUrl = 'http://localhost:4000',
@@ -68,8 +70,15 @@ export default class Client {
     this.channel(id).push('take_snapshot', { description });
   }
 
-  restoreSnapshot(id, snapshot) {
-    this.channel(id).push('revert_snapshot', { snapshot });
+  async restoreSnapshot(id, snapshot) {
+    const { data: list } = await this.api().listAllChains();
+    const exists = find(list, { id });
+
+    if (!exists) {
+      this.create({ 'snapshot_id': snapshot });
+    } else {
+      this.channel(id).push('revert_snapshot', { snapshot });
+    }
   }
 
   async delete(id) {
