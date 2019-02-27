@@ -180,7 +180,7 @@ client.restoreSnapshot(id, snapshot)
 
 The `snapshot` parameter refers to the id of the snapshot we wish to restore. If
 the chain which initially created the snapshot no longer exists, this will create
-a new chain instance using the snapshot. (TODO)
+a new chain instance using the snapshot.
 
 **To remove a chain instance permanently:**
 

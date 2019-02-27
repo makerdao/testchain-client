@@ -75,7 +75,7 @@ export default class Client {
     const exists = find(list, { id });
 
     if (!exists) {
-      this.create({ 'snapshot_id': snapshot });
+      this.create({ snapshot_id: snapshot });
     } else {
       this.channel(id).push('revert_snapshot', { snapshot });
     }
