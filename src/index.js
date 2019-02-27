@@ -1,7 +1,7 @@
-const Client = require('./Client').default;
-const Event = require('./core/ChainEvent');
+import Client from './Client';
+import Event from './core/ChainEvent';
 
-module.exports = {
+export {
   Client,
   Event
 };
