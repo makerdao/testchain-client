@@ -302,7 +302,7 @@ test('client can restore a snapshot', async () => {
   expect(await client.api().getBlockNumber(url)).toEqual(0);
 });
 
-test.only('client will restore snapshot if it\'s genesis chain does not exist', async () => {
+test('client will restore snapshot if it\'s genesis chain does not exist', async () => {
   await client.init();
 
   const { started: { id: genesisId, rpc_url } } = await _create({ ...options });
