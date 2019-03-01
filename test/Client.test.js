@@ -252,7 +252,7 @@ test('client will delete a chain', async () => {
   expect(find(list2, { id: id2 })).not.toBeDefined();
 }, (20 * 1000));
 
-test('client can take a snapshot', async () => {
+test('client will take a snapshot', async () => {
   await client.init();
   const { started: { id } } = await _create({ ...options });
 
@@ -277,7 +277,7 @@ test('client can take a snapshot', async () => {
   expect(snapshot_list.description).toEqual(snapshotDescription);
 }, (20 * 1000));
 
-test('client can restore a snapshot', async () => {
+test('client will restore a snapshot', async () => {
   await client.init();
 
   const { started: { id, rpc_url } } = await _create({ ...options });
