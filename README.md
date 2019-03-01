@@ -21,6 +21,8 @@ docker-compose up   # -d, will detach process
 
 The data folder which docker will work out of is `/tmp` which will store chain and snapshot data under `/tmp/chains` and `/tmp/snapshots` respectively.
 
+**NOTE** - The backendgateway takes approximately 5 minutes to download and organise all maker contracts from their various github repositories. By observing the undetached process of the `docker-compose up` command, it will be evident to the user when they are loaded.
+
 #### Testchain-client
 
 The client can be installed locally as follows:
