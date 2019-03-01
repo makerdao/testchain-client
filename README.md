@@ -202,7 +202,7 @@ The client uses the
 [zen-observable](https://www.npmjs.com/package/zen-observable) library to
 transform each chain channel into an `observable` object. An observable object
 is described as an asynchronous data stream and can be subscribed to at any time. We
-use this object and the event constants to observe the any websocket channel's behaviour and
+use this object and the event constants to observe the websocket channel's behaviour and
 extract information as it comes from this stream.
 
 **`stream()`***
@@ -311,8 +311,8 @@ this.sequenceEvents(id,
 `on()` is similar to `once()` in that it will look to target an individual event
 coming from a specific chain channel. The difference however is that `on()`
 gives the user finer control in terms of what event and payload they wish to
-listen for. `once()` will resolve it's promise with the next event on the stream
-that matches it's event parameter.
+listen for. `once()` will resolve its promise with the next event on the stream
+that matches its event parameter.
 
 The `on()` function takes three parameters, the chain id we wish to listen on,
 the event we wish to listen for on that chain channel, and a callback which
