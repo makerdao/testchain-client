@@ -3,7 +3,7 @@ import Observable from 'zen-observable';
 import ChannelHandler from './ChannelHandler';
 import debug from 'debug';
 
-export default class SocketManager {
+export default class SocketHandler {
   constructor(url = 'ws://127.1:4000/socket') {
     this._socket = new Socket(url, {
       transport: WebSocket
