@@ -57,11 +57,19 @@ export default class SocketHandler {
     return this._channels[name];
   }
 
+  removeChannel(id) {
+    delete this._channels[id];
+  }
+
+  channels() {
+    return Object.keys(this._channels);
+  }
+
   connected() {
     return this._socket.isConnected();
   }
 
-  _sleep(ms) {
+  sleep(ms) {
     return new Promise(resolve => {
       setTimeout(resolve, ms);
     });

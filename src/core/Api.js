@@ -26,7 +26,6 @@ export default class Api {
     return this.request(`snapshots/${chainType}`, 'GET');
   }
 
-  // if this chain is not active, the server will throw an error
   getChain(id) {
     return this.request(`chain/${id}`, 'GET');
   }

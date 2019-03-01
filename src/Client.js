@@ -12,11 +12,6 @@ export default class Client {
     this._socket = new SocketHandler(socketUrl);
   }
 
-  async init() {
-    await this._socket.init();
-    await this.once('api', Event.API_JOIN);
-  }
-
   api() {
     return this._api;
   }
@@ -25,24 +20,29 @@ export default class Client {
     return this._socket;
   }
 
-  channel(id) {
-    return this._socket.channel(id);
+  async init() {
+    await this.socket().init();
+    await this.once('api', Event.API_JOIN);
   }
 
-  channels() {
-    return this._socket._channels;
+  channel(id) {
+    return this.socket().channel(id);
+  }
+
+  connections() {
+    return this.socket().channels();
   }
 
   stream(id) {
     return this.channel(id).stream();
   }
 
-  on(name, event, cb) {
-    return this.channel(name).on(event, cb);
+  on(id, event, cb) {
+    return this.channel(id).on(event, cb);
   }
 
-  once(name, event) {
-    return this.channel(name).once(event);
+  once(id, event) {
+    return this.channel(id).once(event);
   }
 
   async sequenceEvents(id, eventNames) {
@@ -100,7 +100,7 @@ export default class Client {
       this.on('api', Event.CHAIN_DELETED, (payload, off) => {
         const { response } = payload;
         if (response.message && response.message === 'Chain removed') {
-          delete this._socket._channels[id];
+          this.socket().removeChannel(id);
           off();
           resolve();
         }

@@ -110,7 +110,7 @@ test('client will initialise socket connection', async () => {
   expect(client.socket().connected()).toBeFalsy();
   await client.init();
   expect(client.socket().connected()).toBeTruthy();
-  expect(Object.keys(client.channels())[0]).toEqual('api');
+  expect(client.connections()[0]).toEqual('api');
   expect(client.channel('api').joined()).toBeTruthy();
 });
 
