@@ -102,16 +102,16 @@ afterEach(async () => {
 });
 
 test('client will be created correctly', () => {
-  expect(client.socket() instanceof SocketHandler).toBeTruthy();
-  expect(client.api() instanceof Api).toBeTruthy();
+  expect(client.socket()).toBeInstanceOf(SocketHandler);
+  expect(client.api()).toBeInstanceOf(Api);
 });
 
 test('client will initialise socket connection', async () => {
-  expect(client.socket().connected()).toBeFalsy();
+  expect(client.socket().connected()).toBe(false);
   await client.init();
-  expect(client.socket().connected()).toBeTruthy();
+  expect(client.socket().connected()).toBe(true);
   expect(client.connections()[0]).toEqual('api');
-  expect(client.channel('api').joined()).toBeTruthy();
+  expect(client.channel('api').joined()).toBe(true);
 });
 
 test('client will create a normal chain instance', async () => {
@@ -128,7 +128,7 @@ test('client will create a normal chain instance', async () => {
   const { id } = started;
 
   const { details: { chain_details } } = await client.api().getChain(id);
-  expect(isEqual(chain_details, started)).toBeTruthy();
+  expect(isEqual(chain_details, started)).toBe(true);
 }, (10 * 1000));
 
 test('client will create a chain instance with deployments', async () => {
@@ -194,7 +194,7 @@ test('client will create a chain instance with deployments', async () => {
   ]);
   expect(deploy_hash).toBeDefined();
   expect(deploy_step.description).toEqual('Step 1 - General deployment');
-  expect(isEqual(chain_details, started)).toBeTruthy();
+  expect(isEqual(chain_details, started)).toBe(true);
 }, (4 * 60 * 1000)); // this test does take 2.5 - 3 minutes
 
 test('client will stop a chain instance', async () => {
