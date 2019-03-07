@@ -74,10 +74,10 @@ export default class Client {
     const { data: list } = await this.api().listAllChains();
     const exists = find(list, { id });
 
-    if (!exists) {
-      this.create({ snapshot_id: snapshot });
-    } else {
+    if (exists) {
       this.channel(id).push('revert_snapshot', { snapshot });
+    } else {
+      throw new Error(`chain${id} does not exist`);
     }
   }
 

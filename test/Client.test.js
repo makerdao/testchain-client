@@ -68,25 +68,14 @@ const _takeSnapshot = (id, description) => {
 };
 
 const _restoreSnapshot = async (id, snapshot) => {
-  const { data: list } = await client.api().listAllChains();
-  const exists = find(list, { id });
-
   client.restoreSnapshot(id, snapshot);
-
-  if (!exists) {
-    return client.sequenceEvents('api', [
-      Event.CHAIN_CREATED,
-      Event.CHAIN_STARTED
-    ]);
-  } else {
-    return client.sequenceEvents(id, [
-      Event.OK,
-      Event.CHAIN_STATUS_REVERTING_SNAP,
-      Event.SNAPSHOT_REVERTED,
-      Event.CHAIN_STATUS_SNAP_REVERTED,
-      Event.CHAIN_STATUS_ACTIVE
-    ]);
-  }
+  return client.sequenceEvents(id, [
+    Event.OK,
+    Event.CHAIN_STATUS_REVERTING_SNAP,
+    Event.SNAPSHOT_REVERTED,
+    Event.CHAIN_STATUS_SNAP_REVERTED,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
 };
 
 beforeEach(() => {
@@ -106,7 +95,7 @@ test('client will be created correctly', () => {
   expect(client.api()).toBeInstanceOf(Api);
 });
 
-test('client will initialise socket connection', async () => {
+test.only('client will initialise socket connection', async () => {
   expect(client.socket().connected()).toBe(false);
   await client.init();
   expect(client.socket().connected()).toBe(true);
@@ -301,35 +290,3 @@ test('client will restore a snapshot', async () => {
   ]);
   expect(await client.api().getBlockNumber(url)).toEqual(0);
 });
-
-test('client will restore snapshot if it\'s genesis chain does not exist', async () => {
-  await client.init();
-
-  const { started: { id: genesisId, rpc_url } } = await _create({ ...options });
-  const arr = rpc_url.split(':');
-  const url = `http://localhost:${arr[2]}`;
-
-  expect(await client.api().getBlockNumber(url)).toEqual(0);
-  const snapshotDescription = 'ZOMBIE_SNAPSHOT';
-  const { snapshot_taken: { id: snapshotId } } = await _takeSnapshot(
-    genesisId,
-    snapshotDescription
-  );
-
-  await client.api().mineBlock(url);
-  expect(await client.api().getBlockNumber(url)).toEqual(1);
-  await client.delete(genesisId);
-
-  const eventData = await _restoreSnapshot(genesisId, snapshotId);
-
-  expect(Object.keys(eventData)).toEqual([
-    Event.CHAIN_CREATED,
-    Event.CHAIN_STARTED
-  ]);
-
-  const { data: list } = await client.api().listAllChains();
-  const { config: { id, snapshot_id } } = find(list, { config: { 'snapshot_id': snapshotId } });
-
-  expect(id).not.toEqual(genesisId);
-  expect(snapshot_id).toEqual(snapshot_id);
-}, 20000);
