@@ -95,7 +95,7 @@ test('client will be created correctly', () => {
   expect(client.api()).toBeInstanceOf(Api);
 });
 
-test.only('client will initialise socket connection', async () => {
+test('client will initialise socket connection', async () => {
   expect(client.socket().connected()).toBe(false);
   await client.init();
   expect(client.socket().connected()).toBe(true);
