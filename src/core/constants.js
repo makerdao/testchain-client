@@ -8,7 +8,7 @@ export const Event = {
   CHAIN_CREATED: 'phx_reply',
   CHAIN_STARTED: 'started',
   CHAIN_DEPLOYING: 'deploying',
-  CHAIN_STATUS_CHANGE: 'status_changed',
+  CHAIN_STATUS_CHANGED: 'status_changed',
   CHAIN_STATUS_ACTIVE: 'status_changed_active',
   CHAIN_STATUS_TERMINATING: 'status_changed_terminating',
   CHAIN_STATUS_TAKING_SNAP: 'status_changed_snapshot_taking',
@@ -22,4 +22,17 @@ export const Event = {
   CHAIN_DELETED: 'phx_reply',
   SNAPSHOT_TAKEN: 'snapshot_taken',
   SNAPSHOT_REVERTED: 'snapshot_reverted'
+};
+
+export const Action = {
+  START_CHAIN: 'start',
+  STOP_CHAIN: 'stop',
+  RESTART_CHAIN: 'start_existing',
+  DELETE_CHAIN: 'remove_chain',
+  TAKE_SNAPSHOT: 'take_snapshot',
+  RESTORE_SNAPSHOT: 'revert_snapshot'
+};
+
+export const ChannelName = {
+  API: 'api'
 };
