@@ -3,7 +3,7 @@ import SocketHandler from '../src/core/SocketHandler';
 import Api from '../src/core/Api';
 import { Event } from '../src/core/ChainEvent';
 import debug from 'debug';
-import { find, isEqual } from 'lodash';
+import isEqual from 'lodash.isequal';
 
 const log = debug('log-test');
 const options = {
@@ -229,15 +229,15 @@ test('client will delete a chain', async () => {
   const { started: { id: id2 } } = await _create({ ...options, clean_on_stop: true });
 
   const { data: list1 } = await client.api.listAllChains();
-  expect(find(list1, { id: id1 })).toBeDefined();
-  expect(find(list1, { id: id2 })).toBeDefined();
+  expect(list1.find( chain => chain.id === id1 )).toBeDefined();
+  expect(list1.find( chain => chain.id === id2 )).toBeDefined();
 
   await client.delete(id1);
   await client.delete(id2);
 
   const { data: list2 } = await client.api.listAllChains();
-  expect(find(list2, { id: id1 })).not.toBeDefined();
-  expect(find(list2, { id: id2 })).not.toBeDefined();
+  expect(list2.find( chain => chain.id === id1 )).not.toBeDefined();
+  expect(list2.find( chain => chain.id === id2 )).not.toBeDefined();
 }, (20 * 1000));
 
 test('client will take a snapshot', async () => {
@@ -260,7 +260,7 @@ test('client will take a snapshot', async () => {
   const { id: snapId } = snapshot_taken;
   const { data: list } = await client.api.listAllSnapshots();
 
-  const snapshot_list = find(list, { id: snapId });
+  const snapshot_list = list.find(snapshot => snapshot.id === snapId);
   expect(isEqual(snapshot_list, snapshot_taken));
   expect(snapshot_list.description).toEqual(snapshotDescription);
 }, (20 * 1000));

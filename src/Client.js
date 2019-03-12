@@ -1,7 +1,6 @@
 import Api from './core/Api';
 import SocketHandler from './core/SocketHandler';
 import { Event } from './core/ChainEvent';
-import { find } from 'lodash';
 
 export default class Client {
   constructor(
@@ -72,7 +71,7 @@ export default class Client {
 
   async restoreSnapshot(id, snapshot) {
     const { data: list } = await this.api.listAllChains();
-    const exists = find(list, { id });
+    const exists = list.find(chain => chain.id === id);
 
     if (exists) {
       this.channel(id).push('revert_snapshot', { snapshot });
