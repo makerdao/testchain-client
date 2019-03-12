@@ -11,7 +11,7 @@ export default class SocketHandler {
 
     this._stream = new Observable(subscriber => {
       this._socket.onOpen(() => {
-        subscriber.next({ event: 'socket_open' });
+        subscriber.next({ eventName: 'socket_open' });
       });
 
       this._socket.onMessage(msg => {
@@ -29,10 +29,10 @@ export default class SocketHandler {
     this._channels = {};
   }
 
-  _once(eventName) {
+  _once(_eventName) {
     return new Promise(resolve => {
-      const observer = this._stream.subscribe(({ event }) => {
-        if (event === eventName) {
+      const observer = this._stream.subscribe(({ eventName }) => {
+        if (_eventName === eventName) {
           observer.unsubscribe();
           resolve();
         }

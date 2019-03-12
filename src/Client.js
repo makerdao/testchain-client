@@ -37,18 +37,18 @@ export default class Client {
     return this.channel(id).stream();
   }
 
-  on(id, event, cb) {
-    return this.channel(id).on(event, cb);
+  on(id, eventName, cb) {
+    return this.channel(id).on(eventName, cb);
   }
 
-  once(id, event) {
-    return this.channel(id).once(event);
+  once(id, eventName) {
+    return this.channel(id).once(eventName);
   }
 
   async sequenceEvents(id, eventNames) {
     const res = await Promise.all(eventNames.map(ev => this.once(id, ev)));
-    const obj = res.reduce((acc, { event, payload }) => {
-      acc[event] = payload;
+    const obj = res.reduce((acc, { eventName, payload }) => {
+      acc[eventName] = payload;
       return acc;
     }, {});
     return obj;

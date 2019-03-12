@@ -32,54 +32,54 @@ export default class ChannelHandler {
 
   _buildChannelStream(eventsList) {
     return new Observable(stream => {
-      const setChannelEvent = event => {
-        this._channel.on(event, payload => {
-          switch (event) {
+      const setChannelEvent = eventName => {
+        this._channel.on(eventName, payload => {
+          switch (eventName) {
             case 'deployment_failed':
-              stream.error({ event, payload });
+              stream.error({ eventName, payload });
               break;
             case 'error':
-              stream.error({ event, payload });
+              stream.error({ eventName, payload });
               break;
             case 'failed':
-              stream.error({ event, payload });
+              stream.error({ eventName, payload });
               break;
             case 'status_changed':
               stream.next({
-                event: `status_changed_${payload.data}`,
+                eventName: `status_changed_${payload.data}`,
                 payload
               });
               break;
             default:
-              stream.next({ event, payload });
+              stream.next({ eventName, payload });
           }
         });
       };
 
-      eventsList.forEach(event => {
-        setChannelEvent(event);
+      eventsList.forEach(eventName => {
+        setChannelEvent(eventName);
       });
     });
   }
 
-  on(event, cb) {
-    const ref = this._channel.on(event, data => {
-      const off = () => this._channel.off(event, ref);
+  on(eventName, cb) {
+    const ref = this._channel.on(eventName, data => {
+      const off = () => this._channel.off(eventName, ref);
       cb(data, off);
     });
   }
 
-  once(_event) {
+  once(_eventName) {
     return new Promise((resolve, reject) => {
       const observer = this._stream.subscribe(
-        ({ event, payload }) => {
-          if (event === _event) {
+        ({ eventName, payload }) => {
+          if (eventName === _eventName) {
             observer.unsubscribe();
-            resolve({ event, payload });
+            resolve({ eventName, payload });
           }
         },
-        ({ event, payload }) => {
-          reject(JSON.stringify({ event, payload }, null, 4));
+        ({ eventName, payload }) => {
+          reject(JSON.stringify({ eventName, payload }, null, 4));
         }
       );
     });
@@ -89,8 +89,8 @@ export default class ChannelHandler {
     this._channel.join();
   }
 
-  push(event, payload = {}) {
-    this._channel.push(event, payload);
+  push(action, payload = {}) {
+    this._channel.push(action, payload);
   }
 
   stream() {
