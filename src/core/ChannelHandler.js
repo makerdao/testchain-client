@@ -1,28 +1,11 @@
 import Observable from 'zen-observable';
-
-const events = [
-  'phx_reply',
-  'phx_error',
-  'status_changed',
-  'stopped',
-  'error',
-  'failed',
-  'starting',
-  'started',
-  'deploying',
-  'deployed',
-  'deployment_failed',
-  'ready',
-  'terminated',
-  'snapshot_taken',
-  'snapshot_reverted'
-];
+import { Event } from './ChainEvent';
 
 export default class ChannelHandler {
   constructor(name, socket, globalLogger) {
     this._name = name;
     this._channel = socket.channel(this._name);
-    this._stream = this._buildChannelStream(events);
+    this._stream = this._buildChannelStream();
     this._log = globalLogger.extend(`${this._name}`);
     this._logger = this._stream.subscribe(value =>
       this._log(JSON.stringify(value, null, 4))
@@ -38,14 +21,20 @@ export default class ChannelHandler {
     return this._channel.state === 'joined' ? true : false;
   }
 
-  _buildChannelStream(eventsList) {
+  _buildChannelStream() {
+    // gets all unique values in the Event constants
+    // and removes anything matching 'status_changed_*'
+    const eventsList = [ ...new Set(Object.values(Event)) ]
+          .filter(eventName => {
+            if (/\b(?!status_changed_)\b\S+/.test(eventName)) {
+              return eventName;
+            }
+          });
+
     return new Observable(stream => {
-      const setChannelEvent = eventName => {
+      eventsList.forEach(eventName => {
         this._channel.on(eventName, payload => {
           switch (eventName) {
-            case 'deployment_failed':
-              stream.error({ eventName, payload });
-              break;
             case 'error':
               stream.error({ eventName, payload });
               break;
@@ -62,10 +51,6 @@ export default class ChannelHandler {
               stream.next({ eventName, payload });
           }
         });
-      };
-
-      eventsList.forEach(eventName => {
-        setChannelEvent(eventName);
       });
     });
   }
