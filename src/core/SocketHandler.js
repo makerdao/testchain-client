@@ -68,10 +68,4 @@ export default class SocketHandler {
   removeChannel(id) {
     delete this._channels[id];
   }
-
-  sleep(ms) {
-    return new Promise(resolve => {
-      setTimeout(resolve, ms);
-    });
-  }
 }
