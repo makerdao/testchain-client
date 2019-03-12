@@ -29,6 +29,14 @@ export default class SocketHandler {
     this._channels = {};
   }
 
+  get channels() {
+    return Object.keys(this._channels);
+  }
+
+  get connected() {
+    return this._socket.isConnected();
+  }
+
   _once(_eventName) {
     return new Promise(resolve => {
       const observer = this._stream.subscribe(({ eventName }) => {
@@ -59,14 +67,6 @@ export default class SocketHandler {
 
   removeChannel(id) {
     delete this._channels[id];
-  }
-
-  channels() {
-    return Object.keys(this._channels);
-  }
-
-  connected() {
-    return this._socket.isConnected();
   }
 
   sleep(ms) {

@@ -30,6 +30,14 @@ export default class ChannelHandler {
     this.init();
   }
 
+  get stream() {
+    return this._stream;
+  }
+
+  get joined() {
+    return this._channel.state === 'joined' ? true : false;
+  }
+
   _buildChannelStream(eventsList) {
     return new Observable(stream => {
       const setChannelEvent = eventName => {
@@ -91,13 +99,5 @@ export default class ChannelHandler {
 
   push(action, payload = {}) {
     this._channel.push(action, payload);
-  }
-
-  stream() {
-    return this._stream;
-  }
-
-  joined() {
-    return this._channel.state === 'joined' ? true : false;
   }
 }

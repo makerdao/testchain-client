@@ -12,29 +12,29 @@ export default class Client {
     this._socket = new SocketHandler(socketUrl);
   }
 
-  api() {
+  get api() {
     return this._api;
   }
 
-  socket() {
+  get socket() {
     return this._socket;
   }
 
+  get connections() {
+    return this.socket.channels;
+  }
+
   async init() {
-    await this.socket().init();
+    await this.socket.init();
     await this.once('api', Event.API_JOIN);
   }
 
   channel(id) {
-    return this.socket().channel(id);
-  }
-
-  connections() {
-    return this.socket().channels();
+    return this.socket.channel(id);
   }
 
   stream(id) {
-    return this.channel(id).stream();
+    return this.channel(id).stream;
   }
 
   on(id, eventName, cb) {
@@ -71,7 +71,7 @@ export default class Client {
   }
 
   async restoreSnapshot(id, snapshot) {
-    const { data: list } = await this.api().listAllChains();
+    const { data: list } = await this.api.listAllChains();
     const exists = find(list, { id });
 
     if (exists) {
@@ -82,7 +82,7 @@ export default class Client {
   }
 
   async delete(id) {
-    const { details } = await this.api().getChain(id);
+    const { details } = await this.api.getChain(id);
     if (details.status !== 'terminated') {
       this.stop(id);
       await this.sequenceEvents(id, [
@@ -100,7 +100,7 @@ export default class Client {
       this.on('api', Event.CHAIN_DELETED, (payload, off) => {
         const { response } = payload;
         if (response.message && response.message === 'Chain removed') {
-          this.socket().removeChannel(id);
+          this.socket.removeChannel(id);
           off();
           resolve();
         }
