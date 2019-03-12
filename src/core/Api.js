@@ -34,7 +34,7 @@ export default class Api {
     return this.request(`chain/${id}`, 'DELETE');
   }
 
-  downloadSnapshot(id) {
+  downloadSnapshotUrl(id) {
     return `${this._url}/snapshot/${id}`;
   }
 

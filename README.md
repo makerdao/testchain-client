@@ -86,7 +86,7 @@ connection. All functions are asynchronous.
   including it's passed configuration data, it's account information and other
   chain information.
 
-- `downloadSnapshot(id)` - downloads the snapshot data to file.
+- `downloadSnapshotUrl(id)` - returns the download snapshot url endpoint.
 
 - `getBlockNumber(url)` - will perform a json-rpc request to the chain with
   `url` and return the current block number. This can be useful for debugging
