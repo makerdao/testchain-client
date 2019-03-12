@@ -2,6 +2,8 @@ import { Socket } from 'phoenix';
 import Observable from 'zen-observable';
 import ChannelHandler from './ChannelHandler';
 import debug from 'debug';
+import { ChannelName } from './constants';
+const { API } = ChannelName;
 
 export default class SocketHandler {
   constructor(url = 'ws://127.1:4000/socket') {
@@ -54,7 +56,7 @@ export default class SocketHandler {
   }
 
   channel(name) {
-    const channelName = name === 'api' ? 'api' : `chain:${name}`;
+    const channelName = name === API ? API : `chain:${name}`;
     if (!this._channels[channelName]) {
       this._channels[channelName] = new ChannelHandler(
         channelName,

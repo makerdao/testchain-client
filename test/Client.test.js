@@ -1,10 +1,11 @@
 import Client from '../src/Client';
 import SocketHandler from '../src/core/SocketHandler';
 import Api from '../src/core/Api';
-import { Event } from '../src/core/ChainEvent';
+import { Event, ChannelName } from '../src/core/constants';
 import debug from 'debug';
 import isEqual from 'lodash.isequal';
 
+const { API } = ChannelName;
 const log = debug('log-test');
 const options = {
   accounts: 3,
@@ -20,7 +21,7 @@ const _create = async (options) => {
       payload: {
         response: { id }
       }
-    } = await client.once('api', Event.CHAIN_CREATED);
+    } = await client.once(API, Event.CHAIN_CREATED);
 
     if (options.step_id) {
       return client.sequenceEvents(id, [
@@ -99,8 +100,8 @@ test('client will initialise socket connection', async () => {
   expect(client.socket.connected).toBe(false);
   await client.init();
   expect(client.socket.connected).toBe(true);
-  expect(client.connections[0]).toEqual('api');
-  expect(client.channel('api').joined).toBe(true);
+  expect(client.connections[0]).toEqual(API);
+  expect(client.channel(API).joined).toBe(true);
 });
 
 test('client will create a normal chain instance', async () => {

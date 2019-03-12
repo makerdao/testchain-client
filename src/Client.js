@@ -1,6 +1,8 @@
 import Api from './core/Api';
 import SocketHandler from './core/SocketHandler';
-import { Event } from './core/ChainEvent';
+import { Event, ChannelName, Action } from './core/constants';
+
+const { API } = ChannelName;
 
 export default class Client {
   constructor(
@@ -25,7 +27,7 @@ export default class Client {
 
   async init() {
     await this.socket.init();
-    await this.once('api', Event.API_JOIN);
+    await this.once(API, Event.API_JOIN);
   }
 
   channel(id) {
@@ -54,19 +56,19 @@ export default class Client {
   }
 
   create(options) {
-    this.channel('api').push('start', { ...options });
+    this.channel(API).push(Action.START_CHAIN, { ...options });
   }
 
   stop(id) {
-    this.channel(id).push('stop');
+    this.channel(id).push(Action.STOP_CHAIN);
   }
 
   restart(id) {
-    this.channel('api').push('start_existing', { id });
+    this.channel(API).push(Action.RESTART_CHAIN, { id });
   }
 
   takeSnapshot(id, description = '') {
-    this.channel(id).push('take_snapshot', { description });
+    this.channel(id).push(Action.TAKE_SNAPSHOT, { description });
   }
 
   async restoreSnapshot(id, snapshot) {
@@ -74,7 +76,7 @@ export default class Client {
     const exists = list.find(chain => chain.id === id);
 
     if (exists) {
-      this.channel(id).push('revert_snapshot', { snapshot });
+      this.channel(id).push(Action.RESTORE_SNAPSHOT, { snapshot });
     } else {
       throw new Error(`chain${id} does not exist`);
     }
@@ -82,7 +84,7 @@ export default class Client {
 
   async delete(id) {
     const { details } = await this.api.getChain(id);
-    if (details.status !== 'terminated') {
+    if (details.status !== Event.CHAIN_TERMINATED) {
       this.stop(id);
       await this.sequenceEvents(id, [
         Event.OK,
@@ -92,11 +94,11 @@ export default class Client {
     }
 
     if (!details.config.clean_on_stop) {
-      this.channel('api').push('remove_chain', { id });
+      this.channel(API).push(Action.DELETE_CHAIN, { id });
     }
 
     return new Promise(resolve => {
-      this.on('api', Event.CHAIN_DELETED, (payload, off) => {
+      this.on(API, Event.CHAIN_DELETED, (payload, off) => {
         const { response } = payload;
         if (response.message && response.message === 'Chain removed') {
           this.socket.removeChannel(id);

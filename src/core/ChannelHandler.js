@@ -1,5 +1,5 @@
 import Observable from 'zen-observable';
-import { Event } from './ChainEvent';
+import { Event } from './constants';
 
 export default class ChannelHandler {
   constructor(name, socket, globalLogger) {
@@ -34,15 +34,15 @@ export default class ChannelHandler {
       eventsList.forEach(eventName => {
         this._channel.on(eventName, payload => {
           switch (eventName) {
-            case 'error':
+            case Event.CHAIN_ERROR:
               stream.error({ eventName, payload });
               break;
-            case 'failed':
+            case Event.CHAIN_FAILURE:
               stream.error({ eventName, payload });
               break;
-            case 'status_changed':
+            case Event.CHAIN_STATUS_CHANGED:
               stream.next({
-                eventName: `status_changed_${payload.data}`,
+                eventName: `${Event.CHAIN_STATUS_CHANGED}_${payload.data}`,
                 payload
               });
               break;
