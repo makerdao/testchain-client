@@ -54,15 +54,15 @@ export default class SocketHandler {
   }
 
   channel(name) {
-    name = name === 'api' ? 'api' : `chain:${name}`;
-    if (!this._channels[name]) {
-      this._channels[name] = new ChannelHandler(
-        name,
+    const channelName = name === 'api' ? 'api' : `chain:${name}`;
+    if (!this._channels[channelName]) {
+      this._channels[channelName] = new ChannelHandler(
+        channelName,
         this._socket,
         this._globalLogger
       );
     }
-    return this._channels[name];
+    return this._channels[channelName];
   }
 
   removeChannel(id) {
