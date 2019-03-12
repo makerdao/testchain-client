@@ -2,7 +2,7 @@ import { Socket } from 'phoenix';
 import Observable from 'zen-observable';
 import ChannelHandler from './ChannelHandler';
 import debug from 'debug';
-import { ChannelName } from './constants';
+import { ChannelName, Event } from './constants';
 const { API } = ChannelName;
 
 export default class SocketHandler {
@@ -24,7 +24,7 @@ export default class SocketHandler {
     this._globalLogger = debug('log');
     this._socketLog = this._globalLogger.extend('socket');
 
-    this._logger = this._stream.subscribe(value =>
+    this._logger = this.stream.subscribe(value =>
       this._socketLog(JSON.stringify(value, null, 4))
     );
 
@@ -39,9 +39,13 @@ export default class SocketHandler {
     return this._socket.isConnected();
   }
 
+  get stream() {
+    return this._stream;
+  }
+
   _once(_eventName) {
     return new Promise(resolve => {
-      const observer = this._stream.subscribe(({ eventName }) => {
+      const observer = this.stream.subscribe(({ eventName }) => {
         if (_eventName === eventName) {
           observer.unsubscribe();
           resolve();
@@ -61,7 +65,8 @@ export default class SocketHandler {
       this._channels[channelName] = new ChannelHandler(
         channelName,
         this._socket,
-        this._globalLogger
+        this._globalLogger,
+        this._buildChannelStream(channelName)
       );
     }
     return this._channels[channelName];
@@ -69,5 +74,26 @@ export default class SocketHandler {
 
   removeChannel(id) {
     delete this._channels[id];
+  }
+
+  _buildChannelStream(channelName) {
+    return this.stream
+      .filter(data => data.topic === channelName)
+      .map(data => {
+        const { event: eventName, payload } = data;
+        switch (eventName) {
+          case Event.CHAIN_ERROR:
+            return { eventName, payload };
+          case Event.CHAIN_FAILURE:
+            return { eventName, payload };
+          case Event.CHAIN_STATUS_CHANGED:
+            return {
+              eventName: `${Event.CHAIN_STATUS_CHANGED}_${payload.data}`,
+              payload
+            };
+          default:
+            return { eventName, payload };
+        }
+      });
   }
 }
