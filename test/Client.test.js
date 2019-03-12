@@ -120,7 +120,7 @@ test('client will create a normal chain instance', async () => {
   expect(isEqual(chain_details, started)).toBe(true);
 }, (10 * 1000));
 
-test.skip('client will create a chain instance with deployments', async () => {
+test('client will create a chain instance with deployments', async () => {
   await client.init();
 
   const eventData = await _create({ ...options, step_id: 1 });
