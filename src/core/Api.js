@@ -35,7 +35,7 @@ export default class Api {
   }
 
   downloadSnapshot(id) {
-    window.location.assign(`${this._url}/snapshot/${id}`);
+    return `${this._url}/snapshot/${id}`;
   }
 
   async getBlockNumber(url) {
