@@ -73,7 +73,7 @@ websocket connection.
 
 ### REST API
 
-The rest api is accessed by calling functions on `client.api()` and is not to be
+The rest api is accessed by calling functions on `client.api` and is not to be
 confused with the aformentioned `'api'` channel used by the websocket
 connection. All functions are asynchronous.
 
@@ -99,7 +99,7 @@ connection. All functions are asynchronous.
 ***Example***
 
 ``` javascript
-await client.api().getChain(id)
+await client.api.getChain(id)
 ```
 
 
@@ -109,7 +109,7 @@ This section lists the chain functions the client provides to interact with the 
 connections.
 
 As previously mentioned, when the `client` is initialised, it automatically
-opens the `'api' channel. We use this channel to create our chains instances by
+opens the `'api'` channel. We use this channel to create our chains instances by
 passing an options object as a parameter.
 
 ***Example***
@@ -143,7 +143,7 @@ client.once('api', Event.CHAIN_CREATED).then(console.log);
 // prints
 
 { 
-    event: 'phx_reply',
+    eventName: 'phx_reply',
     payload: { 
         status: 'ok',
         response: { 
@@ -197,7 +197,7 @@ As noted in the import of the `client`, we also imported the Event object.
 This lists all events which can be listened to after performing websocket api functions.
 
 The source file for all of these events is located under
-`src/core/ChainEvent.js`. Many of these constants refer to the same string event
+`src/core/constants.js`. Many of these constants refer to the same string event
 but by abstracting them to be more human-readable, gives better clarity.
 
 The client uses the
@@ -215,10 +215,9 @@ returns the observable object for that channel.
 ``` javascript
 const chainStream = client.stream(id); // Specify the chain by it's id
 const obs = chainStream.subscribe(
-    ({ event, payload }) => {
+    ({ eventName, payload }) => {
         // do something
-    },
-    (err) => throw ...,	
+    }	
 );
 .
 .
@@ -227,14 +226,11 @@ obs.unsubscribe();
 ```
 
 In the above example, the Observable is assigned to our `chainStream` constant.
-`subscribe()` takes two functions as arguments and are executed on an effective
+`subscribe()` takes a callback function as an argument and is executed on an effective
 infinite loop for each incoming event fired from the backend on each channel.
-The first, is where all incoming data is passed and where a user should expect
+This callback is where all incoming data is passed and where a user should expect
 to find the chain events and returning data. The client has bootstrapped the
-`event` name to each returned payload object to make it easier for the user to
-specify a target event. The second function parameter is the error event which
-is used in the event that a chain fires an error event. We can easily subscribe 
-and unsubscribe from these events whenever we want.
+value `eventName` to make it easier for the user to specify a target event.
 
 **`once()`**
 
@@ -249,7 +245,7 @@ client.once('api', Event.CHAIN_STARTED).then(console.log);
 // prints
 
 { 
-    event: 'started',
+    eventName: 'started',
     payload: { 
         ws_url: 'ws://ex-testchain.local:8552',
         rpc_url: 'http://ex-testchain.local:8552',
@@ -334,7 +330,7 @@ return new Promise(resolve => {
     this.on('api', Event.CHAIN_DELETED, (payload, off) => {
         const { response } = payload;
         if (response.message && response.message === 'Chain removed') {
-            delete this._socket._channels[id];
+            // do something now that chain has been deleted
             off();
             resolve();
         }
@@ -351,8 +347,8 @@ to the console.
 When testing, prepend the cli arg with an environement variable `DEBUG=log*`
 which will print out all socket and channel events information.
 
-
-- `log-*` will print all channel events only
+- `log:api:*` will print all api events only
+- `log:chain:*` will print all channel events only
 - `log:*` will print all socket events only
 
 ### License
