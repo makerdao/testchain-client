@@ -24,12 +24,11 @@ export default class ChannelHandler {
   _buildChannelStream() {
     // gets all unique values in the Event constants
     // and removes anything matching 'status_changed_*'
-    const eventsList = [ ...new Set(Object.values(Event)) ]
-          .filter(eventName => {
-            if (/\b(?!status_changed_)\b\S+/.test(eventName)) {
-              return eventName;
-            }
-          });
+    const eventsList = [...new Set(Object.values(Event))].filter(eventName => {
+      if (/\b(?!status_changed_)\b\S+/.test(eventName)) {
+        return eventName;
+      }
+    });
 
     return new Observable(stream => {
       eventsList.forEach(eventName => {
