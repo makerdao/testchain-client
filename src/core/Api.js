@@ -11,7 +11,13 @@ export default class Api {
       if (method === 'GET') {
         result = await fetch(`${url}/${route}`, { method });
       } else {
-        result = await fetch(`${url}/${route}`, { method, body });
+        result = await fetch(`${url}/${route}`, {
+          method,
+          body,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
       }
       const { status, ...data } = await result.json();
       !status ? resolve(data) : reject(data);
