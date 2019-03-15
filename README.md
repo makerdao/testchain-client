@@ -9,7 +9,7 @@ Testchain Client
 
 #### Testchain-backendgateway
 
-The client is to be used in tandem with the [testchain-backendgateway](https://github.com/makerdao/testchain-backendgateway) which is a docker container containing all testchain functionality. Requires [docker](https://docs.docker.com/install/#server) and [docker-compose](https://docs.docker.com/compose/install/)
+The client is to be used along with the [testchain-backendgateway](https://github.com/makerdao/testchain-backendgateway) which is a docker container containing all testchain functionality. Requires [docker](https://docs.docker.com/install/#server) and [docker-compose](https://docs.docker.com/compose/install/)
 
 ```bash
 git clone https://github.com/makerdao/testchain-backendgateway.git
@@ -54,7 +54,7 @@ The `client` can then be setup as follows:
 ``` javascript
 const client = new Client(
     'http://127.0.0.1:4000',	// <REST_API_ENDPOINT>
-    'ws://127.0.0.1:4000'		// <WS_API_ENDPOINT>
+    'ws://127.0.0.1:4000'	// <WS_API_ENDPOINT>
 );
 
 client.init().then(() => {
@@ -62,10 +62,10 @@ client.init().then(() => {
 });
 ```
 
-The `client` takes two url params as shown above, the first being the REST
+The `client` takes two url parameters as shown above, the first being the REST
 endpoint which is used for retrieving chain and snapshot data. The second being
 a websocket endpoint for performing chain functions and listening to system
-events. These events are declared as constants in the `Event` import
+events. These events are declared as constants in the `Event` import.
 
 The user must use the `init()` function on the client in order to setup the
 endpoint connections correctly. It also automatically opens the `'api'` channel on the
@@ -94,7 +94,7 @@ connection. All functions are asynchronous.
   
 - `mineBlock(url)` - if the chainType is `ganache`, a useful json-rpc command is
   included called `evm_mine` which is used to increment the blocknumber. This
-  too is also usefule for debugging purposes.
+  too is also useful for debugging purposes.
   
 ***Example***
 
@@ -102,11 +102,9 @@ connection. All functions are asynchronous.
 await client.api.getChain(id)
 ```
 
-
 ### WEBSOCKET API
 
-This section lists the chain functions the client provides to interact with the websocket api. This is done over a websocket connections and we will examine in the next section how to intercept and monitor events coming from these
-connections.
+This section lists the chain functions the client provides to interact with the websocket api. This is done over a websocket connection and we will examine in the next section how to intercept and monitor events coming from them.
 
 As previously mentioned, when the `client` is initialised, it automatically
 opens the `'api'` channel. We use this channel to create our chains instances by
@@ -114,7 +112,7 @@ passing an options object as a parameter.
 
 ***Example***
 ``` javascript
-const options = {
+{
     clean_on_stop: false,
     chainType: 'ganace',
     block_mine_time: 0,
@@ -202,10 +200,10 @@ but by abstracting them to be more human-readable, gives better clarity.
 
 The client uses the
 [zen-observable](https://www.npmjs.com/package/zen-observable) library to
-transform each chain channel into an `observable` object. An observable object
-is described as an asynchronous data stream and can be subscribed to at any time. We
+transform all websocket data into an `observable` object. An observable object
+is an asynchronous data stream and can be subscribed to at any time. We
 use this object and the event constants to observe the websocket channel's behaviour and
-extract information as it comes from this stream.
+extract information as it comes down this stream.
 
 **`stream()`***
 
