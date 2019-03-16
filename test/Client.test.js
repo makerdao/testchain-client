@@ -6,7 +6,7 @@ import debug from 'debug';
 import isEqual from 'lodash.isequal';
 
 const { API } = ChannelName;
-const log = debug('log-test');
+const log = debug('log:test');
 const _options = {
   accounts: 3,
   block_mine_time: 0,
