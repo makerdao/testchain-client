@@ -10,6 +10,10 @@ export default class ChannelHandler {
     this.init();
   }
 
+  get name() {
+    return this._name;
+  }
+
   get stream() {
     return this._stream;
   }
