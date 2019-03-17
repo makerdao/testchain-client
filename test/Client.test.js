@@ -1,6 +1,8 @@
 import Client from '../src/Client';
 import SocketHandler from '../src/core/SocketHandler';
+import ChannelHandler from '../src/core/ChannelHandler';
 import Api from '../src/core/Api';
+import Observable from 'zen-observable';
 import { Event, ChannelName } from '../src/core/constants';
 import debug from 'debug';
 import isEqual from 'lodash.isequal';
@@ -14,81 +16,47 @@ const _options = {
 };
 
 let client;
-
-const _create = async (options) => {
-  client.create(options);
-  const {
-      payload: {
-        response: { id }
-      }
-    } = await client.once(API, Event.CHAIN_CREATED);
-
-    if (options.step_id) {
-      return client.sequenceEvents(id, [
-        Event.CHAIN_STARTED,
-        Event.CHAIN_DEPLOYING,
-        Event.CHAIN_STATUS_ACTIVE,
-        Event.CHAIN_DEPLOYED,
-        Event.CHAIN_READY
-      ]);
-    } else {
-      return client.sequenceEvents(id, [
-        Event.CHAIN_STARTED,
-        Event.CHAIN_STATUS_ACTIVE,
-        Event.CHAIN_READY
-      ]);
-    }
-};
-
-const _stop = ( id ) => {
-  client.stop(id);
-  return client.sequenceEvents(id, [
-    Event.OK,
-    Event.CHAIN_STATUS_TERMINATING,
-    Event.CHAIN_TERMINATED
-  ]);
-};
-
-const _restart = ( id ) => {
-  client.restart(id);
-  return client.sequenceEvents(id, [
-    Event.CHAIN_STARTED,
-    Event.CHAIN_READY,
-    Event.CHAIN_STATUS_ACTIVE
-  ]);
-};
-
-const _takeSnapshot = (id, description) => {
-  client.takeSnapshot(id, description);
-  return client.sequenceEvents(id, [
-    Event.CHAIN_STATUS_TAKING_SNAP,
-    Event.SNAPSHOT_TAKEN,
-    Event.CHAIN_STATUS_SNAP_TAKEN,
-    Event.CHAIN_STATUS_ACTIVE
-  ]);
-};
-
-const _restoreSnapshot = async (id, snapshot) => {
-  client.restoreSnapshot(id, snapshot);
-  return client.sequenceEvents(id, [
-    Event.OK,
-    Event.CHAIN_STATUS_REVERTING_SNAP,
-    Event.SNAPSHOT_REVERTED,
-    Event.CHAIN_STATUS_SNAP_REVERTED,
-    Event.CHAIN_STATUS_ACTIVE
-  ]);
-};
+const channelName = '123456789';
 
 beforeEach(() => {
   client = new Client();
 });
 
-afterEach(async () => {
-  const { data: list } = await client.api.listAllChains();
-  for (const chain of list) {
-    const { id } = chain;
-    await client.delete(id);
-  }
+test('client will be created correctly', () => {
+  expect(client.socket).toBeInstanceOf(SocketHandler);
+  expect(client.api).toBeInstanceOf(Api);
+});
+
+test('client will initialise socket connection', async () => {
+  expect(client.socket.connected).toBe(false);
+  await client.init();
+  expect(client.socket.connected).toBe(true);
+});
+
+test('client will join api channel on initialisation', async () => {
+  expect(client.channel(API).joined).toBe(false);
+  await client.init();
+  expect(client.channel(API).joined).toBe(true);
+});
+
+test('client channel will return a channelHandler', () => {
+  const channel = client.channel(channelName);
+  expect(channel).toBeInstanceOf(ChannelHandler);
+  expect(channel.name).toEqual(`chain:${channelName}`);
+});
+
+test('client stream will return an Observable', () => {
+  const stream = client.stream(channelName);
+  expect(stream).toBeInstanceOf(Observable);
+});
+
+test('client connections will list all connections', async () => {
+  expect(client.connections.length).toEqual(0);
+  await client.init();
+  expect(client.connections.length).toEqual(1);
+  expect(client.connections[0]).toEqual(API);
+  client.channel(channelName);
+  expect(client.connections[1]).toEqual(`chain:${channelName}`);
 });
 
 describe.each([
@@ -96,17 +64,12 @@ describe.each([
   ['Geth', { type: 'geth', ..._options }]
 ])('%s', (name, options) => {
 
-  test('client will be created correctly', () => {
-    expect(client.socket).toBeInstanceOf(SocketHandler);
-    expect(client.api).toBeInstanceOf(Api);
-  });
-
-  test('client will initialise socket connection', async () => {
-    expect(client.socket.connected).toBe(false);
-    await client.init();
-    expect(client.socket.connected).toBe(true);
-    expect(client.connections[0]).toEqual(API);
-    expect(client.channel(API).joined).toBe(true);
+  afterEach(async () => {
+    const { data: list } = await client.api.listAllChains();
+    for (const chain of list) {
+      const { id } = chain;
+      await client.delete(id);
+    }
   });
 
   test('client will create a normal chain instance', async () => {
@@ -298,3 +261,67 @@ describe.each([
     });
   }
 });
+
+const _create = async (options) => {
+  client.create(options);
+  const {
+      payload: {
+        response: { id }
+      }
+    } = await client.once(API, Event.CHAIN_CREATED);
+
+    if (options.step_id) {
+      return client.sequenceEvents(id, [
+        Event.CHAIN_STARTED,
+        Event.CHAIN_DEPLOYING,
+        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_DEPLOYED,
+        Event.CHAIN_READY
+      ]);
+    } else {
+      return client.sequenceEvents(id, [
+        Event.CHAIN_STARTED,
+        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_READY
+      ]);
+    }
+};
+
+const _stop = ( id ) => {
+  client.stop(id);
+  return client.sequenceEvents(id, [
+    Event.OK,
+    Event.CHAIN_STATUS_TERMINATING,
+    Event.CHAIN_TERMINATED
+  ]);
+};
+
+const _restart = ( id ) => {
+  client.restart(id);
+  return client.sequenceEvents(id, [
+    Event.CHAIN_STARTED,
+    Event.CHAIN_READY,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
+};
+
+const _takeSnapshot = (id, description) => {
+  client.takeSnapshot(id, description);
+  return client.sequenceEvents(id, [
+    Event.CHAIN_STATUS_TAKING_SNAP,
+    Event.SNAPSHOT_TAKEN,
+    Event.CHAIN_STATUS_SNAP_TAKEN,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
+};
+
+const _restoreSnapshot = async (id, snapshot) => {
+  client.restoreSnapshot(id, snapshot);
+  return client.sequenceEvents(id, [
+    Event.OK,
+    Event.CHAIN_STATUS_REVERTING_SNAP,
+    Event.SNAPSHOT_REVERTED,
+    Event.CHAIN_STATUS_SNAP_REVERTED,
+    Event.CHAIN_STATUS_ACTIVE
+  ]);
+};
