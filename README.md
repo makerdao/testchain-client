@@ -88,11 +88,10 @@ connection. All functions are asynchronous.
 
 - `downloadSnapshotUrl(id)` - returns the download snapshot url endpoint.
 
-- `getBlockNumber(url)` - will perform a json-rpc request to the chain with
-  `url` and return the current block number. This can be useful for debugging
-  purposes.
+- `getBlockNumber(id)` - will perform a json-rpc request to chain of `id` and
+  return the current block number. This can be useful for debugging purposes.
   
-- `mineBlock(url)` - if the chainType is `ganache`, a useful json-rpc command is
+- `mineBlock(id)` - if the chainType is `ganache`, a useful json-rpc command is
   included called `evm_mine` which is used to increment the blocknumber. This
   too is also useful for debugging purposes.
   

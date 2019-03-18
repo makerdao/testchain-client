@@ -44,22 +44,46 @@ export default class Api {
     return `${this._url}/snapshot/${id}`;
   }
 
-  async getBlockNumber(url) {
-    const { result: blockNumber } = await this.request(
-      '',
-      'POST',
-      url,
-      '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
-    );
-    return parseInt(blockNumber, 16);
+  async getBlockNumber(id) {
+    const { details: chain } = await this.getChain(id);
+
+    if (chain.status !== 'ready') {
+      return null;
+    } else {
+      const url = this._parseChainUrl(chain);
+      const { result: blockNumber } = await this.request(
+        '',
+        'POST',
+        url,
+        '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+      );
+      return parseInt(blockNumber, 16);
+    }
   }
 
-  mineBlock(url) {
-    return this.request(
-      '',
-      'POST',
-      url,
-      '{"jsonrpc":"2.0","method":"evm_mine","params":[],"id":1}'
-    );
+  async mineBlock(id) {
+    const { details: chain } = await this.getChain(id);
+
+    if (chain.status === 'ready' && chain.config.type === 'ganache') {
+      const url = this._parseChainUrl(chain);
+      return this.request(
+        '',
+        'POST',
+        url,
+        '{"jsonrpc":"2.0","method":"evm_mine","params":[],"id":1}'
+      );
+    } else {
+      throw new Error('Cannot use evm_mine json_rpc post');
+    }
+  }
+
+  _parseChainUrl(chain) {
+    const {
+      chain_details: { rpc_url }
+    } = chain;
+    const [, _url, _port] = rpc_url.split(':');
+    return _url === '//ex-testchain.local'
+      ? `http://localhost:${_port}`
+      : rpc_url;
   }
 }
