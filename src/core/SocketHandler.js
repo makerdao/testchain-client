@@ -42,7 +42,7 @@ export default class SocketHandler {
   get stream() {
     return this._stream;
   }
-
+ 
   _once(_eventName) {
     return new Promise(resolve => {
       const observer = this.stream.subscribe(({ eventName }) => {
