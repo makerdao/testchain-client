@@ -1,5 +1,5 @@
 export const Event = {
-  OK: 'phx_reply',
+  PHX_REPLY: 'phx_reply',
   ERROR: 'phx_error',
   CHAIN_ERROR: 'error',
   CHAIN_FAILURE: 'failed',
@@ -20,8 +20,21 @@ export const Event = {
   CHAIN_READY: 'ready',
   CHAIN_TERMINATED: 'terminated',
   CHAIN_DELETED: 'phx_reply',
+
+  OK: 'ok',
+  INITIALIZING: 'initializing',
+  READY: 'ready',
+  DEPLOYING: 'deploying',
+  DEPLOYED: 'deployed',
+  TERMINATING: 'terminating',
+  TERMINATED: 'terminated',
+  LOCKED: 'locked',
+  FAILED: 'failed',
   SNAPSHOT_TAKEN: 'snapshot_taken',
-  SNAPSHOT_REVERTED: 'snapshot_reverted'
+  SNAPSHOT_REVERTED: 'snapshot_reverted',
+
+  STACK_READY: 'stack:ready',
+  STACK_FAILED: 'stack:failed'
 };
 
 export const Action = {
