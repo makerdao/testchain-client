@@ -23,6 +23,7 @@ export const Event = {
 
   OK: 'ok',
   INITIALIZING: 'initializing',
+  ACTIVE: 'active',
   READY: 'ready',
   DEPLOYING: 'deploying',
   DEPLOYED: 'deployed',
@@ -30,7 +31,10 @@ export const Event = {
   TERMINATED: 'terminated',
   LOCKED: 'locked',
   FAILED: 'failed',
+
+  TAKING_SNAPSHOT: 'snapshot_taking',
   SNAPSHOT_TAKEN: 'snapshot_taken',
+  REVERTING_SNAPSHOT: 'snapshot_reverting',
   SNAPSHOT_REVERTED: 'snapshot_reverted',
 
   STACK_READY: 'stack:ready',

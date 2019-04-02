@@ -84,6 +84,7 @@ export default class Client {
 
   async delete(id) {
     const { details } = await this.api.getChain(id);
+
     if (details.status !== Event.TERMINATED) {
       this.stop(id);
       await this.sequenceEvents(id, [Event.OK, Event.TERMINATED]);
