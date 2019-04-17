@@ -77,6 +77,7 @@ export default class Client {
 
     if (exists) {
       this.channel(id).push(Action.RESTORE_SNAPSHOT, { snapshot });
+      return true;
     } else {
       throw new Error(`chain${id} does not exist`);
     }

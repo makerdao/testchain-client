@@ -10,6 +10,11 @@ export default class Api {
       let result;
       if (method === 'GET') {
         result = await fetch(`${url}/${route}`, { method });
+      } else if (method === 'DELETE') {
+        result = await fetch(`${url}/${route}`, {
+          method,
+          body
+        });
       } else {
         result = await fetch(`${url}/${route}`, {
           method,
@@ -32,6 +37,10 @@ export default class Api {
     return this.request(`snapshots/${chainType}`, 'GET');
   }
 
+  deleteSnapshot(id) {
+    return this.request(`snapshot/${id}`, 'DELETE');
+  }
+
   getChain(id) {
     return this.request(`chain/${id}`, 'GET');
   }
@@ -42,6 +51,10 @@ export default class Api {
 
   downloadSnapshotUrl(id) {
     return `${this._url}/snapshot/${id}`;
+  }
+
+  listAllCommits() {
+    return this.request('deployment/commits', 'GET');
   }
 
   async getBlockNumber(id) {
