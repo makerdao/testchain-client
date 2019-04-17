@@ -53,8 +53,11 @@ export default class Api {
     return `${this._url}/snapshot/${id}`;
   }
 
-  listAllCommits() {
-    return this.request('deployment/commits', 'GET');
+  async listAllCommits() {
+    const data = await this.request('deployment/commits', 'GET');
+    // TODO null check here:
+    const commits = data.data.result.data;
+    return commits;
   }
 
   async getBlockNumber(id) {
