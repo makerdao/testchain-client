@@ -36,7 +36,11 @@ export default class Api {
     const stackOptions = {
       testchain: {
         config,
-        deps: []
+        deps: [],
+        vdb: {
+          config: {},
+          deps: ['testchain']
+        }
       }
     };
     const body = JSON.stringify(stackOptions);
