@@ -29,6 +29,21 @@ export default class Api {
     });
   }
 
+  startStack(config) {
+    console.log('start stack args', config);
+    // TODO don't hardcode URL
+    const url = 'http://localhost:4000';
+    const stackOptions = {
+      testchain: {
+        config,
+        deps: []
+      }
+    };
+    const body = JSON.stringify(stackOptions);
+    console.log('stack options body', body);
+    return this.request('stack/start', 'POST', url, body);
+  }
+
   listAllChains() {
     return this.request('chains/', 'GET');
   }
@@ -54,9 +69,11 @@ export default class Api {
   }
 
   async listAllCommits() {
-    const data = await this.request('deployment/commits', 'GET');
-    // TODO null check here:
-    const commits = data.data.result.data;
+    const {
+      data: {
+        result: { data: commits }
+      }
+    } = await this.request('deployment/commits', 'GET');
     return commits;
   }
 
