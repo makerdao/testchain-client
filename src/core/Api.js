@@ -30,9 +30,6 @@ export default class Api {
   }
 
   startStack(config) {
-    console.log('start stack args', config);
-    // TODO don't hardcode URL
-    const url = 'http://localhost:4000';
     const stackOptions = {
       testchain: {
         config,
@@ -44,8 +41,7 @@ export default class Api {
       }
     };
     const body = JSON.stringify(stackOptions);
-    console.log('stack options body', body);
-    return this.request('stack/start', 'POST', url, body);
+    return this.request('stack/start', 'POST', this._url, body);
   }
 
   listAllChains() {
