@@ -27,7 +27,7 @@ export default class Client {
 
   async init() {
     await this.socket.init();
-    await this.once(API, Event.API_JOIN);
+    await this.once(API, Event.OK);
   }
 
   channel(id) {
@@ -48,8 +48,8 @@ export default class Client {
 
   async sequenceEvents(id, eventNames) {
     const res = await Promise.all(eventNames.map(ev => this.once(id, ev)));
-    const obj = res.reduce((acc, { eventName, payload }) => {
-      acc[eventName] = payload;
+    const obj = res.reduce((acc, { event, payload }) => {
+      acc[event] = payload;
       return acc;
     }, {});
     return obj;
@@ -77,6 +77,7 @@ export default class Client {
 
     if (exists) {
       this.channel(id).push(Action.RESTORE_SNAPSHOT, { snapshot });
+      return true;
     } else {
       throw new Error(`chain${id} does not exist`);
     }
@@ -84,13 +85,10 @@ export default class Client {
 
   async delete(id) {
     const { details } = await this.api.getChain(id);
-    if (details.status !== Event.CHAIN_TERMINATED) {
+
+    if (details.status !== Event.TERMINATED) {
       this.stop(id);
-      await this.sequenceEvents(id, [
-        Event.OK,
-        Event.CHAIN_STATUS_TERMINATING,
-        Event.CHAIN_TERMINATED
-      ]);
+      await this.sequenceEvents(id, [Event.OK, Event.TERMINATED]);
     }
 
     if (!details.config.clean_on_stop) {
@@ -98,7 +96,7 @@ export default class Client {
     }
 
     return new Promise(resolve => {
-      this.on(API, Event.CHAIN_DELETED, (payload, off) => {
+      this.on(API, Event.OK, (payload, off) => {
         const { response } = payload;
         if (response.message && response.message === 'Chain removed') {
           this.socket.removeChannel(id);

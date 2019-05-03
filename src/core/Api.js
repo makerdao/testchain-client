@@ -10,6 +10,11 @@ export default class Api {
       let result;
       if (method === 'GET') {
         result = await fetch(`${url}/${route}`, { method });
+      } else if (method === 'DELETE') {
+        result = await fetch(`${url}/${route}`, {
+          method,
+          body
+        });
       } else {
         result = await fetch(`${url}/${route}`, {
           method,
@@ -24,12 +29,31 @@ export default class Api {
     });
   }
 
+  startStack(config) {
+    const stackOptions = {
+      testchain: {
+        config,
+        deps: [],
+        vdb: {
+          config: {},
+          deps: ['testchain']
+        }
+      }
+    };
+    const body = JSON.stringify(stackOptions);
+    return this.request('stack/start', 'POST', this._url, body);
+  }
+
   listAllChains() {
     return this.request('chains/', 'GET');
   }
 
   listAllSnapshots(chainType = 'ganache') {
     return this.request(`snapshots/${chainType}`, 'GET');
+  }
+
+  deleteSnapshot(id) {
+    return this.request(`snapshot/${id}`, 'DELETE');
   }
 
   getChain(id) {
@@ -42,6 +66,15 @@ export default class Api {
 
   downloadSnapshotUrl(id) {
     return `${this._url}/snapshot/${id}`;
+  }
+
+  async listAllCommits() {
+    const {
+      data: {
+        result: { data: commits }
+      }
+    } = await this.request('deployment/commits', 'GET');
+    return commits;
   }
 
   async getBlockNumber(id) {

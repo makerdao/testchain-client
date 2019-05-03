@@ -19,23 +19,25 @@ export default class ChannelHandler {
   }
 
   on(eventName, cb) {
-    const ref = this._channel.on(eventName, data => {
-      const off = () => this._channel.off(eventName, ref);
-      cb(data, off);
+    const observer = this.stream.subscribe(({ event, payload }) => {
+      if (event === eventName) {
+        const off = () => observer.unsubscribe();
+        cb(payload, off);
+      }
     });
   }
 
-  once(_eventName) {
+  once(eventName) {
     return new Promise((resolve, reject) => {
       const observer = this._stream.subscribe(
-        ({ eventName, payload }) => {
-          if (eventName === _eventName) {
+        ({ event, payload }) => {
+          if (event === eventName) {
             observer.unsubscribe();
-            resolve({ eventName, payload });
+            resolve({ event, payload });
           }
         },
-        ({ eventName, payload }) => {
-          reject(JSON.stringify({ eventName, payload }, null, 4));
+        ({ event, payload }) => {
+          reject(JSON.stringify({ event, payload }, null, 4));
         }
       );
     });

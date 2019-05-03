@@ -13,7 +13,7 @@ export default class SocketHandler {
 
     this._stream = new Observable(subscriber => {
       this._socket.onOpen(() => {
-        subscriber.next({ eventName: 'socket_open' });
+        subscriber.next({ event: 'socket_open' });
       });
 
       this._socket.onMessage(msg => {
@@ -43,10 +43,10 @@ export default class SocketHandler {
     return this._stream;
   }
 
-  _once(_eventName) {
+  _once(eventName) {
     return new Promise(resolve => {
-      const observer = this.stream.subscribe(({ eventName }) => {
-        if (_eventName === eventName) {
+      const observer = this.stream.subscribe(({ event }) => {
+        if (event === eventName) {
           observer.unsubscribe();
           resolve();
         }
@@ -80,19 +80,16 @@ export default class SocketHandler {
     return this.stream
       .filter(data => data.topic === channelName)
       .map(data => {
-        const { event: eventName, payload } = data;
-        switch (eventName) {
+        const { event, payload } = data;
+        switch (event) {
           case Event.CHAIN_ERROR:
-            return { eventName, payload };
+            return { event, payload };
           case Event.CHAIN_FAILURE:
-            return { eventName, payload };
-          case Event.CHAIN_STATUS_CHANGED:
-            return {
-              eventName: `${Event.CHAIN_STATUS_CHANGED}_${payload.data}`,
-              payload
-            };
+            return { event, payload };
+          case Event.PHX_REPLY:
+            return { event: Event.OK, payload };
           default:
-            return { eventName, payload };
+            return { event, payload };
         }
       });
   }
