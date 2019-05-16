@@ -7,26 +7,31 @@ export default class Api {
 
   request(route, method, url = this._url, body = {}) {
     return new Promise(async (resolve, reject) => {
-      let result;
+      let options;
       if (method === 'GET') {
-        result = await fetch(`${url}/${route}`, { method });
+        options = { method };
       } else if (method === 'DELETE') {
-        result = await fetch(`${url}/${route}`, {
+        options = {
           method,
           body
-        });
+        };
       } else {
-        result = await fetch(`${url}/${route}`, {
+        options = {
           method,
           body,
           headers: {
             'Content-Type': 'application/json'
           }
-        });
+        };
       }
-      const { status, ...data } = await result.json();
-      !status ? resolve(data) : reject(data);
-    });
+      try {
+        const result = await fetch(`${url}/${route}`, options);
+        const { status, ...data } = await result.json();
+        !status ? resolve(data) : reject(data);
+      } catch (err) {
+        reject(err);
+      }
+    }).catch(err => console.error(err));
   }
 
   startStack(config) {
@@ -84,13 +89,13 @@ export default class Api {
       return null;
     } else {
       const url = this._parseChainUrl(chain);
-      const { result: blockNumber } = await this.request(
+      const res = await this.request(
         '',
         'POST',
         url,
         '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
       );
-      return parseInt(blockNumber, 16);
+      if (res && res.result) return parseInt(res.result, 16);
     }
   }
 
