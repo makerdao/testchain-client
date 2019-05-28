@@ -49,6 +49,10 @@ export default class Api {
     return this.request('stack/start', 'POST', this._url, body);
   }
 
+  getStackInfo(id) {
+    return this.request(`/stack/info/${id}`, 'GET');
+  }
+
   listAllChains() {
     return this.request('chains/', 'GET');
   }
