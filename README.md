@@ -113,7 +113,7 @@ passing an options object as a parameter.
 ``` javascript
 {
     clean_on_stop: false,
-    chainType: 'ganace',
+    chainType: 'ganache',
     block_mine_time: 0,
     accounts: 3
 }
