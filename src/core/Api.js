@@ -3,23 +3,31 @@ import fetch from 'node-fetch';
 export default class Api {
   constructor(serverUrl) {
     this._url = serverUrl;
+    this._email = '';
+  }
+
+  setEmail(userEmail) {
+    this._email = userEmail;
   }
 
   request(route, method, url = this._url, body = {}) {
     return new Promise(async (resolve, reject) => {
-      let options;
+      let options = { headers: { 'X-User-Email': this._email } };
       if (method === 'GET') {
-        options = { method };
+        options = { ...options, method };
       } else if (method === 'DELETE') {
         options = {
+          ...options,
           method,
           body
         };
       } else {
         options = {
+          ...options,
           method,
           body,
           headers: {
+            ...options.headers,
             'Content-Type': 'application/json'
           }
         };
