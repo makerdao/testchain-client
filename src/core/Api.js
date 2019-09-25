@@ -86,11 +86,20 @@ export default class Api {
   }
 
   async listAllCommits() {
-    const {
-      data: {
-        result: { data: commits }
+    let commits = [];
+    try {
+      const res = await this.request('deployment/commits', 'GET');
+      if (res) {
+        const {
+          data: {
+            result: { data }
+          }
+        } = res;
+        commits = data;
       }
-    } = await this.request('deployment/commits', 'GET');
+    } catch (err) {
+      console.error('Error getting commits', err);
+    }
     return commits;
   }
 
