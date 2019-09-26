@@ -12,7 +12,8 @@ export default class Api {
 
   request(route, method, url = this._url, body = {}) {
     return new Promise(async (resolve, reject) => {
-      let options = { headers: { 'X-User-Email': this._email } };
+      let options = {};
+      if (this._email) options = { headers: { 'X-User-Email': this._email } };
       if (method === 'GET') {
         options = { ...options, method };
       } else if (method === 'DELETE') {
@@ -43,17 +44,7 @@ export default class Api {
   }
 
   startStack(config) {
-    const stackOptions = {
-      testchain: {
-        config,
-        deps: [],
-        vdb: {
-          config: {},
-          deps: ['testchain']
-        }
-      }
-    };
-    const body = JSON.stringify(stackOptions);
+    const body = JSON.stringify(config);
     return this.request('stack/start', 'POST', this._url, body);
   }
 
