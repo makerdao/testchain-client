@@ -15,7 +15,7 @@ jobs:
       - run: |
           git clone https://github.com/makerdao/staxx.git
           cd staxx
-          make run-dev
+          sudo make run-dev
           cd ..
           yarn test
 workflows:
