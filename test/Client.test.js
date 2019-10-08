@@ -5,7 +5,7 @@ import { Event, ChannelName } from '../src/core/constants';
 import isEqual from 'lodash.isequal';
 import debug from 'debug';
 
-jest.setTimeout(15000);
+// jest.setTimeout(15000);
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const log = debug('log:test');
@@ -16,7 +16,7 @@ const testchainUrl = process.env.TESTCHAIN_URL || 'http://localhost:4000';
 const websocketUrl = process.env.websocketUrl || 'ws://127.0.0.1:4000/socket';
 
 const { API } = ChannelName;
-const { OK, ACTIVE, DEPLOYING, DEPLOYED, READY } = Event;
+const { OK, ACTIVE, DEPLOYING, DEPLOYED, READY, TERMINATED } = Event;
 
 let client;
 
@@ -34,7 +34,7 @@ const stackPayload = {
 
 const _stop = id => {
   client.stop(id);
-  return client.sequenceEvents(id, [Event.OK, Event.TERMINATED]);
+  return client.sequenceEvents(id, [OK, TERMINATED]);
 };
 
 const _restart = id => {
@@ -95,7 +95,6 @@ test('client will start a geth testchain stack in a READY state', async () => {
   const {
     details: { status, id }
   } = await client.api.getChain(expectedId);
-  console.log('ID', id);
 
   expect(status).toEqual(READY);
   expect(id).toEqual(expectedId);
@@ -167,19 +166,21 @@ test('client will start a geth testchain stack in a READY state', async () => {
 //   4 * 60 * 1000
 // ); // this test does take 2.5 - 3 minutes
 
-// test('client will stop a chain instance', async () => {
-//   await client.init();
-//   const { ready } = await _create({ ...options });
-//   const { id } = ready;
+test('client will stop a chain instance', async () => {
+  await client.init();
+  const {
+    data: { id: expectedId }
+  } = await client.api.startStack(stackPayload);
+  await client.sequenceEvents(expectedId, [OK, READY]);
 
-//   const eventData = await _stop(id);
-//   expect(Object.keys(eventData)).toEqual([Event.OK, Event.TERMINATED]);
+  const eventData = await _stop(expectedId);
+  expect(Object.keys(eventData)).toEqual([OK, TERMINATED]);
 
-//   const {
-//     details: { status }
-//   } = await client.api.getChain(id);
-//   expect(status).toEqual('terminated');
-// }, 10000);
+  const {
+    details: { status }
+  } = await client.api.getChain(expectedId);
+  expect(status).toEqual(TERMINATED);
+}, 10000);
 
 // test('client will restart a stopped chain', async () => {
 //   await client.init();
