@@ -2,19 +2,20 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/node:lts
+      - image: circleci/elixir:1.9.0
     steps:
       - checkout
       - run: npm i yarn
       - run: yarn
   test:
     docker:
-      - image: circleci/node:lts
+      - image: circleci/elixir:1.9.0
     steps:
       - setup_remote_docker
       - run: |
-          git clone https://github.com/makerdao/staxx.git
+          git clone https://github.com/b-pmcg/staxx.git
           cd staxx
+          git checkout debug-testchain-client
           sudo docker-compose -f ./docker-compose-dev.yml up -d
           cd ..
           yarn test
