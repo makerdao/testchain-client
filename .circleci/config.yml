@@ -13,6 +13,8 @@ jobs:
     steps:
       - setup_remote_docker
       - run: |
+          whoami
+          sudo usermod -a -G docker circleci
           git clone https://github.com/b-pmcg/staxx.git
           cd staxx
           git checkout debug-testchain-client
