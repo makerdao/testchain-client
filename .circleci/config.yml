@@ -8,20 +8,49 @@ jobs:
       - run: npm i yarn
       - run: yarn
   test:
-    docker:
-      - image: circleci/node:lts
+    machine:
+      image: ubuntu-1604:201903-01
+      # docker_layer_caching: true # default - false
     steps:
-      - setup_remote_docker
+      # - setup_remote_docker
       - run: |
           whoami
-          sudo usermod -a -G docker circleci
+          ls
+          docker --version
+          ps aux | grep docker
+          service docker start
+          # eval $(docker-machine env dev)
+          # docker-machine ls
+          # set
+          ifconfig | grep inet
           git clone https://github.com/b-pmcg/staxx.git
           cd staxx
           git checkout debug-testchain-client
-          sudo docker-compose -f ./docker-compose-dev.yml up -d
+          # docker-compose up --build
           cd ..
-          ls -al
           yarn test
+
+  # test:
+  #   docker:
+  #     - image: circleci/node:lts
+  #   steps:
+  #     - setup_remote_docker
+  #     - run: |
+  #         whoami
+  #         ls
+  #         docker --version
+  #         ps aux | grep docker
+  #         service docker start
+  #         # eval $(docker-machine env dev)
+  #         # docker-machine ls
+  #         # set
+  #         ifconfig | grep inet
+  #         git clone https://github.com/b-pmcg/staxx.git
+  #         cd staxx
+  #         git checkout debug-testchain-client
+  #         # docker-compose up --build
+  #         cd ..
+  #         yarn test
 workflows:
   version: 2
   build_and_test:
