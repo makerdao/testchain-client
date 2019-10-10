@@ -14,13 +14,16 @@ jobs:
       - setup_remote_docker
       - run: |
           whoami
-          sudo usermod -a -G docker circleci
+          ls
+          eval $(docker-machine env dev)
+          docker-machine ls
+          set
+          ifconfig | grep inet
           git clone https://github.com/b-pmcg/staxx.git
           cd staxx
           git checkout debug-testchain-client
-          sudo docker-compose -f ./docker-compose-dev.yml up -d
+          docker-compose up -d
           cd ..
-          ls -al
           yarn test
 workflows:
   version: 2
