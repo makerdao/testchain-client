@@ -31,7 +31,9 @@ jobs:
     steps:
       - setup_remote_docker
       - run: |
-          # git clone https://github.com/makerdao/testchain-stack-vdb
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          echo "${DEPLOYMENT_KEY}" | base64 -d > "./.id_rsa"
+          # git clone git@github.com:makerdao/testchain-stack-vdb.git
           # cd testchain-stack-vdb
           # make install
           # cd ..
