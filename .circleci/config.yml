@@ -31,10 +31,10 @@ jobs:
     steps:
       - setup_remote_docker
       - run: |
-          git clone https://github.com/makerdao/testchain-stack-vdb
-          cd testchain-stack-vdb
-          make install
-          cd ..
+          # git clone https://github.com/makerdao/testchain-stack-vdb
+          # cd testchain-stack-vdb
+          # make install
+          # cd ..
           git clone https://github.com/b-pmcg/staxx.git
           cd staxx
           git checkout debug-testchain-client
