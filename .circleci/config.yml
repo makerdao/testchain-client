@@ -45,6 +45,7 @@ jobs:
           git clone https://github.com/makerdao/testchain-client.git
           cd testchain-client
           git checkout debug-circleci
+          yarn
           yarn test
 workflows:
   version: 2
