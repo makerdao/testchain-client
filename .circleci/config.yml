@@ -40,8 +40,11 @@ jobs:
           git clone https://github.com/b-pmcg/staxx.git
           cd staxx
           git checkout debug-testchain-client
-          docker-compose up -d
+          docker-compose up -d  
           cd ..
+          git clone https://github.com/makerdao/testchain-client.git
+          cd testchain-client
+          git checkout debug-circleci
           yarn test
 workflows:
   version: 2
