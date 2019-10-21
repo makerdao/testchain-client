@@ -71,12 +71,12 @@ export default class Client {
     this.channel(id).push(Action.TAKE_SNAPSHOT, { description });
   }
 
-  async restoreSnapshot(id, snapshot) {
+  async restoreSnapshot(id, snapshotId) {
     const { data: list } = await this.api.listAllChains();
     const exists = list.find(chain => chain.id === id);
 
     if (exists) {
-      this.channel(id).push(Action.RESTORE_SNAPSHOT, { snapshot });
+      this.channel(id).push(Action.RESTORE_SNAPSHOT, { snapshot: snapshotId });
       return true;
     } else {
       throw new Error(`chain${id} does not exist`);
