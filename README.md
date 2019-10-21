@@ -51,14 +51,14 @@ import { Client, Event } from '@makerdao/testchain-client';
 
 The `client` can then be setup as follows:
 
-``` javascript
+```javascript
 const client = new Client(
-    'http://127.0.0.1:4000',	// <REST_API_ENDPOINT>
-    'ws://127.0.0.1:4000'	// <WS_API_ENDPOINT>
+  'http://127.0.0.1:4000', // <REST_API_ENDPOINT>
+  'ws://127.0.0.1:4000' // <WS_API_ENDPOINT>
 );
 
 client.init().then(() => {
-    console.log('Client initialised');
+  console.log('Client initialised');
 });
 ```
 
@@ -81,7 +81,7 @@ connection. All functions are asynchronous.
 
 - `listAllSnapshots(chainType)` - returns a list of all snapshots for each
   chaintype, `ganache` or `geth`
-  
+
 - `getChain(id)` - finds the chain with id and returns it's details
   including it's passed configuration data, it's account information and other
   chain information.
@@ -90,15 +90,15 @@ connection. All functions are asynchronous.
 
 - `getBlockNumber(id)` - will perform a json-rpc request to chain of `id` and
   return the current block number. This can be useful for debugging purposes.
-  
+
 - `mineBlock(id)` - if the chainType is `ganache`, a useful json-rpc command is
   included called `evm_mine` which is used to increment the blocknumber. This
   too is also useful for debugging purposes.
-  
-***Example***
 
-``` javascript
-await client.api.getChain(id)
+**_Example_**
+
+```javascript
+await client.api.getChain(id);
 ```
 
 ### WEBSOCKET API
@@ -109,8 +109,9 @@ As previously mentioned, when the `client` is initialised, it automatically
 opens the `'api'` channel. We use this channel to create our chains instances by
 passing an options object as a parameter.
 
-***Example***
-``` javascript
+**_Example_**
+
+```javascript
 {
     clean_on_stop: false,
     chainType: 'ganache',
@@ -121,8 +122,8 @@ passing an options object as a parameter.
 
 **To create the chain instance:**
 
-``` javascript
-client.create(options)
+```javascript
+client.create(options);
 ```
 
 In order to interact with the created chain instance we must first extract the
@@ -133,59 +134,62 @@ other functions, we can then find/create that channel.
 To extract the `id` we make use of some of the event functionality that is
 explained in the next section
 
-``` javascript
+```javascript
 client.create({ ...options });
-client.once('api', Event.CHAIN_CREATED).then(console.log); 
+client.once('api', Event.CHAIN_CREATED).then(console.log);
 
 // prints
 
-{ 
+{
     eventName: 'phx_reply',
-    payload: { 
+    payload: {
         status: 'ok',
-        response: { 
-            id: '7177259706074024037' 
-        } 
-    } 
+        response: {
+            id: '7177259706074024037'
+        }
+    }
 }
 
 ```
 
 Once the `id` is extracted, the other functions are easily used.
 
-**To stop a running chain:** 
+**To stop a running chain:**
 
-``` javascript
-client.stop(id)
+```javascript
+client.stop(id);
 ```
 
 **To restart a stopped chain:**
 
-``` javascript
-client.restart(id)
+```javascript
+client.restart(id);
 ```
 
 **To take a snapshot of the current chains state:**
 
-``` javascript
-client.takeSnapshot(id, description)
+```javascript
+client.takeSnapshot(id, description);
 ```
+
+Taking a snapshot will stop the chain; if the chain was created with the config option `clean_on_stop: true`, the chain will be removed when stopped. Therefore, `takeSnapshot` can only be used with chains that have been created with `clean_on_stop: false`.
 
 **To restore a snapshot of a previous chain state:**
 
-``` javascript
-client.restoreSnapshot(id, snapshot)
+```javascript
+client.restoreSnapshot(id, snapshotId);
 ```
 
-The `snapshot` parameter refers to the id of the snapshot we wish to restore. If
+The `snapshotId` parameter refers to the id of the snapshot we wish to restore. If
 the chain which initially created the snapshot no longer exists, this will create
 a new chain instance using the snapshot.
 
 **To remove a chain instance permanently:**
 
-``` javascript
-client.delete(id)
+```javascript
+client.delete(id);
 ```
+
 This returns a promise and will stop a chain instance first before deleting it
 
 ### Events
@@ -204,17 +208,17 @@ is an asynchronous data stream and can be subscribed to at any time. We
 use this object and the event constants to observe the websocket channel's behaviour and
 extract information as it comes down this stream.
 
-**`stream()`***
+**`stream()`\***
 
 To subscribe to a chain's data stream, we call the `stream()` function which
 returns the observable object for that channel.
 
-``` javascript
+```javascript
 const chainStream = client.stream(id); // Specify the chain by it's id
 const obs = chainStream.subscribe(
     ({ eventName, payload }) => {
         // do something
-    }	
+    }
 );
 .
 .
@@ -235,23 +239,23 @@ The `once()` function builds around this subscription model and wraps a promise
 based on the next incoming event, returning the payload. This is especially
 useful around functions like `create()` and `takeSnapshot()` which return data after being executed.
 
-``` javascript
+```javascript
 client.create(options);
 client.once('api', Event.CHAIN_STARTED).then(console.log);
 
 // prints
 
-{ 
+{
     eventName: 'started',
-    payload: { 
+    payload: {
         ws_url: 'ws://ex-testchain.local:8552',
         rpc_url: 'http://ex-testchain.local:8552',
         network_id: 999,
         id: '12449877630527910658',
         gas_limit: 9000000000000,
         coinbase: '0xf84174a9fb743c6df671bc391acab4a5bcafeefe',
-        accounts: [ ... ] 
-    } 
+        accounts: [ ... ]
+    }
 }
 
 ```
@@ -265,9 +269,9 @@ Where we wish to observe and wait on multiple events to be fired, we can use
 `sequenceEvents()`. This will return a promise which when resolved produces an
 object of the fired events and the returned payloads.
 
-``` javascript
+```javascript
 client.create(options);
-this.sequenceEvents(id, 
+this.sequenceEvents(id,
     [
         Event.CHAIN_STARTED,
         Event.CHAIN_STATUS_ACTIVE,
@@ -276,27 +280,27 @@ this.sequenceEvents(id,
 
 // prints
 
-{ 
-    started: { 
+{
+    started: {
         ws_url: 'ws://ex-testchain.local:8571',
         rpc_url: 'http://ex-testchain.local:8571',
         network_id: 999,
         id: '11957893023697223559',
         gas_limit: 9000000000000,
         coinbase: '0x3a92149876fb55d685a15caea45979526a4b2242',
-        accounts: [ ... ] 
+        accounts: [ ... ]
     },
-    status_changed_active: { 
-        data: 'active' 
+    status_changed_active: {
+        data: 'active'
     },
-    ready: { 
+    ready: {
         ws_url: 'ws://ex-testchain.local:8571',
         rpc_url: 'http://ex-testchain.local:8571',
         network_id: 999,
         id: '11957893023697223559',
         gas_limit: 9000000000000,
         coinbase: '0x3a92149876fb55d685a15caea45979526a4b2242',
-        accounts: [ ... ] 
+        accounts: [ ... ]
     }
 }
 ```
@@ -311,27 +315,27 @@ that matches its event parameter.
 
 The `on()` function takes three parameters, the chain id we wish to listen on,
 the event we wish to listen for on that chain channel, and a callback which
-fires on that event firing. 
+fires on that event firing.
 
 That callback contains the payload for that event and a function `off()` which
 is used to unsubscribe from the `on()` when satisfied.
 
-***Example***
+**_Example_**
 
 A good example of this is in the `delete()` function where a promise is
 returned. We use the `on()` function to resolve said promise when the correct
 payload is returned signifying that it has been deleted.
 
-``` javascript
+```javascript
 return new Promise(resolve => {
-    this.on('api', Event.CHAIN_DELETED, (payload, off) => {
-        const { response } = payload;
-        if (response.message && response.message === 'Chain removed') {
-            // do something now that chain has been deleted
-            off();
-            resolve();
-        }
-    });
+  this.on('api', Event.CHAIN_DELETED, (payload, off) => {
+    const { response } = payload;
+    if (response.message && response.message === 'Chain removed') {
+      // do something now that chain has been deleted
+      off();
+      resolve();
+    }
+  });
 });
 ```
 
@@ -339,7 +343,7 @@ return new Promise(resolve => {
 
 In order to observe the stream visually, the client uses
 [debug.js](https://github.com/visionmedia/debug) to extend logging functionality
-to the console. 
+to the console.
 
 When testing, prepend the cli arg with an environement variable `DEBUG=log*`
 which will print out all socket and channel events information.
