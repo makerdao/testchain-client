@@ -52,6 +52,10 @@ export default class Api {
     return this.request(`/stack/info/${id}`, 'GET');
   }
 
+  getChain(id) {
+    return this.request(`chain/${id}`, 'GET');
+  }
+
   listAllChains() {
     return this.request('chains/', 'GET');
   }
@@ -62,10 +66,6 @@ export default class Api {
 
   deleteSnapshot(id) {
     return this.request(`snapshot/${id}`, 'DELETE');
-  }
-
-  getChain(id) {
-    return this.request(`chain/${id}`, 'GET');
   }
 
   deleteChain(id) {

@@ -80,8 +80,8 @@ afterEach(async () => {
 });
 
 test('client will be created correctly', () => {
+  expect(client).toBeInstanceOf(Client);
   expect(client.socket).toBeInstanceOf(SocketHandler);
-  expect(client.api).toBeInstanceOf(Api);
 });
 
 test('client will initialise socket connection', async () => {
@@ -91,87 +91,6 @@ test('client will initialise socket connection', async () => {
   expect(client.connections[0]).toEqual(API);
   expect(client.channel(API).joined).toBe(true);
 });
-
-test('client will start a geth testchain stack in a READY state', async () => {
-  await client.init();
-  const {
-    data: { id: expectedId }
-  } = await client.api.startStack(stackPayload);
-  await client.sequenceEvents(expectedId, [OK, READY]);
-
-  const {
-    details: { status, id }
-  } = await client.api.getChain(expectedId);
-
-  expect(status).toEqual(READY);
-  expect(id).toEqual(expectedId);
-});
-
-// test(
-//   'client will create a chain instance with deployments',
-//   async () => {
-//     await client.init();
-
-//     const eventData = await _create({ ...options, scenario_id: 1 });
-//     expect(Object.keys(eventData)).toEqual([
-//       Event.OK,
-//       Event.DEPLOYING,
-//       Event.DEPLOYED,
-//       Event.READY,
-//       Event.ACTIVE
-//     ]);
-
-//     const { ready } = eventData;
-//     const { id } = ready;
-//     const { details } = await client.api.getChain(id);
-
-//     const { chain_details, deploy_step, deploy_hash } = details;
-
-//     const { deployed } = eventData;
-//     expect(Object.keys(deployed)).toEqual([
-//       'MCD_JUG',
-//       'PROXY_ACTIONS',
-//       'MCD_VAT',
-//       'MCD_JOIN_REP',
-//       'MCD_SPOT',
-//       'MCD_DAI',
-//       'MCD_MOM_LIB',
-//       'CDP_MANAGER',
-//       'MCD_PIT',
-//       'MCD_FLOP',
-//       'VAL_REP',
-//       'MCD_DEPLOY',
-//       'MCD_FLAP',
-//       'PIP_REP',
-//       'MCD_FLIP_REP',
-//       'VOTE_PROXY_FACTORY',
-//       'PROXY_REGISTRY',
-//       'PROXY_FACTORY',
-//       'MCD_MOVE_DAI',
-//       'MCD_GOV',
-//       'REP',
-//       'MCD_JOIN_DAI',
-//       'PIP_ETH',
-//       'MCD_ADM',
-//       'MCD_MOM',
-//       'MCD_FLIP_ETH',
-//       'MCD_MOVE_ETH',
-//       'MCD_CAT',
-//       'MCD_POT',
-//       'VAL_ETH',
-//       'MCD_VOW',
-//       'MCD_JOIN_ETH',
-//       'MCD_MOVE_REP',
-//       'MCD_GOV_GUARD',
-//       'MCD_DAI_GUARD',
-//       'MULTICALL'
-//     ]);
-//     expect(deploy_hash).toBeDefined();
-//     expect(deploy_step.description).toEqual('Scenario 1 - General deployment');
-//     expect(isEqual(chain_details, ready)).toBe(true);
-//   },
-//   4 * 60 * 1000
-// ); // this test does take 2.5 - 3 minutes
 
 test('client will stop a chain instance', async () => {
   await client.init();
@@ -236,7 +155,7 @@ test('client will delete a chain', async () => {
   const { data: list2 } = await client.api.listAllChains();
   expect(list2.find(chain => chain.id === id1)).not.toBeDefined();
   expect(list2.find(chain => chain.id === id2)).not.toBeDefined();
-}, 25000);
+}, 30000);
 
 test('client will take a snapshot of chain started with "clean_on_stop: false"', async () => {
   // Taking a snapshot will stop the chain, so clean_on_stop must be false.
@@ -268,7 +187,7 @@ test('client will take a snapshot of chain started with "clean_on_stop: false"',
   expect(snapshot.description).toBe(snapshotDescription);
 
   await sleep(1000);
-}, 20000);
+}, 25000);
 
 test('client will restore a snapshot', async () => {
   // Taking a snapshot will stop the chain, so clean_on_stop must be false.
