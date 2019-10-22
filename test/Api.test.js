@@ -29,6 +29,8 @@ const stackPayload = {
 };
 
 beforeEach(() => {
+  // Setting inordinately high until we figure out threshhold for circleci
+  jest.setTimeout(60000);
   client = new Client(testchainUrl, websocketUrl);
 });
 
