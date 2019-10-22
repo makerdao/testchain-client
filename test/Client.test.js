@@ -108,7 +108,7 @@ test('client will stop a chain instance', async () => {
   } = await client.api.getChain(id);
 
   expect(status).toEqual(TERMINATED);
-}, 7000);
+}, 25000);
 
 test('client will restart a stopped chain', async () => {
   await client.init();
