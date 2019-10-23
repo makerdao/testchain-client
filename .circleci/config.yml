@@ -31,6 +31,15 @@ jobs:
             npm i yarn -g
             yarn
             yarn test
+      - run:
+          name: Notifiation Failed
+          command: bash .circleci/notify "failed"
+          when: on_fail
+      - run:
+          name: Notification Sucess
+          command: bash ./circleci/notify "success"
+          when: on_success
+
 workflows:
   version: 2
   build_and_test:
