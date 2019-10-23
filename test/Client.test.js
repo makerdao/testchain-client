@@ -67,11 +67,14 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  await sleep(10000);
   const { data: list } = await client.api.listAllChains();
   for (const chain of list) {
     const { id } = chain;
     await client.delete(id);
   }
+
+  await sleep(10000);
 
   for (const type of ['ganache', 'geth']) {
     const { data: snapshots } = await client.api.listAllSnapshots(type);
@@ -79,14 +82,16 @@ afterEach(async () => {
       await client.api.deleteSnapshot(id);
     }
   }
+
+  await sleep(10000);
 });
 
-test('client will be created correctly', () => {
+test.only('client will be created correctly', () => {
   expect(client).toBeInstanceOf(Client);
   expect(client.socket).toBeInstanceOf(SocketHandler);
 });
 
-test('client will initialise socket connection', async () => {
+test.only('client will initialise socket connection', async () => {
   expect(client.socket.connected).toBe(false);
   await client.init();
   expect(client.socket.connected).toBe(true);
@@ -94,7 +99,7 @@ test('client will initialise socket connection', async () => {
   expect(client.channel(API).joined).toBe(true);
 });
 
-test('client will stop a chain instance', async () => {
+test.only('client will stop a chain instance', async () => {
   await client.init();
   const {
     data: { id }

@@ -49,7 +49,7 @@ afterEach(async () => {
   }
 });
 
-test('API will be created correctly', () => {
+test.only('API will be created correctly', () => {
   expect(client.api).toBeInstanceOf(Api);
 });
 
