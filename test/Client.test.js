@@ -19,295 +19,329 @@ const { OK, ACTIVE, DEPLOYING, DEPLOYED, READY, TERMINATED } = Event;
 
 let client;
 
-const chainType = 'geth';
-const stackPayload = {
-  testchain: {
-    config: {
-      type: chainType,
-      accounts: 2,
-      block_mine_time: 0,
-      clean_on_stop: false
-    },
-    deps: []
+const chainTypes = ['geth', 'ganache'];
+// const chainType = 'ganache';
+
+beforeAll(() => {
+  client = new Client(testchainUrl, websocketUrl);
+});
+
+afterAll(async () => {
+  const { data: list } = await client.api.listAllChains();
+  for (const chain of list) {
+    const { id } = chain;
+    await client.delete(id);
+    await sleep(10000);
   }
-};
 
-describe('Basic testchain functions', async () => {
-  let testchainId1;
-
-  const _stop = id => {
-    client.stop(id);
-    return client.sequenceEvents(id, [OK, TERMINATED]);
-  };
-
-  const _restart = id => {
-    client.restart(id);
-    return client.sequenceEvents(id, [READY]);
-  };
-
-  const _takeSnapshot = (id, description) => {
-    client.takeSnapshot(id, description);
-    return client.sequenceEvents(id, [
-      Event.TAKING_SNAPSHOT,
-      Event.SNAPSHOT_TAKEN,
-      Event.ACTIVE
-    ]);
-  };
-
-  const _restoreSnapshot = async (id, snapshot) => {
-    client.restoreSnapshot(id, snapshot);
-    return client.sequenceEvents(id, [
-      Event.REVERTING_SNAPSHOT,
-      Event.SNAPSHOT_REVERTED,
-      Event.ACTIVE
-    ]);
-  };
-
-  beforeAll(() => {
-    client = new Client(testchainUrl, websocketUrl);
-  });
-
-  afterAll(async () => {
-    const { data: list } = await client.api.listAllChains();
-    for (const chain of list) {
-      const { id } = chain;
-      await client.delete(id);
+  for (const type of ['ganache', 'geth', 'geth_vdb']) {
+    const { data: snapshots } = await client.api.listAllSnapshots(type);
+    for (const { id } of snapshots) {
+      await client.api.deleteSnapshot(id);
+      await sleep(10000);
     }
+  }
+});
 
-    await sleep(10000);
+test('client will be created correctly', () => {
+  expect(client).toBeInstanceOf(Client);
+  expect(client.api).toBeInstanceOf(Api);
+  expect(client.socket).toBeInstanceOf(SocketHandler);
+});
 
-    for (const type of ['ganache', 'geth', 'geth_vdb']) {
-      const { data: snapshots } = await client.api.listAllSnapshots(type);
-      for (const { id } of snapshots) {
-        await client.api.deleteSnapshot(id);
+test('client will initialise socket connection', async () => {
+  expect(client.socket.connected).toBe(false);
+  await client.init();
+  expect(client.socket.connected).toBe(true);
+  expect(client.connections[0]).toEqual(API);
+  expect(client.channel(API).joined).toBe(true);
+});
+
+test('listAllCommits will return an array containing all commits from dss-deploy-scripts repo', async () => {
+  const commits = await client.api.listAllCommits();
+  const keys = Object.keys(commits[0]);
+  expect(keys).toEqual(['text', 'ref', 'date', 'commit', 'author']);
+});
+
+describe.each(chainTypes)(
+  'Basic testchain functions for %s',
+  async chainType => {
+    const stackPayload = {
+      testchain: {
+        config: {
+          type: chainType,
+          accounts: 2,
+          block_mine_time: 0,
+          clean_on_stop: false
+        },
+        deps: []
       }
-    }
+    };
+    let testchainId1;
 
-    await sleep(10000);
-  });
+    const _stop = id => {
+      client.stop(id);
+      return client.sequenceEvents(id, [OK, TERMINATED]);
+    };
 
-  test('client will be created correctly', () => {
-    expect(client).toBeInstanceOf(Client);
-    expect(client.api).toBeInstanceOf(Api);
-    expect(client.socket).toBeInstanceOf(SocketHandler);
-  });
+    const _restart = id => {
+      client.restart(id);
+      return client.sequenceEvents(id, [READY]);
+    };
 
-  test('client will initialise socket connection', async () => {
-    expect(client.socket.connected).toBe(false);
-    await client.init();
-    expect(client.socket.connected).toBe(true);
-    expect(client.connections[0]).toEqual(API);
-    expect(client.channel(API).joined).toBe(true);
-  });
+    const _takeSnapshot = (id, description) => {
+      client.takeSnapshot(id, description);
+      return client.sequenceEvents(id, [
+        Event.TAKING_SNAPSHOT,
+        Event.SNAPSHOT_TAKEN,
+        Event.ACTIVE
+      ]);
+    };
 
-  test('startStack method will start a geth testchain stack in a READY state', async () => {
-    const {
-      data: { id: expectedId }
-    } = await client.api.startStack(stackPayload);
-    await client.sequenceEvents(expectedId, [OK, READY]);
+    const _restoreSnapshot = async (id, snapshot) => {
+      client.restoreSnapshot(id, snapshot);
+      return client.sequenceEvents(id, [
+        Event.REVERTING_SNAPSHOT,
+        Event.SNAPSHOT_REVERTED,
+        Event.ACTIVE
+      ]);
+    };
 
-    // Use this ID for the rest of the tests in this block.
-    testchainId1 = expectedId;
+    // beforeAll(() => {
+    //   client = new Client(testchainUrl, websocketUrl);
+    // });
 
-    const {
-      details: { status, id }
-    } = await client.api.getChain(expectedId);
+    // afterAll(async () => {
+    //   console.log('AFTER ALL; RUN ONCE');
+    //   const { data: list } = await client.api.listAllChains();
+    //   for (const chain of list) {
+    //     const { id } = chain;
+    //     await client.delete(id);
+    //   }
 
-    expect(status).toEqual(READY);
-    expect(id).toEqual(expectedId);
-  }, 10000);
+    //   await sleep(10000);
 
-  test('client will stop a chain instance', async () => {
-    const eventData = await _stop(testchainId1);
-    expect(Object.keys(eventData)).toEqual([OK, TERMINATED]);
+    //   for (const type of ['ganache', 'geth', 'geth_vdb']) {
+    //     const { data: snapshots } = await client.api.listAllSnapshots(type);
+    //     for (const { id } of snapshots) {
+    //       await client.api.deleteSnapshot(id);
+    //     }
+    //   }
 
-    const {
-      details: { status }
-    } = await client.api.getChain(testchainId1);
+    //   await sleep(10000);
+    // });
 
-    expect(status).toEqual(TERMINATED);
-  }, 25000);
+    // test('client will be created correctly', () => {
+    //   expect(client).toBeInstanceOf(Client);
+    //   expect(client.api).toBeInstanceOf(Api);
+    //   expect(client.socket).toBeInstanceOf(SocketHandler);
+    // });
 
-  test('client will restart a stopped chain', async () => {
-    const {
-      details: { status: status1 }
-    } = await client.api.getChain(testchainId1);
-    expect(status1).toEqual(TERMINATED);
+    // test('client will initialise socket connection', async () => {
+    //   expect(client.socket.connected).toBe(false);
+    //   await client.init();
+    //   expect(client.socket.connected).toBe(true);
+    //   expect(client.connections[0]).toEqual(API);
+    //   expect(client.channel(API).joined).toBe(true);
+    // });
 
-    const eventData = await _restart(testchainId1);
-    expect(Object.keys(eventData)).toEqual([READY]);
+    test(`startStack method will start a ${chainType} testchain stack in a READY state`, async () => {
+      const {
+        data: { id: expectedId }
+      } = await client.api.startStack(stackPayload);
+      await client.sequenceEvents(expectedId, [OK, READY]);
 
-    const {
-      details: { status: status2 }
-    } = await client.api.getChain(testchainId1);
+      // Use this ID for the rest of the tests in this block.
+      testchainId1 = expectedId;
 
-    expect(status2).toEqual(READY);
-  }, 20000);
+      const {
+        details: { status, id }
+      } = await client.api.getChain(expectedId);
 
-  // TODO: Finish test implementation when endpoint is fixed.
-  xtest('getStackInfo will return an object with stack information', async () => {
-    await client.init();
-    const {
-      data: { id }
-    } = await client.api.startStack(stackPayload);
-    await client.sequenceEvents(id, [OK, READY]);
+      expect(status).toEqual(READY);
+      expect(id).toEqual(expectedId);
+    }, 10000);
 
-    const stackInfo = await client.api.getStackInfo(id);
-    console.log('stackInfo', stackInfo);
-  });
+    test('client will stop a chain instance', async () => {
+      const eventData = await _stop(testchainId1);
+      expect(Object.keys(eventData)).toEqual([OK, TERMINATED]);
 
-  test('getChain will return an object with correct chain details', async () => {
-    const { details: chainData } = await client.api.getChain(testchainId1);
-    const { config, chain_details: chainDetails } = chainData;
-    const chainDataKeys = Object.keys(chainData);
-    const configKeys = Object.keys(config);
-    const chainDetailsKeys = Object.keys(chainDetails);
+      const {
+        details: { status }
+      } = await client.api.getChain(testchainId1);
 
-    expect(chainDataKeys).toEqual([
-      'status',
-      'id',
-      'deploy_step',
-      'deploy_hash',
-      'deploy_data',
-      'config',
-      'chain_details'
-    ]);
+      expect(status).toEqual(TERMINATED);
+    }, 25000);
 
-    expect(configKeys).toEqual([
-      'type',
-      'step_id',
-      'snapshot_id',
-      'node',
-      'network_id',
-      'id',
-      'description',
-      'deploy_tag',
-      'clean_on_stop',
-      'block_mine_time',
-      'accounts'
-    ]);
+    test('client will restart a stopped chain', async () => {
+      const {
+        details: { status: status1 }
+      } = await client.api.getChain(testchainId1);
+      expect(status1).toEqual(TERMINATED);
 
-    expect(chainDetailsKeys).toEqual([
-      'ws_url',
-      'rpc_url',
-      'network_id',
-      'id',
-      'gas_limit',
-      'coinbase',
-      'accounts'
-    ]);
-  });
+      const eventData = await _restart(testchainId1);
+      expect(Object.keys(eventData)).toEqual([READY]);
 
-  test('listAllChains will return an array of existing chains', async () => {
-    const { data } = await client.api.listAllChains(testchainId1);
+      const {
+        details: { status: status2 }
+      } = await client.api.getChain(testchainId1);
 
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBe(1);
-  });
+      expect(status2).toEqual(READY);
+    }, 20000);
 
-  test('listAllChains will return snapshots for a given chain type', async () => {
-    for (const type of ['ganache', 'geth', 'geth_vdb']) {
-      const { data } = await client.api.listAllSnapshots(type);
+    // TODO: Finish test implementation when endpoint is fixed.
+    xtest('getStackInfo will return an object with stack information', async () => {
+      await client.init();
+      const {
+        data: { id }
+      } = await client.api.startStack(stackPayload);
+      await client.sequenceEvents(id, [OK, READY]);
+
+      const stackInfo = await client.api.getStackInfo(id);
+      console.log('stackInfo', stackInfo);
+    });
+
+    test('getChain will return an object with correct chain details', async () => {
+      const { details: chainData } = await client.api.getChain(testchainId1);
+      const { config, chain_details: chainDetails } = chainData;
+      const chainDataKeys = Object.keys(chainData);
+      const configKeys = Object.keys(config);
+      const chainDetailsKeys = Object.keys(chainDetails);
+
+      expect(chainDataKeys).toEqual([
+        'status',
+        'id',
+        'deploy_step',
+        'deploy_hash',
+        'deploy_data',
+        'config',
+        'chain_details'
+      ]);
+
+      expect(configKeys).toEqual([
+        'type',
+        'step_id',
+        'snapshot_id',
+        'node',
+        'network_id',
+        'id',
+        'description',
+        'deploy_tag',
+        'clean_on_stop',
+        'block_mine_time',
+        'accounts'
+      ]);
+
+      expect(chainDetailsKeys).toEqual([
+        'ws_url',
+        'rpc_url',
+        'network_id',
+        'id',
+        'gas_limit',
+        'coinbase',
+        'accounts'
+      ]);
+    });
+
+    test('listAllChains will return an array of existing chains', async () => {
+      const { data } = await client.api.listAllChains(testchainId1);
+
       expect(Array.isArray(data)).toBe(true);
-    }
-  });
+      expect(data.length).toBe(1);
+    });
 
-  test('client will take a snapshot of chain started with "clean_on_stop: false"', async () => {
-    // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
+    test(`listAllChains will return snapshots for ${chainType}`, async () => {
+      const { data } = await client.api.listAllSnapshots(chainType);
+      expect(Array.isArray(data)).toBe(true);
+    });
 
-    const timestamp = new Date();
-    const snapshotDescription = `Jest takeSnapshot ${timestamp.toUTCString()}`;
-    const eventData = await _takeSnapshot(testchainId1, snapshotDescription);
+    test('client will take a snapshot of chain', async () => {
+      // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
 
-    expect(Object.keys(eventData)).toEqual([
-      Event.TAKING_SNAPSHOT,
-      Event.SNAPSHOT_TAKEN,
-      Event.ACTIVE
-    ]);
+      const timestamp = new Date();
+      const snapshotDescription = `Jest takeSnapshot ${chainType} ${timestamp.toUTCString()}`;
+      const eventData = await _takeSnapshot(testchainId1, snapshotDescription);
 
-    const { snapshot_taken } = eventData;
-    const { id: snapId } = snapshot_taken;
-    const { data: list } = await client.api.listAllSnapshots(chainType);
-    const snapshot = list.find(snapshot => snapshot.id === snapId);
+      expect(Object.keys(eventData)).toEqual([
+        Event.TAKING_SNAPSHOT,
+        Event.SNAPSHOT_TAKEN,
+        Event.ACTIVE
+      ]);
 
-    expect(snapshot.description).toBe(snapshotDescription);
+      const { snapshot_taken } = eventData;
+      const { id: snapId } = snapshot_taken;
+      const { data: list } = await client.api.listAllSnapshots(chainType);
+      const snapshot = list.find(s => s.id === snapId);
 
-    await sleep(1000);
-  }, 25000);
+      expect(snapshot.description).toBe(snapshotDescription);
 
-  test('client will restore a snapshot', async () => {
-    // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
+      await sleep(4000);
+    }, 25000);
 
-    const timestamp = new Date();
-    const snapshotDescription = `Jest restoreSnapshot ${timestamp.toUTCString()}`;
-    const {
-      snapshot_taken: { id: snapshotId }
-    } = await _takeSnapshot(testchainId1, snapshotDescription);
+    test('client will restore a snapshot', async () => {
+      // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
 
-    // must wait for chain to move to status: active before trying to restore snapshot
-    await sleep(1000);
+      const timestamp = new Date();
+      const snapshotDescription = `Jest restoreSnapshot ${timestamp.toUTCString()}`;
+      const {
+        snapshot_taken: { id: snapshotId }
+      } = await _takeSnapshot(testchainId1, snapshotDescription);
 
-    const eventData = await _restoreSnapshot(testchainId1, snapshotId);
+      // must wait for chain to move to status: active before trying to restore snapshot
+      await sleep(1000);
 
-    expect(Object.keys(eventData)).toEqual([
-      Event.REVERTING_SNAPSHOT,
-      Event.SNAPSHOT_REVERTED,
-      Event.ACTIVE
-    ]);
+      const eventData = await _restoreSnapshot(testchainId1, snapshotId);
 
-    const { snapshot_reverted } = eventData;
-    const { id: snapId } = snapshot_reverted;
-    const { data: list } = await client.api.listAllSnapshots(chainType);
-    const snapshot = list.find(snapshot => snapshot.id === snapId);
+      expect(Object.keys(eventData)).toEqual([
+        Event.REVERTING_SNAPSHOT,
+        Event.SNAPSHOT_REVERTED,
+        Event.ACTIVE
+      ]);
 
-    expect(snapshot.description).toBe(snapshotDescription);
+      const { snapshot_reverted } = eventData;
+      const { id: snapId } = snapshot_reverted;
+      const { data: list } = await client.api.listAllSnapshots(chainType);
+      const snapshot = list.find(snapshot => snapshot.id === snapId);
 
-    await sleep(1000);
-  }, 30000);
+      expect(snapshot.description).toBe(snapshotDescription);
 
-  test('downloadSnapshot will return a URL to download a snapshot', async () => {
-    for (const type of ['ganache', 'geth', 'geth_vdb']) {
-      const { data: snapshots } = await client.api.listAllSnapshots(type);
+      await sleep(1000);
+    }, 30000);
+
+    test('downloadSnapshot will return a URL to download a snapshot', async () => {
+      const { data: snapshots } = await client.api.listAllSnapshots(chainType);
 
       if (snapshots.length > 0) {
         const url = await client.api.downloadSnapshotUrl(snapshots[0].id);
         expect(url).toEqual(`${testchainUrl}/snapshot/${snapshots[0].id}`);
       }
-    }
-  });
+    });
 
-  test('deleteSnapshot will delete snapshots for a given chain type', async () => {
-    for (const type of ['ganache', 'geth', 'geth_vdb']) {
-      const { data: snapshots } = await client.api.listAllSnapshots(type);
+    test('deleteSnapshot will delete snapshots for a given chain type', async () => {
+      const { data: snapshots } = await client.api.listAllSnapshots(chainType);
 
       for (const { id } of snapshots) {
         expect(snapshots.length).toBeGreaterThan(0);
         await client.api.deleteSnapshot(id);
       }
-      const { data: snapshots2 } = await client.api.listAllSnapshots(type);
+      const { data: snapshots2 } = await client.api.listAllSnapshots(chainType);
       expect(snapshots2.length).toBe(0);
-    }
-  });
+    });
 
-  test('client will delete a chain', async () => {
-    //TODO remove this when no longer necessary
-    await sleep(2000);
+    test('client will delete a chain', async () => {
+      //TODO remove this when no longer necessary
+      await sleep(2000);
 
-    const { data: list1 } = await client.api.listAllChains();
-    expect(list1.find(chain => chain.id === testchainId1)).toBeDefined();
+      const { data: list1 } = await client.api.listAllChains();
+      expect(list1.find(chain => chain.id === testchainId1)).toBeDefined();
 
-    await client.delete(testchainId1);
+      await client.delete(testchainId1);
 
-    const { data: list2 } = await client.api.listAllChains();
-    expect(list2.find(chain => chain.id === testchainId1)).not.toBeDefined();
-  }, 60000);
-
-  test('listAllCommits will return an array containing all commits from dss-deploy-scripts repo', async () => {
-    const commits = await client.api.listAllCommits();
-    const keys = Object.keys(commits[0]);
-    expect(keys).toEqual(['text', 'ref', 'date', 'commit', 'author']);
-  });
-});
+      const { data: list2 } = await client.api.listAllChains();
+      expect(list2.find(chain => chain.id === testchainId1)).not.toBeDefined();
+    }, 60000);
+  }
+);
 
 // // test(
 // //   'client will create a chain instance with deployments',
