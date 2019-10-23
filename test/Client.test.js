@@ -7,7 +7,7 @@ import debug from 'debug';
 
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-const log = debug('log:test');
+// jest.setTimeout(960000);
 
 // const testchainUrl = 'http://18.185.172.121:4000';
 // const websocketUrl = 'ws://18.185.172.121:4000/socket';
@@ -106,44 +106,6 @@ describe.each(chainTypes)(
         Event.ACTIVE
       ]);
     };
-
-    // beforeAll(() => {
-    //   client = new Client(testchainUrl, websocketUrl);
-    // });
-
-    // afterAll(async () => {
-    //   console.log('AFTER ALL; RUN ONCE');
-    //   const { data: list } = await client.api.listAllChains();
-    //   for (const chain of list) {
-    //     const { id } = chain;
-    //     await client.delete(id);
-    //   }
-
-    //   await sleep(10000);
-
-    //   for (const type of ['ganache', 'geth', 'geth_vdb']) {
-    //     const { data: snapshots } = await client.api.listAllSnapshots(type);
-    //     for (const { id } of snapshots) {
-    //       await client.api.deleteSnapshot(id);
-    //     }
-    //   }
-
-    //   await sleep(10000);
-    // });
-
-    // test('client will be created correctly', () => {
-    //   expect(client).toBeInstanceOf(Client);
-    //   expect(client.api).toBeInstanceOf(Api);
-    //   expect(client.socket).toBeInstanceOf(SocketHandler);
-    // });
-
-    // test('client will initialise socket connection', async () => {
-    //   expect(client.socket.connected).toBe(false);
-    //   await client.init();
-    //   expect(client.socket.connected).toBe(true);
-    //   expect(client.connections[0]).toEqual(API);
-    //   expect(client.channel(API).joined).toBe(true);
-    // });
 
     test(`startStack method will start a ${chainType} testchain stack in a READY state`, async () => {
       const {
@@ -343,68 +305,94 @@ describe.each(chainTypes)(
   }
 );
 
-// // test(
-// //   'client will create a chain instance with deployments',
-// //   async () => {
-// //     await client.init();
+// WIP
+xdescribe('Testchain stack with contracts deployment', async () => {
+  test(
+    'client will create a chain instance with deployments',
+    async () => {
+      const chainType = 'geth';
+      // note the ID is arbitrary since there is only one deploy step currently available.
+      const deployStepId = 1;
+      const stackPayload = {
+        testchain: {
+          config: {
+            type: chainType,
+            accounts: 2,
+            block_mine_time: 0,
+            clean_on_stop: false,
+            step_id: deployStepId
+          },
+          deps: []
+        }
+      };
+      const {
+        data: { id }
+      } = await client.api.startStack(stackPayload);
+      console.log('ID', id);
 
-// //     const eventData = await _create({ ...options, scenario_id: 1 });
-// //     expect(Object.keys(eventData)).toEqual([
-// //       Event.OK,
-// //       Event.DEPLOYING,
-// //       Event.DEPLOYED,
-// //       Event.READY,
-// //       Event.ACTIVE
-// //     ]);
+      const OK = await client.once(id, Event.OK);
+      console.log(OK);
+      const DEPLOYING = await client.once(id, Event.DEPLOYING);
+      console.log(DEPLOYING);
+      const DEPLOYED = await client.once(id, Event.DEPLOYED);
+      console.log(DEPLOYED);
+      const READY = await client.once(id, Event.READY);
+      console.log(READY);
+      const ACTIVE = await client.once(id, Event.ACTIVE);
+      console.log(ACTIVE);
 
-// //     const { ready } = eventData;
-// //     const { id } = ready;
-// //     const { details } = await client.api.getChain(id);
+      // console.log('eventData', eventData);
 
-// //     const { chain_details, deploy_step, deploy_hash } = details;
+      const { details } = await client.api.getChain(id);
+      console.log('details', details);
 
-// //     const { deployed } = eventData;
-// //     expect(Object.keys(deployed)).toEqual([
-// //       'MCD_JUG',
-// //       'PROXY_ACTIONS',
-// //       'MCD_VAT',
-// //       'MCD_JOIN_REP',
-// //       'MCD_SPOT',
-// //       'MCD_DAI',
-// //       'MCD_MOM_LIB',
-// //       'CDP_MANAGER',
-// //       'MCD_PIT',
-// //       'MCD_FLOP',
-// //       'VAL_REP',
-// //       'MCD_DEPLOY',
-// //       'MCD_FLAP',
-// //       'PIP_REP',
-// //       'MCD_FLIP_REP',
-// //       'VOTE_PROXY_FACTORY',
-// //       'PROXY_REGISTRY',
-// //       'PROXY_FACTORY',
-// //       'MCD_MOVE_DAI',
-// //       'MCD_GOV',
-// //       'REP',
-// //       'MCD_JOIN_DAI',
-// //       'PIP_ETH',
-// //       'MCD_ADM',
-// //       'MCD_MOM',
-// //       'MCD_FLIP_ETH',
-// //       'MCD_MOVE_ETH',
-// //       'MCD_CAT',
-// //       'MCD_POT',
-// //       'VAL_ETH',
-// //       'MCD_VOW',
-// //       'MCD_JOIN_ETH',
-// //       'MCD_MOVE_REP',
-// //       'MCD_GOV_GUARD',
-// //       'MCD_DAI_GUARD',
-// //       'MULTICALL'
-// //     ]);
-// //     expect(deploy_hash).toBeDefined();
-// //     expect(deploy_step.description).toEqual('Scenario 1 - General deployment');
-// //     expect(isEqual(chain_details, ready)).toBe(true);
-// //   },
-// //   4 * 60 * 1000
-// // ); // this test does take 2.5 - 3 minutes
+      // const { chain_details, deploy_step, deploy_hash } = details;
+
+      // const { deployed } = eventData;
+      // expect(Object.keys(deployed)).toEqual([
+      //   'MCD_JUG',
+      //   'PROXY_ACTIONS',
+      //   'MCD_VAT',
+      //   'MCD_JOIN_REP',
+      //   'MCD_SPOT',
+      //   'MCD_DAI',
+      //   'MCD_MOM_LIB',
+      //   'CDP_MANAGER',
+      //   'MCD_PIT',
+      //   'MCD_FLOP',
+      //   'VAL_REP',
+      //   'MCD_DEPLOY',
+      //   'MCD_FLAP',
+      //   'PIP_REP',
+      //   'MCD_FLIP_REP',
+      //   'VOTE_PROXY_FACTORY',
+      //   'PROXY_REGISTRY',
+      //   'PROXY_FACTORY',
+      //   'MCD_MOVE_DAI',
+      //   'MCD_GOV',
+      //   'REP',
+      //   'MCD_JOIN_DAI',
+      //   'PIP_ETH',
+      //   'MCD_ADM',
+      //   'MCD_MOM',
+      //   'MCD_FLIP_ETH',
+      //   'MCD_MOVE_ETH',
+      //   'MCD_CAT',
+      //   'MCD_POT',
+      //   'VAL_ETH',
+      //   'MCD_VOW',
+      //   'MCD_JOIN_ETH',
+      //   'MCD_MOVE_REP',
+      //   'MCD_GOV_GUARD',
+      //   'MCD_DAI_GUARD',
+      //   'MULTICALL'
+      // ]);
+      // expect(deploy_hash).toBeDefined();
+      // expect(deploy_step.description).toEqual(
+      //   'Scenario 1 - General deployment'
+      // );
+      // expect(isEqual(chain_details, ready)).toBe(true);
+    },
+    4 * 60 * 1000
+  ); // this test does take 2.5 - 3 minutes
+});

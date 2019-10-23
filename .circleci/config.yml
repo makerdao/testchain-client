@@ -21,9 +21,9 @@ jobs:
           command: |
             #ssh-keyscan github.com >> ~/.ssh/known_hosts
             #echo "${DEPLOYMENT_KEY}" | base64 -d > "~/.ssh/id_rsa"
-            git clone https://github.com/b-pmcg/staxx.git
+            git clone https://github.com/makerdao/staxx.git
             cd staxx
-            git checkout debug-testchain-client
+            # git checkout debug-testchain-client
             make run-dev
       - run:
           name: run tests
