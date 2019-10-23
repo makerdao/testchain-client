@@ -33,6 +33,8 @@ const stackPayload = {
 };
 
 describe('Basic testchain functions', async () => {
+  let testchainId1;
+
   const _stop = id => {
     client.stop(id);
     return client.sequenceEvents(id, [OK, TERMINATED]);
@@ -62,13 +64,10 @@ describe('Basic testchain functions', async () => {
   };
 
   beforeAll(() => {
-    // Setting inordinately high until we figure out threshhold for circleci
-    // jest.setTimeout(120000);
     client = new Client(testchainUrl, websocketUrl);
   });
 
   afterAll(async () => {
-    // await sleep(10000);
     const { data: list } = await client.api.listAllChains();
     for (const chain of list) {
       const { id } = chain;
@@ -86,8 +85,6 @@ describe('Basic testchain functions', async () => {
 
     await sleep(10000);
   });
-
-  let testchainId1;
 
   test('client will be created correctly', () => {
     expect(client).toBeInstanceOf(Client);
@@ -304,6 +301,12 @@ describe('Basic testchain functions', async () => {
     const { data: list2 } = await client.api.listAllChains();
     expect(list2.find(chain => chain.id === testchainId1)).not.toBeDefined();
   }, 60000);
+
+  test('listAllCommits will return an array containing all commits from dss-deploy-scripts repo', async () => {
+    const commits = await client.api.listAllCommits();
+    const keys = Object.keys(commits[0]);
+    expect(keys).toEqual(['text', 'ref', 'date', 'commit', 'author']);
+  });
 });
 
 // // test(
