@@ -61,7 +61,7 @@ test('listAllCommits will return an array containing all commits from dss-deploy
   const commits = await client.api.listAllCommits();
   const keys = Object.keys(commits[0]);
   expect(keys).toEqual(['text', 'ref', 'date', 'commit', 'author']);
-});
+}, 10000);
 
 describe.each(chainTypes)(
   'Basic testchain functions for %s',
@@ -313,6 +313,7 @@ xdescribe('Testchain stack with contracts deployment', async () => {
       const chainType = 'geth';
       // note the ID is arbitrary since there is only one deploy step currently available.
       const deployStepId = 1;
+      const stableRelease = 'tags/0.2.14';
       const stackPayload = {
         testchain: {
           config: {
@@ -320,7 +321,8 @@ xdescribe('Testchain stack with contracts deployment', async () => {
             accounts: 2,
             block_mine_time: 0,
             clean_on_stop: false,
-            step_id: deployStepId
+            step_id: deployStepId,
+            deploy_tag: stableRelease
           },
           deps: []
         }
