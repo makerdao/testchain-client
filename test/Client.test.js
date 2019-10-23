@@ -147,59 +147,6 @@ describe('Basic testchain functions', async () => {
     expect(status2).toEqual(READY);
   }, 20000);
 
-  test('client will take a snapshot of chain started with "clean_on_stop: false"', async () => {
-    // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
-
-    const timestamp = new Date();
-    const snapshotDescription = `Jest takeSnapshot ${timestamp.toUTCString()}`;
-    const eventData = await _takeSnapshot(testchainId1, snapshotDescription);
-
-    expect(Object.keys(eventData)).toEqual([
-      Event.TAKING_SNAPSHOT,
-      Event.SNAPSHOT_TAKEN,
-      Event.ACTIVE
-    ]);
-
-    const { snapshot_taken } = eventData;
-    const { id: snapId } = snapshot_taken;
-    const { data: list } = await client.api.listAllSnapshots(chainType);
-    const snapshot = list.find(snapshot => snapshot.id === snapId);
-
-    expect(snapshot.description).toBe(snapshotDescription);
-
-    await sleep(1000);
-  }, 25000);
-
-  test('client will restore a snapshot', async () => {
-    // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
-
-    const timestamp = new Date();
-    const snapshotDescription = `Jest restoreSnapshot ${timestamp.toUTCString()}`;
-    const {
-      snapshot_taken: { id: snapshotId }
-    } = await _takeSnapshot(testchainId1, snapshotDescription);
-
-    // must wait for chain to move to status: active before trying to restore snapshot
-    await sleep(1000);
-
-    const eventData = await _restoreSnapshot(testchainId1, snapshotId);
-
-    expect(Object.keys(eventData)).toEqual([
-      Event.REVERTING_SNAPSHOT,
-      Event.SNAPSHOT_REVERTED,
-      Event.ACTIVE
-    ]);
-
-    const { snapshot_reverted } = eventData;
-    const { id: snapId } = snapshot_reverted;
-    const { data: list } = await client.api.listAllSnapshots(chainType);
-    const snapshot = list.find(snapshot => snapshot.id === snapId);
-
-    expect(snapshot.description).toBe(snapshotDescription);
-
-    await sleep(1000);
-  }, 30000);
-
   // TODO: Finish test implementation when endpoint is fixed.
   xtest('getStackInfo will return an object with stack information', async () => {
     await client.init();
@@ -265,6 +212,70 @@ describe('Basic testchain functions', async () => {
     for (const type of ['ganache', 'geth', 'geth_vdb']) {
       const { data } = await client.api.listAllSnapshots(type);
       expect(Array.isArray(data)).toBe(true);
+    }
+  });
+
+  test('client will take a snapshot of chain started with "clean_on_stop: false"', async () => {
+    // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
+
+    const timestamp = new Date();
+    const snapshotDescription = `Jest takeSnapshot ${timestamp.toUTCString()}`;
+    const eventData = await _takeSnapshot(testchainId1, snapshotDescription);
+
+    expect(Object.keys(eventData)).toEqual([
+      Event.TAKING_SNAPSHOT,
+      Event.SNAPSHOT_TAKEN,
+      Event.ACTIVE
+    ]);
+
+    const { snapshot_taken } = eventData;
+    const { id: snapId } = snapshot_taken;
+    const { data: list } = await client.api.listAllSnapshots(chainType);
+    const snapshot = list.find(snapshot => snapshot.id === snapId);
+
+    expect(snapshot.description).toBe(snapshotDescription);
+
+    await sleep(1000);
+  }, 25000);
+
+  test('client will restore a snapshot', async () => {
+    // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
+
+    const timestamp = new Date();
+    const snapshotDescription = `Jest restoreSnapshot ${timestamp.toUTCString()}`;
+    const {
+      snapshot_taken: { id: snapshotId }
+    } = await _takeSnapshot(testchainId1, snapshotDescription);
+
+    // must wait for chain to move to status: active before trying to restore snapshot
+    await sleep(1000);
+
+    const eventData = await _restoreSnapshot(testchainId1, snapshotId);
+
+    expect(Object.keys(eventData)).toEqual([
+      Event.REVERTING_SNAPSHOT,
+      Event.SNAPSHOT_REVERTED,
+      Event.ACTIVE
+    ]);
+
+    const { snapshot_reverted } = eventData;
+    const { id: snapId } = snapshot_reverted;
+    const { data: list } = await client.api.listAllSnapshots(chainType);
+    const snapshot = list.find(snapshot => snapshot.id === snapId);
+
+    expect(snapshot.description).toBe(snapshotDescription);
+
+    await sleep(1000);
+  }, 30000);
+
+  test('downloadSnapshot will return a URL to download a snapshot', async () => {
+    for (const type of ['ganache', 'geth', 'geth_vdb']) {
+      const { data: snapshots } = await client.api.listAllSnapshots(type);
+
+      if (snapshots.length > 0) {
+        const url = await client.api.downloadSnapshotUrl(snapshots[0].id);
+        expect(url).toEqual(`${testchainUrl}/snapshot/${snapshots[0].id}`);
+      }
     }
   });
 
