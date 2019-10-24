@@ -2,12 +2,8 @@ import Client from '../src/Client';
 import SocketHandler from '../src/core/SocketHandler';
 import Api from '../src/core/Api';
 import { Event, ChannelName } from '../src/core/constants';
-import isEqual from 'lodash.isequal';
-import debug from 'debug';
 
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-// jest.setTimeout(960000);
 
 // const testchainUrl = 'http://18.185.172.121:4000';
 // const websocketUrl = 'ws://18.185.172.121:4000/socket';
@@ -15,12 +11,10 @@ const testchainUrl = process.env.TESTCHAIN_URL || 'http://localhost:4000';
 const websocketUrl = process.env.websocketUrl || 'ws://127.0.0.1:4000/socket';
 
 const { API } = ChannelName;
-const { OK, ACTIVE, DEPLOYING, DEPLOYED, READY, TERMINATED } = Event;
+const { OK, READY, TERMINATED } = Event;
 
 let client;
-
 const chainTypes = ['geth', 'ganache'];
-// const chainType = 'ganache';
 
 beforeAll(() => {
   client = new Client(testchainUrl, websocketUrl);
@@ -42,6 +36,11 @@ afterAll(async () => {
     }
   }
 });
+
+const createDescription = (name, chainType) => {
+  const timestamp = new Date();
+  return `Jest ${name} ${chainType} ${timestamp.toUTCString()}`;
+};
 
 test('client will be created correctly', () => {
   expect(client).toBeInstanceOf(Client);
@@ -72,7 +71,8 @@ describe.each(chainTypes)(
           type: chainType,
           accounts: 2,
           block_mine_time: 0,
-          clean_on_stop: false
+          clean_on_stop: false,
+          description: createDescription('stackNoDeployment', chainType)
         },
         deps: []
       }
@@ -220,8 +220,8 @@ describe.each(chainTypes)(
     test('client will take a snapshot of chain', async () => {
       // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
 
-      const timestamp = new Date();
-      const snapshotDescription = `Jest takeSnapshot ${chainType} ${timestamp.toUTCString()}`;
+      const snapshotDescription = createDescription('takeSnapshot', chainType);
+
       const eventData = await _takeSnapshot(testchainId1, snapshotDescription);
 
       expect(Object.keys(eventData)).toEqual([
@@ -243,8 +243,8 @@ describe.each(chainTypes)(
     test('client will restore a snapshot', async () => {
       // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
 
-      const timestamp = new Date();
-      const snapshotDescription = `Jest restoreSnapshot ${timestamp.toUTCString()}`;
+      const snapshotDescription = createDescription('takeSnapshot', chainType);
+
       const {
         snapshot_taken: { id: snapshotId }
       } = await _takeSnapshot(testchainId1, snapshotDescription);
@@ -313,7 +313,6 @@ xdescribe('Testchain stack with contracts deployment', async () => {
       const chainType = 'geth';
       // note the ID is arbitrary since there is only one deploy step currently available.
       const deployStepId = 1;
-      const stableRelease = 'tags/0.2.14';
       const stackPayload = {
         testchain: {
           config: {
@@ -321,8 +320,9 @@ xdescribe('Testchain stack with contracts deployment', async () => {
             accounts: 2,
             block_mine_time: 0,
             clean_on_stop: false,
+            description: createDescription('stackDeployment', 'geth'),
             step_id: deployStepId,
-            deploy_tag: stableRelease
+            network_id: 1337
           },
           deps: []
         }
@@ -340,15 +340,22 @@ xdescribe('Testchain stack with contracts deployment', async () => {
       console.log(DEPLOYED);
       const READY = await client.once(id, Event.READY);
       console.log(READY);
-      const ACTIVE = await client.once(id, Event.ACTIVE);
-      console.log(ACTIVE);
+      // const ACTIVE = await client.once(id, Event.ACTIVE);
+      // console.log(ACTIVE);
 
       // console.log('eventData', eventData);
 
       const { details } = await client.api.getChain(id);
       console.log('details', details);
 
-      // const { chain_details, deploy_step, deploy_hash } = details;
+      const { chain_details, deploy_step, deploy_hash } = details;
+
+      console.log(
+        'chain_details, deploy_step, deploy_hash',
+        chain_details,
+        deploy_step,
+        deploy_hash
+      );
 
       // const { deployed } = eventData;
       // expect(Object.keys(deployed)).toEqual([
@@ -395,6 +402,6 @@ xdescribe('Testchain stack with contracts deployment', async () => {
       // );
       // expect(isEqual(chain_details, ready)).toBe(true);
     },
-    4 * 60 * 1000
+    15 * 60 * 1000
   ); // this test does take 2.5 - 3 minutes
 });
