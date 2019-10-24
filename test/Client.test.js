@@ -149,7 +149,7 @@ describe.each(chainTypes)(
       } = await client.api.getChain(testchainId1);
 
       expect(status2).toEqual(READY);
-    }, 20000);
+    }, 30000);
 
     // TODO: Finish test implementation when endpoint is fixed.
     xtest('getStackInfo will return an object with stack information', async () => {
@@ -238,7 +238,7 @@ describe.each(chainTypes)(
       expect(snapshot.description).toBe(snapshotDescription);
 
       await sleep(4000);
-    }, 25000);
+    }, 30000);
 
     test('client will restore a snapshot', async () => {
       // Note: Taking a snapshot will stop the chain, so config option "clean_on_stop" must be false.
