@@ -299,6 +299,8 @@ describe.each(chainTypes)(
 
       await client.delete(testchainId1);
 
+      await sleep(2000);
+
       const { data: list2 } = await client.api.listAllChains();
       expect(list2.find(chain => chain.id === testchainId1)).not.toBeDefined();
     }, 60000);
