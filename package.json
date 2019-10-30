@@ -1,7 +1,7 @@
 {
   "name": "@makerdao/testchain-client",
   "description": "A client for managing custom testchain deployments.",
-  "version": "0.2.14-rc.1",
+  "version": "0.2.15",
   "license": "MIT",
   "repository": {},
   "dependencies": {
