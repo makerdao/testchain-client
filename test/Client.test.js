@@ -21,21 +21,21 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
-  const { data: list } = await client.api.listAllChains();
-  for (const chain of list) {
-    const { id } = chain;
-    await client.delete(id);
-    await sleep(10000);
-  }
+  // const { data: list } = await client.api.listAllChains();
+  // for (const chain of list) {
+  //   const { id } = chain;
+  //   await client.delete(id);
+  //   // await sleep(10000);
+  // }
 
   for (const type of ['ganache', 'geth', 'geth_vdb']) {
     const { data: snapshots } = await client.api.listAllSnapshots(type);
     for (const { id } of snapshots) {
       await client.api.deleteSnapshot(id);
-      await sleep(10000);
+      // await sleep(10000);
     }
   }
-});
+}, 5 * 60 * 1000);
 
 const createDescription = (name, chainType) => {
   const timestamp = new Date();
@@ -71,7 +71,7 @@ describe.each(chainTypes)(
           type: chainType,
           accounts: 2,
           block_mine_time: 0,
-          clean_on_stop: false,
+          clean_on_stop: true,
           description: createDescription('stackNoDeployment', chainType)
         },
         deps: []
@@ -308,10 +308,13 @@ describe.each(chainTypes)(
 );
 
 // WIP
-xdescribe('Testchain stack with contracts deployment', async () => {
+describe('Testchain stack with contracts deployment', async () => {
   test(
     'client will create a chain instance with deployments',
     async () => {
+
+      // jest.setTimeout(20 * 60 * 1000);
+
       const chainType = 'geth';
       // note the ID is arbitrary since there is only one deploy step currently available.
       const deployStepId = 1;
@@ -321,9 +324,10 @@ xdescribe('Testchain stack with contracts deployment', async () => {
             type: chainType,
             accounts: 2,
             block_mine_time: 0,
-            clean_on_stop: false,
+            clean_on_stop: true,
             description: createDescription('stackDeployment', 'geth'),
             step_id: deployStepId,
+            deploy_tag: 'refs/tags/staxx-testrunner',
             network_id: 1337
           },
           deps: []
@@ -334,14 +338,20 @@ xdescribe('Testchain stack with contracts deployment', async () => {
       } = await client.api.startStack(stackPayload);
       console.log('ID', id);
 
+      // const eventData = await client.sequenceEvents(id, [
+      //   Event.OK,
+      //   Event.DEPLOYING,
+      //   Event.DEPLOYED,
+      //   Event.READY
+      // ]);
       const OK = await client.once(id, Event.OK);
       console.log(OK);
       const DEPLOYING = await client.once(id, Event.DEPLOYING);
       console.log(DEPLOYING);
       const DEPLOYED = await client.once(id, Event.DEPLOYED);
       console.log(DEPLOYED);
-      const READY = await client.once(id, Event.READY);
-      console.log(READY);
+      // const READY = await client.once(id, Event.READY);
+      // console.log(READY);
       // const ACTIVE = await client.once(id, Event.ACTIVE);
       // console.log(ACTIVE);
 
@@ -398,12 +408,12 @@ xdescribe('Testchain stack with contracts deployment', async () => {
       //   'MCD_DAI_GUARD',
       //   'MULTICALL'
       // ]);
-      // expect(deploy_hash).toBeDefined();
+      expect(deploy_hash).toBeDefined();
       // expect(deploy_step.description).toEqual(
       //   'Scenario 1 - General deployment'
       // );
       // expect(isEqual(chain_details, ready)).toBe(true);
     },
     15 * 60 * 1000
-  ); // this test does take 2.5 - 3 minutes
+  ); // this test does take 10 - 15 minutes
 });
