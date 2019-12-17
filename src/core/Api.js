@@ -45,11 +45,29 @@ export default class Api {
 
   startStack(config) {
     const body = JSON.stringify(config);
+    return this.request('/stack/start', 'POST', this._url, body);
+  }
+
+  restartStack(id) {
+    // TODO: check if something else needed ?
+    const config = {
+      testchain: {
+        config: {
+          id: id
+        },
+        deps: []
+      }
+    };
+    const body = JSON.stringify(config);
     return this.request('stack/start', 'POST', this._url, body);
   }
 
+  stopStack(id) {
+    return this.request(`stack/stop/${id}`, 'GET');
+  }
+
   getStackInfo(id) {
-    return this.request(`/stack/info/${id}`, 'GET');
+    return this.request(`stack/info/${id}`, 'GET');
   }
 
   getChain(id) {
@@ -57,11 +75,15 @@ export default class Api {
   }
 
   listAllChains() {
-    return this.request('chains/', 'GET');
+    return this.request('chains', 'GET');
   }
 
   listAllSnapshots(chainType = 'ganache') {
     return this.request(`snapshots/${chainType}`, 'GET');
+  }
+
+  listStacksConfigs() {
+    return this.request('stack/list', 'GET');
   }
 
   deleteSnapshot(id) {
@@ -74,6 +96,14 @@ export default class Api {
 
   downloadSnapshotUrl(id) {
     return `${this._url}/snapshot/${id}`;
+  }
+
+  reloadStackConfigs() {
+    return this.request('stack/reload', 'GET');
+  }
+
+  getDeploymentSteps() {
+    return this.request('deployment/steps', 'GET');
   }
 
   async listAllCommits() {
