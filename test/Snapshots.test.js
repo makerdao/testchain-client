@@ -40,7 +40,7 @@ describe.each(chainTypesToTest)(
         deps: []
       }
     };
-    
+
     let testchainId1, coinbase;
 
     const email = `${randomString(12)}@makerdao.com`;
@@ -51,18 +51,18 @@ describe.each(chainTypesToTest)(
     const _takeSnapshot = (id, description) => {
       client.takeSnapshot(id, description);
       return client.sequenceEvents(id, [
-        Event.TAKING_SNAPSHOT,
+        Event.CHAIN_STATUS_CHANGED,
         Event.SNAPSHOT_TAKEN,
-        Event.ACTIVE
+        Event.READY
       ]);
     };
 
     const _restoreSnapshot = async (id, snapshot) => {
       client.restoreSnapshot(id, snapshot);
       return client.sequenceEvents(id, [
-        Event.REVERTING_SNAPSHOT,
+        Event.CHAIN_STATUS_CHANGED,
         Event.SNAPSHOT_REVERTED,
-        Event.ACTIVE
+        Event.READY
       ]);
     };
 
@@ -110,7 +110,7 @@ describe.each(chainTypesToTest)(
       startedChains.push(expectedId);
 
       const {
-        details: { status, id, chain_details: details }
+        data: { status, id, details: details }
       } = await client.api.getChain(expectedId);
 
       expect(status).toEqual(READY);
@@ -128,11 +128,13 @@ describe.each(chainTypesToTest)(
 
       const eventData = await _takeSnapshot(testchainId1, snapshotDescription);
 
-      expect(Object.keys(eventData)).toEqual([
-        Event.TAKING_SNAPSHOT,
-        Event.SNAPSHOT_TAKEN,
-        Event.ACTIVE
-      ]);
+      expect(Object.keys(eventData)).toEqual(
+        expect.arrayContaining([
+          // Event.TAKING_SNAPSHOT,
+          Event.SNAPSHOT_TAKEN,
+          Event.READY
+        ])
+      );
 
       const { snapshot_taken } = eventData;
       const { id: snapId } = snapshot_taken;
@@ -140,7 +142,7 @@ describe.each(chainTypesToTest)(
       const snapshot = list.find(s => s.id === snapId);
 
       expect(snapshot.description).toBe(snapshotDescription);
-      
+
       snapshots.push(snapId);
 
       await sleep(4000);
@@ -158,11 +160,13 @@ describe.each(chainTypesToTest)(
 
       const eventData = await _restoreSnapshot(testchainId1, snapshotId);
 
-      expect(Object.keys(eventData)).toEqual([
-        Event.REVERTING_SNAPSHOT,
-        Event.SNAPSHOT_REVERTED,
-        Event.ACTIVE
-      ]);
+      expect(Object.keys(eventData)).toEqual(
+        expect.arrayContaining([
+          // Event.REVERTING_SNAPSHOT,
+          Event.SNAPSHOT_REVERTED,
+          Event.READY
+        ])
+      );
 
       const { snapshot_reverted } = eventData;
       const { id: snapId } = snapshot_reverted;
@@ -172,13 +176,13 @@ describe.each(chainTypesToTest)(
       expect(snapshot.description).toBe(snapshotDescription);
 
       const {
-        details: { status, id, chain_details: details }
+        data: { status, id, details: details }
       } = await client.api.getChain(testchainId1);
 
       expect(status).toEqual(READY);
       expect(id).toEqual(testchainId1);
       expect(coinbase).toEqual(details.coinbase);
-      
+
       await sleep(1000);
     }, 30000);
 

@@ -29,7 +29,7 @@ beforeAll(async () => {
 
 test('Get list of steps', async () => {
   const { data: data } = await client.api.getDeploymentSteps();
-  
+
   expect(typeof data).toBe('object');
   expect(data.tagHash).toHaveLength(40);
   expect(Array.isArray(data.steps)).toBe(true);
@@ -56,8 +56,8 @@ describe.each(chainTypesToTest)(
           block_mine_time: 0,
           clean_on_stop: false, // Because we have to test restart
           description: createDescription('stackDeployment', chainType),
-          deploy_tag: deploymentHash,
-          step_id: 1
+          deploy_ref: deploymentHash,
+          deploy_step_id: 1
         },
         deps: []
       }
@@ -98,7 +98,7 @@ describe.each(chainTypesToTest)(
       const {
         data: { id: expectedId }
       } = await client.api.startStack(stackPayload);
-      
+
       const eventData = await client.sequenceEvents(expectedId, [
         Event.OK,
         Event.DEPLOYED,
@@ -115,17 +115,20 @@ describe.each(chainTypesToTest)(
       // Adding to list of started chains
       startedChains.push(expectedId);
 
-      const { details } = await client.api.getChain(expectedId);
+      const { data: details } = await client.api.getChain(expectedId);
       expect(details).toHaveProperty('status', READY);
-      expect(details).toHaveProperty('deploy_step');
-      expect(details).toHaveProperty('deploy_hash', deploymentHash);
-      expect(details).toHaveProperty('deploy_data');
+      expect(details).toHaveProperty('deployment');
 
-      expect(details.deploy_data).toHaveProperty('PROXY_ACTIONS');
-      expect(details.deploy_data).toHaveProperty('MCD_VAT');
-      expect(details.deploy_data).toHaveProperty('ETH');
-      expect(details.deploy_data).toHaveProperty('PROXY_PAUSE_ACTIONS');
-      expect(details.deploy_data).toHaveProperty('CDP_MANAGER');
+      const deployment = details.deployment;
+
+      expect(deployment).toHaveProperty('step_id');
+      expect(deployment).toHaveProperty('git_ref', deploymentHash);
+      expect(deployment).toHaveProperty('result');
+      expect(deployment.result).toHaveProperty('PROXY_ACTIONS');
+      expect(deployment.result).toHaveProperty('MCD_VAT');
+      expect(deployment.result).toHaveProperty('ETH');
+      expect(deployment.result).toHaveProperty('PROXY_PAUSE_ACTIONS');
+      expect(deployment.result).toHaveProperty('CDP_MANAGER');
 
     }, 20 * 60 * 1000);
   }

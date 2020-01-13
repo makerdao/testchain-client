@@ -5,7 +5,7 @@ import { Event, ChannelName } from '../src/core/constants';
 import { setupClient, randomString, createDescription } from './helpers';
 
 const { API } = ChannelName;
-const { OK, READY, TERMINATING, TERMINATED } = Event;
+const { OK, READY, CHAIN_TERMINATED } = Event;
 
 let client;
 const chainTypesToTest = ['geth', 'ganache'];
@@ -48,7 +48,8 @@ describe.each(chainTypesToTest)(
       // We should not wait for stop result because
       // We will handle events from WS connection
       client.api.stopStack(id);
-      return client.sequenceEvents(id, [TERMINATING, TERMINATED]);
+      // return client.sequenceStatuses(id, [TERMINATING, TERMINATED]);
+      return client.sequenceEvents(id, [CHAIN_TERMINATED]);
     };
 
     const _restart = async id => {
@@ -100,7 +101,7 @@ describe.each(chainTypesToTest)(
       startedChains.push(expectedId);
 
       const {
-        details: { status, id }
+        data: { status, id }
       } = await client.api.getChain(expectedId);
 
       expect(status).toEqual(READY);
@@ -108,50 +109,57 @@ describe.each(chainTypesToTest)(
     }, 10000);
 
     test('getChain will return an object with correct chain details', async () => {
-      const { details: chainData } = await client.api.getChain(testchainId1);
-      const { config, chain_details: chainDetails } = chainData;
+      const { data: chainData } = await client.api.getChain(testchainId1);
+      const { config, details: chainDetails } = chainData;
       const chainDataKeys = Object.keys(chainData);
       const configKeys = Object.keys(config);
       const chainDetailsKeys = Object.keys(chainDetails);
 
-      expect(chainDataKeys).toEqual([
-        'status',
-        'id',
-        'deploy_step',
-        'deploy_hash',
-        'deploy_data',
-        'config',
-        'chain_details'
-      ]);
+      expect(chainDataKeys).toEqual(
+        expect.arrayContaining([
+          'id',
+          'title',
+          'node_type',
+          'status',
+          'config',
+          'details',
+          'deployment'
+        ])
+      );
 
-      expect(configKeys).toEqual([
-        'type',
-        'step_id',
-        'snapshot_id',
-        'node',
-        'network_id',
-        'id',
-        'description',
-        'deploy_tag',
-        'clean_on_stop',
-        'block_mine_time',
-        'accounts'
-      ]);
+      expect(configKeys).toEqual(
+        expect.arrayContaining([
+          'accounts',
+          'block_mine_time',
+          'clean_on_stop',
+          'db_path',
+          'deploy_ref',
+          'deploy_step_id',
+          'description',
+          'gas_limit',
+          'id',
+          'network_id',
+          'snapshot_id',
+          'type'
+        ])
+      );
 
-      expect(chainDetailsKeys).toEqual([
-        'ws_url',
-        'rpc_url',
-        'network_id',
-        'id',
-        'gas_limit',
-        'coinbase',
-        'accounts'
-      ]);
+      expect(chainDetailsKeys).toEqual(
+        expect.arrayContaining([
+          'ws_url',
+          'rpc_url',
+          'network_id',
+          'id',
+          'gas_limit',
+          'coinbase',
+          'accounts'
+        ])
+      );
     });
 
     test('listAllChains will return an array of existing chains', async () => {
       const { data } = await client.api.listAllChains();
-      
+
       expect(Array.isArray(data)).toBe(true);
       expect(data.length).toBeGreaterThanOrEqual(1);
     });
@@ -159,7 +167,7 @@ describe.each(chainTypesToTest)(
     test('listAllChains will return an array of existing chains for email', async () => {
       client.api.setEmail(email);
       const { data } = await client.api.listAllChains();
-      
+
       expect(Array.isArray(data)).toBe(true);
       expect(data.length).toBe(1);
       // Check for list of existing
@@ -168,26 +176,27 @@ describe.each(chainTypesToTest)(
 
     test('client will stop a chain instance', async () => {
       const eventData = await _stop(testchainId1);
-      expect(Object.keys(eventData)).toEqual([TERMINATING, TERMINATED]);
+      // expect(Object.keys(eventData)).toEqual([TERMINATING, TERMINATED]);
+      expect(Object.keys(eventData)).toEqual([CHAIN_TERMINATED]);
 
       const {
-        details: { status }
+        data: { status }
       } = await client.api.getChain(testchainId1);
-      
-      expect(status).toEqual(TERMINATED);
+
+      expect(status).toEqual(CHAIN_TERMINATED);
     }, 10000);
 
     test('client will restart a stopped chain', async () => {
       const {
-        details: { status: status1 }
+        data: { status: status1 }
       } = await client.api.getChain(testchainId1);
-      expect(status1).toEqual(TERMINATED);
+      expect(status1).toEqual(CHAIN_TERMINATED);
 
       const eventData = await _restart(testchainId1);
       expect(Object.keys(eventData)).toEqual([READY]);
 
       const {
-        details: { status: status2 }
+        data: { status: status2 }
       } = await client.api.getChain(testchainId1);
 
       expect(status2).toEqual(READY);
@@ -196,18 +205,15 @@ describe.each(chainTypesToTest)(
     test('client will delete chain and it will be removed from list', async () => {
       await _stop(testchainId1);
       const {
-        details: { status: status }
+        data: { status: status }
       } = await client.api.getChain(testchainId1);
-      expect(status).toEqual(TERMINATED);
+      expect(status).toEqual(CHAIN_TERMINATED);
 
       // Removing chain
       await client.api.deleteChain(testchainId1);
-      // Check get returns nothing
-      const {
-        details: details
-      } = await client.api.getChain(testchainId1);
-      expect(details).toBeNull();
-      
+      // Check get returns error
+      await expect(client.api.getChain(testchainId1)).rejects.toEqual({ errors: { detail: 'Not Found' } });
+
       // Check list
       client.api.setEmail(email);
       const { data } = await client.api.listAllChains();

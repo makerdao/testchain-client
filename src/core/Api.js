@@ -40,7 +40,10 @@ export default class Api {
       } catch (err) {
         reject(err);
       }
-    }).catch(err => console.error(err));
+    }).catch((err) => {
+      console.error(err);
+      return Promise.reject(err);
+    });
   }
 
   startStack(config) {

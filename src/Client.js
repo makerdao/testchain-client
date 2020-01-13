@@ -55,6 +55,16 @@ export default class Client {
     return obj;
   }
 
+  // TODO: Implement correctly
+  async sequenceStatuses(id, statusNames) {
+    const res = await Promise.all(statusNames.map(ev => this.once(id, ev)));
+    const obj = res.reduce((acc, { event, payload }) => {
+      acc[event] = payload;
+      return acc;
+    }, {});
+    return obj;
+  }
+
   create(options) {
     this.channel(API).push(Action.START_CHAIN, { ...options });
   }
