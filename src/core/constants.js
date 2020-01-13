@@ -44,7 +44,7 @@ export const Status = {
   REVERTING_SNAPSHOT: 'snapshot_reverting',
   SNAPSHOT_REVERTED: 'snapshot_reverted',
 
-  READY: 'ready',
+  READY: 'ready'
 };
 
 export const Action = {

@@ -40,7 +40,7 @@ export default class Api {
       } catch (err) {
         reject(err);
       }
-    }).catch((err) => {
+    }).catch(err => {
       console.error(err);
       return Promise.reject(err);
     });
