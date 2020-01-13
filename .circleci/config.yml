@@ -24,7 +24,7 @@ jobs:
             git clone https://github.com/makerdao/staxx.git
             cd staxx
             git checkout develop
-            make run-dev
+            make migrate-dev && make run-dev
       - run:
           name: run tests
           command: |
