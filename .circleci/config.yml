@@ -24,7 +24,7 @@ jobs:
             git clone https://github.com/makerdao/staxx.git
             cd staxx
             git checkout develop
-            make migrate-dev && make run-dev
+            make migrate-test && UID=${UID} GID=${GID} make run-test
       - run:
           name: run tests
           command: |
