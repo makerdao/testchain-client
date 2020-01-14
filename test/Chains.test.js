@@ -106,7 +106,7 @@ describe.each(chainTypesToTest)(
 
       expect(status).toEqual(READY);
       expect(id).toEqual(expectedId);
-    }, 10000);
+    }, 20000);
 
     test('getChain will return an object with correct chain details', async () => {
       const { data: chainData } = await client.api.getChain(testchainId1);
@@ -184,7 +184,7 @@ describe.each(chainTypesToTest)(
       } = await client.api.getChain(testchainId1);
 
       expect(status).toEqual(CHAIN_TERMINATED);
-    }, 10000);
+    }, 15000);
 
     test('client will restart a stopped chain', async () => {
       const {
