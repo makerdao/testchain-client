@@ -31,7 +31,7 @@ jobs:
             npm i yarn -g
             yarn
             yarn test
-          no_output_timeout: 30m
+          no_output_timeout: 42m
       - run:
           name: Notifiation Failed
           command: bash .circleci/notify "failed"
