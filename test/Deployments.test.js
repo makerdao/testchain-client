@@ -105,11 +105,14 @@ describe.each(chainTypesToTest)(
       ]);
 
       const { deployed } = eventData;
-      expect(deployed).toHaveProperty('PROXY_ACTIONS');
-      expect(deployed).toHaveProperty('MCD_VAT');
-      expect(deployed).toHaveProperty('ETH');
-      expect(deployed).toHaveProperty('PROXY_PAUSE_ACTIONS');
-      expect(deployed).toHaveProperty('CDP_MANAGER');
+      expect(deployed).toHaveProperty('step_id');
+      expect(deployed).toHaveProperty('git_ref', deploymentHash);
+      expect(deployed).toHaveProperty('result');
+      expect(deployed.result).toHaveProperty('PROXY_ACTIONS');
+      expect(deployed.result).toHaveProperty('MCD_VAT');
+      expect(deployed.result).toHaveProperty('ETH');
+      expect(deployed.result).toHaveProperty('PROXY_PAUSE_ACTIONS');
+      expect(deployed.result).toHaveProperty('CDP_MANAGER');
 
       // Adding to list of started chains
       startedChains.push(expectedId);
