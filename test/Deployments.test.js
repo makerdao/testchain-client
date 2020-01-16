@@ -100,8 +100,7 @@ describe.each(chainTypesToTest)(
       } = await client.api.startStack(stackPayload);
 
       const eventData = await client.sequenceEvents(expectedId, [
-        Event.OK,
-        Event.DEPLOYED,
+        Event.CHAIN_DEPLOYED,
         Event.READY
       ]);
 
