@@ -69,14 +69,6 @@ export default class Client {
     this.channel(API).push(Action.START_CHAIN, { ...options });
   }
 
-  // stop(id) {
-  //   this.channel(id).push(Action.STOP_CHAIN);
-  // }
-
-  // restart(id) {
-  //   this.channel(API).push(Action.RESTART_CHAIN, { id });
-  // }
-
   takeSnapshot(id, description = '') {
     this.channel(id).push(Action.TAKE_SNAPSHOT, { description });
   }

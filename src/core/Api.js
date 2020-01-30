@@ -128,12 +128,12 @@ export default class Api {
   }
 
   async getBlockNumber(id) {
-    const { details: chain } = await this.getChain(id);
+    const { data } = await this.getChain(id);
 
-    if (chain.status !== 'ready') {
+    if (data.status !== 'ready') {
       return null;
     } else {
-      const url = this._parseChainUrl(chain);
+      const url = this._parseChainUrl(data);
       const res = await this.request(
         '',
         'POST',
@@ -145,10 +145,10 @@ export default class Api {
   }
 
   async mineBlock(id) {
-    const { details: chain } = await this.getChain(id);
+    const { data } = await this.getChain(id);
 
-    if (chain.status === 'ready' && chain.config.type === 'ganache') {
-      const url = this._parseChainUrl(chain);
+    if (data.status === 'ready' && data.config.type === 'ganache') {
+      const url = this._parseChainUrl(data);
       return this.request(
         '',
         'POST',
@@ -160,10 +160,10 @@ export default class Api {
     }
   }
 
-  _parseChainUrl(chain) {
+  _parseChainUrl(data) {
     const {
-      chain_details: { rpc_url }
-    } = chain;
+      details: { rpc_url }
+    } = data;
     const [, _url, _port] = rpc_url.split(':');
     return _url === '//ex-testchain.local'
       ? `http://localhost:${_port}`
