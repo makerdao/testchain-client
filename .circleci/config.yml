@@ -23,14 +23,15 @@ jobs:
             #echo "${DEPLOYMENT_KEY}" | base64 -d > "~/.ssh/id_rsa"
             git clone https://github.com/makerdao/staxx.git
             cd staxx
-            # git checkout debug-testchain-client
-            make run-dev
+            git checkout develop
+            make docker-deps TAG=dev && make migrate-test && make run-test
       - run:
           name: run tests
           command: |
             npm i yarn -g
             yarn
             yarn test
+          no_output_timeout: 42m
       - run:
           name: Notifiation Failed
           command: bash .circleci/notify "failed"

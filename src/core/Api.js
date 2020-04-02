@@ -40,16 +40,37 @@ export default class Api {
       } catch (err) {
         reject(err);
       }
-    }).catch(err => console.error(err));
+    }).catch(err => {
+      console.error(err);
+      return Promise.reject(err);
+    });
   }
 
   startStack(config) {
     const body = JSON.stringify(config);
+    return this.request('/stack/start', 'POST', this._url, body);
+  }
+
+  restartStack(id) {
+    // TODO: check if something else needed ?
+    const config = {
+      testchain: {
+        config: {
+          id: id
+        },
+        deps: []
+      }
+    };
+    const body = JSON.stringify(config);
     return this.request('stack/start', 'POST', this._url, body);
   }
 
+  stopStack(id) {
+    return this.request(`stack/stop/${id}`, 'GET');
+  }
+
   getStackInfo(id) {
-    return this.request(`/stack/info/${id}`, 'GET');
+    return this.request(`stack/info/${id}`, 'GET');
   }
 
   getChain(id) {
@@ -57,11 +78,15 @@ export default class Api {
   }
 
   listAllChains() {
-    return this.request('chains/', 'GET');
+    return this.request('chains', 'GET');
   }
 
   listAllSnapshots(chainType = 'ganache') {
     return this.request(`snapshots/${chainType}`, 'GET');
+  }
+
+  listStacksConfigs() {
+    return this.request('stack/list', 'GET');
   }
 
   deleteSnapshot(id) {
@@ -74,6 +99,14 @@ export default class Api {
 
   downloadSnapshotUrl(id) {
     return `${this._url}/snapshot/${id}`;
+  }
+
+  reloadStackConfigs() {
+    return this.request('stack/reload', 'GET');
+  }
+
+  getDeploymentSteps() {
+    return this.request('deployment/steps', 'GET');
   }
 
   async listAllCommits() {
@@ -95,12 +128,12 @@ export default class Api {
   }
 
   async getBlockNumber(id) {
-    const { details: chain } = await this.getChain(id);
+    const { data } = await this.getChain(id);
 
-    if (chain.status !== 'ready') {
+    if (data.status !== 'ready') {
       return null;
     } else {
-      const url = this._parseChainUrl(chain);
+      const url = this._parseChainUrl(data);
       const res = await this.request(
         '',
         'POST',
@@ -112,10 +145,10 @@ export default class Api {
   }
 
   async mineBlock(id) {
-    const { details: chain } = await this.getChain(id);
+    const { data } = await this.getChain(id);
 
-    if (chain.status === 'ready' && chain.config.type === 'ganache') {
-      const url = this._parseChainUrl(chain);
+    if (data.status === 'ready' && data.config.type === 'ganache') {
+      const url = this._parseChainUrl(data);
       return this.request(
         '',
         'POST',
@@ -127,10 +160,10 @@ export default class Api {
     }
   }
 
-  _parseChainUrl(chain) {
+  _parseChainUrl(data) {
     const {
-      chain_details: { rpc_url }
-    } = chain;
+      details: { rpc_url }
+    } = data;
     const [, _url, _port] = rpc_url.split(':');
     return _url === '//ex-testchain.local'
       ? `http://localhost:${_port}`

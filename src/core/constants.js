@@ -9,12 +9,6 @@ export const Event = {
   CHAIN_STARTED: 'started',
   CHAIN_DEPLOYING: 'deploying',
   CHAIN_STATUS_CHANGED: 'status_changed',
-  CHAIN_STATUS_ACTIVE: 'status_changed_active',
-  CHAIN_STATUS_TERMINATING: 'status_changed_terminating',
-  CHAIN_STATUS_TAKING_SNAP: 'status_changed_snapshot_taking',
-  CHAIN_STATUS_SNAP_TAKEN: 'status_changed_snapshot_taken',
-  CHAIN_STATUS_REVERTING_SNAP: 'status_changed_snapshot_reverting',
-  CHAIN_STATUS_SNAP_REVERTED: 'status_changed_snapshot_reverted',
   CHAIN_DEPLOYED: 'deployed',
   CHAIN_DEPLOYMENT_FAILED: 'deployment_failed',
   CHAIN_READY: 'ready',
@@ -22,14 +16,27 @@ export const Event = {
   CHAIN_DELETED: 'phx_reply',
 
   OK: 'ok',
+  READY: 'ready',
+
+  SNAPSHOT_TAKEN: 'snapshot_taken',
+  SNAPSHOT_REVERTED: 'snapshot_reverted',
+
+  STACK_READY: 'stack:ready',
+  STACK_FAILED: 'stack:failed'
+};
+
+/**
+ * List of EVM statuses
+ */
+export const Status = {
   INITIALIZING: 'initializing',
   ACTIVE: 'active',
-  READY: 'ready',
+
   DEPLOYING: 'deploying',
-  DEPLOYED: 'deployed',
+  DEPLOYMENT_FAILED: 'deployment_failed',
+  DEPLOYMENT_SUCCESS: 'deployment_success',
   TERMINATING: 'terminating',
   TERMINATED: 'terminated',
-  LOCKED: 'locked',
   FAILED: 'failed',
 
   TAKING_SNAPSHOT: 'snapshot_taking',
@@ -37,8 +44,7 @@ export const Event = {
   REVERTING_SNAPSHOT: 'snapshot_reverting',
   SNAPSHOT_REVERTED: 'snapshot_reverted',
 
-  STACK_READY: 'stack:ready',
-  STACK_FAILED: 'stack:failed'
+  READY: 'ready'
 };
 
 export const Action = {

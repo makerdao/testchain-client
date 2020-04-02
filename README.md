@@ -7,16 +7,15 @@ Testchain Client
 
 ## Installation
 
-#### Testchain-backendgateway
+#### Staxx
 
-The client is to be used along with the [testchain-backendgateway](https://github.com/makerdao/testchain-backendgateway) which is a docker container containing all testchain functionality. Requires [docker](https://docs.docker.com/install/#server) and [docker-compose](https://docs.docker.com/compose/install/)
+The client is to be used along with the [staxx](https://github.com/makerdao/staxx) which is a docker container containing all testchain functionality. Requires [docker](https://docs.docker.com/install/#server) and [docker-compose](https://docs.docker.com/compose/install/)
 
 ```bash
-git clone https://github.com/makerdao/testchain-backendgateway.git
-cd ./testchain-backendgateway
-make build          # will take a minute or two
-
-docker-compose up   # -d, will detach process
+git clone https://github.com/makerdao/staxx.git
+cd ./staxx
+make docker-deps      # will download required docker images
+make run-dev          # will take a minute or two
 ```
 
 The data folder which docker will work out of is `/tmp` which will store chain and snapshot data under `/tmp/chains` and `/tmp/snapshots` respectively.
@@ -113,10 +112,15 @@ passing an options object as a parameter.
 
 ```javascript
 {
-    clean_on_stop: false,
-    chainType: 'ganache',
-    block_mine_time: 0,
-    accounts: 3
+    testchain: {
+        config: {
+            type: 'geth,
+            accounts: 3,
+            block_mine_time: 0,
+            clean_on_stop: false, // Because we have to test restart
+        },
+        deps: []
+    }
 }
 ```
 
@@ -274,7 +278,7 @@ client.create(options);
 this.sequenceEvents(id,
     [
         Event.CHAIN_STARTED,
-        Event.CHAIN_STATUS_ACTIVE,
+        Event.CHAIN_STATUS_CHANGED,
         Event.CHAIN_READY
     ]).then(console.log);
 
@@ -290,18 +294,10 @@ this.sequenceEvents(id,
         coinbase: '0x3a92149876fb55d685a15caea45979526a4b2242',
         accounts: [ ... ]
     },
-    status_changed_active: {
+    status_changed: {
         data: 'active'
     },
-    ready: {
-        ws_url: 'ws://ex-testchain.local:8571',
-        rpc_url: 'http://ex-testchain.local:8571',
-        network_id: 999,
-        id: '11957893023697223559',
-        gas_limit: 9000000000000,
-        coinbase: '0x3a92149876fb55d685a15caea45979526a4b2242',
-        accounts: [ ... ]
-    }
+    ready: {}
 }
 ```
 
